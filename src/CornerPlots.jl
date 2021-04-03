@@ -1,4 +1,4 @@
-module Corner
+module CornerPlots
 
 using RecipesBase
 using Measures
