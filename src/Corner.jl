@@ -41,8 +41,8 @@ function corner(
     n = length(columns)
 
     # Merge keywords for different subplots & series
-    hist_kwargs=merge((; nbins=20, color=:black), hist_kwargs)
-    hist2d_kwargs=merge((; nbins=30, color=:Greys), hist2d_kwargs)
+    hist_kwargs=merge((; nbins=20, color=:black), hist_kwargs, (;yticks=[]))
+    hist2d_kwargs=merge((; nbins=32, color=:Greys, colorbar=:none), hist2d_kwargs)
     contour_kwargs=merge((; color=:black, linewidth=2), contour_kwargs)
     scatter_kwargs=merge((; color=:black, alpha=0.1, markersize=1.5), scatter_kwargs)
     percentiles_kwargs=merge((;linestyle=:dash, color=:black), percentiles_kwargs)
@@ -54,7 +54,7 @@ function corner(
         grid=:none,
         xformatter=:plain,
         yformatter=:plain,
-        titlefontsize=12,
+        titlefontsize=10,
     ), appearance)
 
     subplots = []
@@ -62,13 +62,14 @@ function corner(
     # Build grid of nxn plots
     for row in 1:n, col in 1:n
 
-        fmt(label) = "\$\\mathrm{$label}\$"
+        # fmt(label) = "\$\\mathrm{$label}\$"
+        fmt(label) = "\$$label\$"
         kw = (;
             title = row == col ? labels[row] : "",
             xguide = row == n ? fmt(labels[col]) : "",
-            yguide = col == 1 ? fmt(labels[row]) : "",
+            yguide = col == 1  && row > 1 ? fmt(labels[row]) : "",
             xformatter = row == n ? appearance.xformatter : t->"",
-            yformatter = col == 1 ? appearance.yformatter : t->"",
+            yformatter = col == 1 && row > 1 ? appearance.yformatter : t->"",
 
             # For crudlely tweaking aspect ratios of the plots to account for
             top_margin = row == 1 ? 10Measures.mm : :match,
@@ -88,14 +89,19 @@ function corner(
         push!(subplots, subplot)
     end
 
-    RecipesBase.plot(subplots...; layout=(n,n), legend=:none, kwargs...)
+    RecipesBase.plot(subplots...; layout=(n,n), legend=:none, link=:both, kwargs...)
 end
 export corner
 
 
-function hist(x, hist_kwargs, plot_percentiles, percentiles_kwargs, density)
+function hist(x, hist_kwargs, plot_percentiles, percentiles_kwargs, density,)
 
     h = fit(Histogram, x; hist_kwargs.nbins)
+    y = first(only(h.edges))+step(only(h.edges))/2 : step(only(h.edges)) : last(only(h.edges))-step(only(h.edges))/2
+    minx, maxx = extrema(x)
+    extent = maxx - minx
+    h_scaled = h.weights ./ maximum(h.weights) .* extent
+    h_scaled .+= minx
 
     pcs = []
     x_sorted = sort(x)
@@ -105,15 +111,16 @@ function hist(x, hist_kwargs, plot_percentiles, percentiles_kwargs, density)
 
 
     # WIP: replace the title with an annotation so that the margins don't get messed up.
-    if hasproperty(hist_kwargs, :title)
+    if hasproperty(hist_kwargs, :title) && hist_kwargs.title != ""
         pcs_title = quantile(x_sorted, [0.16, 0.5, 0.84], sorted=true)
         med = pcs_title[2]
         low = med - pcs_title[1]
         high =  pcs_title[3] - med
-        title = @sprintf("\$\\mathrm{%s}  = %.2f^{+%.2f}_{-%.2f}\$", hist_kwargs.title, pcs_title[2], high, low)
+        # title = @sprintf("\$\\mathrm{%s}  = %.2f^{+%.2f}_{-%.2f}\$", hist_kwargs.title, pcs_title[2], high, low)
+        title = @sprintf("\$%s = %.2f^{+%.2f}_{-%.2f}\$", hist_kwargs.title, pcs_title[2], high, low)
 
         xc = (h.edges[1][end] + h.edges[1][begin])/2
-        yc = maximum(h.weights) * 1.22
+        yc = maximum(h_scaled) * 1.4
 
         
         if hasproperty(hist_kwargs, :titlefontsize)
@@ -132,16 +139,11 @@ function hist(x, hist_kwargs, plot_percentiles, percentiles_kwargs, density)
     end
     hist_kwargs = delete(hist_kwargs, :nbins)
     percentiles_kwargs = delete(percentiles_kwargs,:title)
-
-    # p = RecipesBase.plot(h; seriestype=:step, hist_kwargs...)
-    y = first(only(h.edges))+step(only(h.edges))/2 : step(only(h.edges)) : last(only(h.edges))-step(only(h.edges))/2
-    p = RecipesBase.plot(y, h.weights; seriestype=:step, hist_kwargs...)
-
-
+    p = RecipesBase.plot()
     if length(pcs) > 0
         RecipesBase.plot!(p, pcs; seriestype=:vline, percentiles_kwargs...)
     end
-
+    RecipesBase.plot!(p, y, h_scaled; seriestype=:step, hist_kwargs...)
     return p
 end
 function hist(x, y, hist2d_kwargs, contour_kwargs, scatter_kwargs, plot_contours, plot_datapoints)
@@ -152,7 +154,6 @@ function hist(x, y, hist2d_kwargs, contour_kwargs, scatter_kwargs, plot_contours
     if plot_datapoints
         RecipesBase.plot!(p, y, x; seriestype=:scatter, scatter_kwargs...)
     end
-
 
 
     h2 = h1
