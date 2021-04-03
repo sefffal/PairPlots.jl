@@ -57,6 +57,10 @@ function corner(
         titlefontsize=10,
     ), appearance)
 
+    # Calculate a default reasonable size unless overriden
+    s = 250*n
+    kwargs = merge((;size = (s,s)), kwargs)
+
     subplots = []
 
     # Build grid of nxn plots
@@ -73,6 +77,8 @@ function corner(
 
             # For crudlely tweaking aspect ratios of the plots to account for
             top_margin = row == 1 ? 10Measures.mm : :match,
+            left_margin = col == 1 ? 8Measures.mm : :match,
+            right_margin = col == n ? 6Measures.mm : :match,
         )
 
         subplot = 
@@ -172,7 +178,11 @@ function hist(x, y, hist2d_kwargs, contour_kwargs, scatter_kwargs, plot_contours
     end
 
     masked_weights = fill(NaN, size(h2.weights))
-    mask = h2.weights .>= V[1]
+    if plot_datapoints
+        mask = h2.weights .>= V[1]
+    else
+        mask = trues(size(h2.weights))
+    end
     masked_weights[mask] .= h2.weights[mask]
 
     levels_final = [0; V; maximum(h2.weights) * (1 + 1e-4)]
@@ -187,20 +197,20 @@ function hist(x, y, hist2d_kwargs, contour_kwargs, scatter_kwargs, plot_contours
     p
 end
 
-function coords_from_mask(mask)
-    c = count(mask)
-    xs = Vector{Int}(undef, c)
-    ys = Vector{Int}(undef, c)
-    k = 0
-    for i in axes(mask,1), j in axes(mask,2)
-        if mask[i,j]
-            k += 1
-            xs[k] = i
-            ys[k] = j
-        end
-    end
-    return xs, ys
-end
+# function coords_from_mask(mask)
+#     c = count(mask)
+#     xs = Vector{Int}(undef, c)
+#     ys = Vector{Int}(undef, c)
+#     k = 0
+#     for i in axes(mask,1), j in axes(mask,2)
+#         if mask[i,j]
+#             k += 1
+#             xs[k] = i
+#             ys[k] = j
+#         end
+#     end
+#     return xs, ys
+# end
 
 
 
