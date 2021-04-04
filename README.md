@@ -1,19 +1,39 @@
 # CornerPlots.jl
 
-This package is essentially a clone of the well-known Python library [corner.py](https://corner.readthedocs.io/en/latest/index.html). It is presents a visualization of high dimensional data (presumably sampled using a Monte Carlo method) that includes 1D histograms of each variable.
+This package produces corner plots, a grid of 1D and 2D histograms that allow you to visualize high dimensional data.
 
+The defaults in this package aim to reproduce the output of the well-known Python library [corner.py](https://corner.readthedocs.io/en/latest/index.html) as closely as possible. If these are not to your tastes, this package is highly configurable (see examples below).
+
+See also: [StatsPlots.cornerplot](https://github.com/JuliaPlots/StatsPlots.jl#corrplot-and-cornerplot) and [GeoStats.cornerplot](https://juliaearth.github.io/GeoStats.jl/stable/plotting.html#cornerplot).
+
+This package is curently experimental and under active development. 
+
+## Notes
+This pacakge is currently only tested using the GR plots backend, and furthermore, saving plots as PNG or PDF often produces artifacts.
+I recommend you save your figures as SVG.
+
+The edges of the outer contour are currently jagged compared to `corner.py`. I am still investigating how this can be improved.
+
+If `plotdatapoints` is true (default), the performance of Plots can suffer with very large datasets. In those cases, I recommend you either thin the data or disable that option to only show histograms and contours.
+
+There is somewhat excessive space between the individual subplots compared to `corner.py` that cannot easily be removed. I am ivestigating taking over the layouting using `inset_subplots` in future.
 
 ## Usage
-Though this package seeks to approximate the output of `corner.py`, the interface is somewhat more Julian. The only export from this package is the function `corner`. This function has one required argument, a [Tables.jl](https://tables.juliadata.org/stable/) compatible table consisting of two or more columns. This can simply be a named tuple of vectors, a [DataFrame](https://dataframes.juliadata.org/stable/), [TypedTable](https://typedtables.juliadata.org/stable/), result of an execute statement from [SQLLite](https://juliadatabases.org/SQLite.jl/stable/), data loaded from [Arrow](https://arrow.juliadata.org/stable/manual/#Writing-arrow-data), etc.
+```julia
+corner(table [, labels])
+```
+This function has one required argument, a [Tables.jl](https://tables.juliadata.org/stable/) compatible table consisting of one or more columns. This can simply be a named tuple of vectors, a [DataFrame](https://dataframes.juliadata.org/stable/), [TypedTable](https://typedtables.juliadata.org/stable/), result of an execute statement from [SQLLite](https://juliadatabases.org/SQLite.jl/stable/), data loaded from [Arrow](https://arrow.juliadata.org/stable/manual/#Writing-arrow-data), etc.
 
 The variable names are by default taken from the column names of the input table, but can also be supplied by a second vector of strings.
 
 This package uses [RecipesBase](http://juliaplots.org/RecipesBase.jl/stable/) rather than [Plots](http://docs.juliaplots.org/latest/) directly, so you must also load Plots in order to see any output. The package is only tested with [GR](https://github.com/jheinen/GR.jl).
 
-### Basic Example
+### Examples
+
+Basics:
 ```julia
-using Plots
-using CornerPlots
+using Plots, CornerPlots
+gr()
 
 # Generate some data to visualize
 a = randn(10000)
@@ -21,13 +41,57 @@ b = 2randn(10000)
 c = a .+ b
 d = a .* b
 
-data = (;a,b,c,d)
+table = (;a,b,c,d)
 
-corner(data,)
-
+corner(table)
 ```
+![](images/basic.png)
 
+Single variable:
+```julia
+corner((;d))
+```
+![](images/single-variable.png)
+
+Appearance:
+```julia
+theme(:dark) # See PlotThemes.jl included with Plots.
+corner(table, contour_kwargs=(;color=:white), hist2d_kwargs=(;color=:magma), hist_kwargs=(;color=:white,titlefontcolor=:white), scatter_kwargs=(;color=:white); percentiles_kwargs=(;color=:white), plot_contours=false)
+```
+![](images/themed.png)
+
+
+3D Wireframe and Line Plot:
+```julia
+theme(:solarized); corner((;a,b,c,d), contour_kwargs=(;color=:white), hist2d_kwargs=(;color=:magma,seriestype=:wireframe), hist_kwargs=(;color=:white,titlefontcolor=:white,seriestype=:line), scatter_kwargs=(;color=:white); percentiles_kwargs=(;color=:white), plot_contours=false)
+```
+![](images/3d-mesh.png)
+
+
+
+
+### Full API
+```julia
+corner(table [, labels]; plotcontours, plotdatapoints, plotpercentiles, hist_kwargs, hist2d_kwargs, contour_kwargs, scatter_kwargs, percentiles_kwargs, appearance)
+```
+The `corner` function also accepts the following keyword arguments:
+* `plotcontours=true`: Overplot contours on each 2D histogram
+* `plotdatapoints=true`: Plot individual data points under the histogram to reveal outliers. Disable to improve performance on large datasets.
+* `plotpercentiles=[15,50,84]`: What percentiles should be used for the vertical lines in the 1D histogram. Pass an empty vector to hide.
+* `hist_kwargs=(;)`: Additional plot keyword arguments to supply the 1D histograms.
+* `hist2d_kwargs=(;)`: Additional plot keyword arguments to supply the 2D histograms.
+* `contour_kwargs=(;)`: Additional plot keyword arguments to supply the contours plotted over the 2D histograms.
+* `scatter_kwargs=(;)`: Additional plot keyword arguments to supply the data points scattered under the 2D histograms. 
+* `percentiles_kwargs=(;)`: Additional plot keyword arguments to supply the vertical percentile lines on the 1D histograms. 
+* `appearance=(;)`: General keyword arguments to forward to all subplots.
+
+Additional keyword arguments are forwarded to the main plot that holds the all of the subplots. For example, passing `size=(1000,1000)` sets the size of the overall figure not each individual subplot.
+
+## Credits
+This package is built on top of the great packages Plots, GR, RecipesBase, NamedTupleTools, and Tables. The overall inspiration and a few peices of code are taken directly from corner.py, whose authors IMO should be cited if you use this pacakge.
 
 ## TODO:
-- direct support for MCMCChains via requires? or just duck typing
-- direct GRUtils backend
+- Direct support for MCMCChains
+- Supertitle support using a hidden extra plot
+- Smooth edges of the outer contour
+- Denser plot grid
