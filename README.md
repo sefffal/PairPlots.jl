@@ -16,7 +16,7 @@ The edges of the outer contour are currently jagged compared to `corner.py`. I a
 
 If `plotdatapoints` is true (default), the performance of Plots can suffer with very large datasets. In those cases, I recommend you either thin the data or disable that option to only show histograms and contours.
 
-There is somewhat excessive space between the individual subplots compared to `corner.py` that cannot easily be removed. I am ivestigating taking over the layouting using `inset_subplots` in future.
+There is somewhat excessive space between the individual subplots compared to `corner.py` that cannot easily be removed. I am investigating manual layouts using `inset_subplots` to fix this.
 
 ## Usage
 ```julia
