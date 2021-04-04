@@ -62,7 +62,6 @@ corner(
     hist_kwargs=(;color=:white,titlefontcolor=:white),
     scatter_kwargs=(;color=:white);
     percentiles_kwargs=(;color=:white),
-    plot_contours=false
 )
 ```
 ![](images/themed.png)
