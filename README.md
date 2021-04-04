@@ -51,7 +51,7 @@ Single variable:
 ```julia
 corner((;d))
 ```
-<img src="images/single-variable.png" width=20/>
+<img src="images/single-variable.png" width=350/>
 
 Appearance:
 ```julia
