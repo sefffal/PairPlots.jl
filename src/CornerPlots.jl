@@ -56,6 +56,8 @@ function corner(
         titlefontsize=10,
     ), appearance)
 
+    threeD = hasproperty(hist2d_kwargs, :seriestype) && hist2d_kwargs.seriestype == :wireframe
+
     # Calculate a default reasonable size unless overriden
     s = 250*n
     kwargs = merge((;size = (s,s)), kwargs)
@@ -69,10 +71,10 @@ function corner(
         fmt(label) = "\$$label\$"
         kw = (;
             title = row == col ? labels[row] : "",
-            xguide = row == n ? fmt(labels[col]) : "",
-            yguide = col == 1  && row > 1 ? fmt(labels[row]) : "",
-            xformatter = row == n ? appearance.xformatter : t->"",
-            yformatter = col == 1 && row > 1 ? appearance.yformatter : t->"",
+            xguide = threeD || row == n ? fmt(labels[col]) : "",
+            yguide = threeD || col == 1  && row > 1 ? fmt(labels[row]) : "",
+            xformatter = threeD || row == n ? appearance.xformatter : t->"",
+            yformatter = threeD || col == 1 && row > 1 ? appearance.yformatter : t->"",
 
             # For crudlely tweaking aspect ratios of the plots to account for
             top_margin = row == 1 ? 10Measures.mm : :match,
