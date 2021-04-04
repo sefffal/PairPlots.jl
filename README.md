@@ -56,14 +56,28 @@ corner((;d))
 Appearance:
 ```julia
 theme(:dark) # See PlotThemes.jl included with Plots.
-corner(table, contour_kwargs=(;color=:white), hist2d_kwargs=(;color=:magma), hist_kwargs=(;color=:white,titlefontcolor=:white), scatter_kwargs=(;color=:white); percentiles_kwargs=(;color=:white), plot_contours=false)
+corner(
+    table,
+    hist2d_kwargs=(;color=:magma),
+    hist_kwargs=(;color=:white,titlefontcolor=:white),
+    scatter_kwargs=(;color=:white);
+    percentiles_kwargs=(;color=:white),
+    plot_contours=false
+)
 ```
 ![](images/themed.png)
 
 
-3D Wireframe and Line Plot:
+3D wireframe and line plot (WIP):
 ```julia
-theme(:solarized); corner((;a,b,c,d), contour_kwargs=(;color=:white), hist2d_kwargs=(;color=:magma,seriestype=:wireframe), hist_kwargs=(;color=:white,titlefontcolor=:white,seriestype=:line), scatter_kwargs=(;color=:white); percentiles_kwargs=(;color=:white), plot_contours=false)
+theme(:solarized);
+corner(
+    table,
+    hist2d_kwargs=(;color=:magma,seriestype=:wireframe),
+    hist_kwargs=(;color=:white,titlefontcolor=:white,seriestype=:line),
+    scatter_kwargs=(;color=:white);
+    percentiles_kwargs=(;color=:white),
+)
 ```
 ![](images/3d-mesh.png)
 
