@@ -22,8 +22,6 @@ using Printf
 function corner(
         table,
         labels = string.(Tables.columnnames(table));
-        quantiles = [0.16, 0.84],
-        density=false,
         plotcontours=true,
         plotdatapoints=true,
         plotpercentiles=[15,50,84],
@@ -85,7 +83,7 @@ function corner(
         subplot = 
         if row == col
             # 1D histogram
-            hist(getproperty(table,columns[row]), merge(appearance, kw, hist_kwargs), plotpercentiles, merge(kw, percentiles_kwargs), density)
+            hist(getproperty(table,columns[row]), merge(appearance, kw, hist_kwargs), plotpercentiles, merge(kw, percentiles_kwargs))
         elseif row > col
             # 2D histogram 
             hist(getproperty(table,columns[row]), getproperty(table,columns[col]), merge(appearance, kw, hist2d_kwargs), contour_kwargs, scatter_kwargs, plotcontours, plotdatapoints)
@@ -100,7 +98,7 @@ end
 export corner
 
 
-function hist(x, hist_kwargs, plotpercentiles, percentiles_kwargs, density,)
+function hist(x, hist_kwargs, plotpercentiles, percentiles_kwargs,)
 
     h = fit(Histogram, x; hist_kwargs.nbins)
     y = first(only(h.edges))+step(only(h.edges))/2 : step(only(h.edges)) : last(only(h.edges))-step(only(h.edges))/2
