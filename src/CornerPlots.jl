@@ -157,6 +157,7 @@ end
 function hist(x, y, hist2d_kwargs, contour_kwargs, scatter_kwargs, plotcontours, plotdatapoints)
     h1 = fit(Histogram, (y,x); hist2d_kwargs.nbins)
     p = RecipesBase.plot()
+    threeD = hasproperty(hist2d_kwargs, :seriestype) && hist2d_kwargs.seriestype == :wireframe
     if hasproperty(hist2d_kwargs, :seriestype) && hist2d_kwargs.seriestype == :wireframe
         scatter_kwargs = merge(scatter_kwargs, (; seriestype=:scatter3d))
         # if !hasproperty(contour_kwargs, :seriestype)
@@ -187,7 +188,7 @@ function hist(x, y, hist2d_kwargs, contour_kwargs, scatter_kwargs, plotcontours,
         @warn "Too few points to create valid contours"
     end
     masked_weights = fill(NaN, size(h2.weights))
-    if plotdatapoints
+    if plotdatapoints && !threeD
         mask = h2.weights .>= V[1]
     else
         mask = trues(size(h2.weights))

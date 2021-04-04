@@ -70,6 +70,11 @@ corner(
 
 3D wireframe and line plot (WIP):
 ```julia
+corner(table, hist2d_kwargs=(;seriestype=:wireframe,nbins=15), plotdatapoints=false)
+```
+![](images/3d-mesh-2.png)
+
+```julia
 theme(:solarized);
 corner(
     table,
