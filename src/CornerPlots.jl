@@ -90,7 +90,7 @@ function corner(
             hist(getproperty(table,columns[row]), getproperty(table,columns[col]), merge(appearance, kw, hist2d_kwargs), contour_kwargs, scatter_kwargs, plot_contours, plot_datapoints)
         else
             # blank (TODO: configurable)
-            RecipesBase.plot(framestyle=:none)
+            RecipesBase.plot(framestyle=:none, background_color_inside=:transparent)
         end
         push!(subplots, subplot)
     end
@@ -115,7 +115,6 @@ function hist(x, hist_kwargs, plot_percentiles, percentiles_kwargs, density,)
         pcs = quantile(x_sorted, plot_percentiles./100, sorted=true)
     end
 
-
     # WIP: replace the title with an annotation so that the margins don't get messed up.
     if hasproperty(hist_kwargs, :title) && hist_kwargs.title != ""
         pcs_title = quantile(x_sorted, [0.16, 0.5, 0.84], sorted=true)
@@ -130,9 +129,13 @@ function hist(x, hist_kwargs, plot_percentiles, percentiles_kwargs, density,)
 
         
         if hasproperty(hist_kwargs, :titlefontsize)
+            color = :black
+            if hasproperty(hist_kwargs, :titlefontcolor)
+                color=hist_kwargs.titlefontcolor
+            end
             hist_kwargs = merge(
                 delete(hist_kwargs,:title),
-                (;annotation=(xc, yc, title, hist_kwargs.titlefontsize)),
+                (;annotation=(xc, yc, (title, color, hist_kwargs.titlefontsize))),
                 # ylims=(NaN, yc*1.1)),
             )
         else
@@ -149,7 +152,11 @@ function hist(x, hist_kwargs, plot_percentiles, percentiles_kwargs, density,)
     if length(pcs) > 0
         RecipesBase.plot!(p, pcs; seriestype=:vline, percentiles_kwargs...)
     end
-    RecipesBase.plot!(p, y, h_scaled; seriestype=:step, hist_kwargs...)
+    kw = merge((;seriestype=:step), hist_kwargs)
+    if kw.seriestype==:step
+        y = y .- step(y)/2
+    end
+    RecipesBase.plot!(p, y, h_scaled; seriestype=:step, kw...)
     return p
 end
 function hist(x, y, hist2d_kwargs, contour_kwargs, scatter_kwargs, plot_contours, plot_datapoints)
@@ -212,6 +219,7 @@ end
 #     return xs, ys
 # end
 
-
+# Precompile statements
+# precompile(corner, (NamedTuple{(:a, :b), Tuple{Vector{Float64}, Vector{Float64}}},))
 
 end # module
