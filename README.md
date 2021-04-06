@@ -96,6 +96,7 @@ The `corner` function also accepts the following keyword arguments:
 * `plotcontours=true`: Overplot contours on each 2D histogram
 * `plotscatter=true`: Plot individual data points under the histogram to reveal outliers. Disable to improve performance on large datasets.
 * `plotpercentiles=[15,50,84]`: What percentiles should be used for the vertical lines in the 1D histogram. Pass an empty vector to hide.
+* `histfunc`: a function to override the calculation of the 1D and 2D histograms. See below.
 * `hist_kwargs=(;)`: plot keywords for the 1D histograms.
 * `hist2d_kwargs=(;)`: plot keywords for the 2D histograms.
 * `contour_kwargs=(;)`: plot keywords for the contours plotted over the 2D histograms.
@@ -104,6 +105,35 @@ The `corner` function also accepts the following keyword arguments:
 * `appearance=(;)`: General keywords for all subplots.
 
 Remaining keyword arguments are forwarded to the main plot that holds the all of the subplots. For example, passing `size=(1000,1000)` sets the size of the overall figure not each individual subplot.
+
+#### `histfunc`
+If you wish to calculate the histograms yourself, you can provide a callback function with two methods: one to calculate the 1D histograms along the diagonal, and another to calculate the 2D histograms.
+
+Example:
+```julia
+function myhist(a, nbins)
+    ...
+    return bin_centres, weights
+end
+function myhist(a,b,nbins)
+    ...
+    return bin_centres_x, bin_centres_y, weights
+end
+
+corner(data, histfunc=myhist)
+```
+
+The methods must return the bin **centres** rather than edges, followed by the histogram weights. You must override both the 1D and 2D cases, or neither. If you don't want to change the behaviour, you can simply forward the arguments to `PairPlots.prepare_hist`, the default value.
+
+```julia
+function myhist(a, nbins)
+    ...
+    return bin_centres, weights
+end
+myhist(a,b,nbins) = PairPlots.prepare_hist(a,b,nbins)
+corner(data, histfunc=myhist)
+```
+
 
 ## Credits
 This package is built on top of the great packages Plots, GR, RecipesBase, NamedTupleTools, and Tables. The overall inspiration and a few peices of code are taken directly from corner.py, whose authors IMO should be cited if you use this pacakge.

@@ -16,6 +16,7 @@ function corner(
         plotcontours=true,
         plotscatter=true,
         plotpercentiles=[15,50,84],
+        histfunc=prepare_hist,
         hist_kwargs=(;),
         hist2d_kwargs=(;),
         contour_kwargs=(;),
@@ -25,6 +26,11 @@ function corner(
         # Remaining kwargs are for the overall plot group
         kwargs...
     )
+
+    # Simple error check to see if the user has imported a plotting package...
+    if !hasmethod(RecipesBase.plot, ())
+        error("You must run `using Plots` before calling this function")
+    end
 
     columns = Tables.columnnames(table)
     n = length(columns)
@@ -76,11 +82,11 @@ function corner(
         subplot = 
         if row == col
             # 1D histogram
-            hist(getproperty(table,columns[row]), merge(appearance, kw, hist_kwargs), plotpercentiles, merge(kw, percentiles_kwargs))
+            hist(getproperty(table,columns[row]), histfunc, merge(appearance, kw, hist_kwargs), plotpercentiles, merge(kw, percentiles_kwargs))
             # RecipesBase.plot(framestyle=:none, background_color_inside=:transparent)
         elseif row > col
             # 2D histogram 
-            hist(getproperty(table,columns[row]), getproperty(table,columns[col]), merge(appearance, kw, hist2d_kwargs), contour_kwargs, scatter_kwargs, plotcontours, plotscatter)
+            hist(getproperty(table,columns[row]), getproperty(table,columns[col]), histfunc, merge(appearance, kw, hist2d_kwargs), contour_kwargs, scatter_kwargs, plotcontours, plotscatter)
         else
             RecipesBase.plot(framestyle=:none, background_color_inside=:transparent)
         end
@@ -91,28 +97,29 @@ function corner(
 end
 export corner
 
-function hist(x, hist_kwargs, plotpercentiles, percentiles_kwargs,)
-    h = fit(Histogram, x; hist_kwargs.nbins)
-    y = first(only(h.edges))+step(only(h.edges))/2 : step(only(h.edges)) : last(only(h.edges))-step(only(h.edges))/2
-    minx, maxx = extrema(x)
+function hist(a, histfunc, hist_kwargs, plotpercentiles, percentiles_kwargs,)
+
+    x, h = histfunc(a, hist_kwargs.nbins)
+
+
+    minx, maxx = extrema(a)
     extent = maxx - minx
-    # h_scaled = h.weights ./ maximum(h.weights) .* extent
+    # h_scaled = h ./ maximum(h) .* extent
     # h_scaled .+= minx
-    h_scaled = h.weights
+    h_scaled = h
     pcs = []
-    x_sorted = sort(x)
+    a_sorted = sort(a)
     if length(plotpercentiles) > 0
-        pcs = quantile(x_sorted, plotpercentiles./100, sorted=true)
+        pcs = quantile(a_sorted, plotpercentiles./100, sorted=true)
     end
     # WIP: replace the title with an annotation so that the margins don't get messed up.
     if hasproperty(hist_kwargs, :title) && hist_kwargs.title != ""
-        pcs_title = quantile(x_sorted, [0.16, 0.5, 0.84], sorted=true)
+        pcs_title = quantile(a_sorted, [0.16, 0.5, 0.84], sorted=true)
         med = pcs_title[2]
         low = med - pcs_title[1]
         high =  pcs_title[3] - med
         title = @sprintf("\$%s = %.2f^{+%.2f}_{-%.2f}\$", hist_kwargs.title, pcs_title[2], high, low)
-        xc = (h.edges[1][end] + h.edges[1][begin])/2
-        # yc = maximum(h_scaled) * 1.4
+        xc = mean(x)
         yc = maximum(h_scaled) * 1.25
         if hasproperty(hist_kwargs, :titlefontsize)
             color = :black
@@ -140,13 +147,15 @@ function hist(x, hist_kwargs, plotpercentiles, percentiles_kwargs,)
     end
     kw = merge((;seriestype=:step), hist_kwargs)
     if kw.seriestype==:step
-        y = y .- step(y)/2
+        x = x .- step(x)/2
     end
-    RecipesBase.plot!(p, y, h_scaled; seriestype=:step, kw...)
+    RecipesBase.plot!(p, x, h_scaled; seriestype=:step, kw...)
     return p
 end
-function hist(x, y, hist2d_kwargs, contour_kwargs, scatter_kwargs, plotcontours, plotscatter)
-    h1 = fit(Histogram, (y,x); hist2d_kwargs.nbins)
+function hist(a, b, histfunc, hist2d_kwargs, contour_kwargs, scatter_kwargs, plotcontours, plotscatter)
+
+    x, y, H = histfunc(a, b, hist2d_kwargs.nbins)
+    
     p = RecipesBase.plot()
     threeD = hasproperty(hist2d_kwargs, :seriestype) && hist2d_kwargs.seriestype == :wireframe
     if hasproperty(hist2d_kwargs, :seriestype) && hist2d_kwargs.seriestype == :wireframe
@@ -159,39 +168,64 @@ function hist(x, y, hist2d_kwargs, contour_kwargs, scatter_kwargs, plotcontours,
     if plotscatter
         if hasproperty(scatter_kwargs, :seriestype) && scatter_kwargs.seriestype == :scatter3d
             z = zeros(size(y))
-            RecipesBase.plot!(p, y, x, z; scatter_kwargs...)
+            RecipesBase.plot!(p, b, a, z; scatter_kwargs...)
         else
-            RecipesBase.plot!(p, y, x; seriestype=:scatter, scatter_kwargs...)
+            RecipesBase.plot!(p, b, a; seriestype=:scatter, scatter_kwargs...)
         end
     end
-    h2 = h1
-    # X = first(h2.edges[1])+step(h2.edges[1])/2 : step(h2.edges[1]) : last(h2.edges[1])-step(h2.edges[1])/2
-    # Y = first(h2.edges[2])+step(h2.edges[2])/2 : step(h2.edges[2]) : last(h2.edges[2])-step(h2.edges[2])/2
-    X = range(first(h2.edges[1]), step=step(h2.edges[1]), length=size(h2.weights,1))
-    Y = range(first(h2.edges[2]), step=step(h2.edges[2]), length=size(h2.weights,2))
+
     levels = 1 .- exp.(-0.5 .* (0.5:0.5:2.1).^2)
-    ii = sortperm(reshape(h2.weights,:))
-    h2flat = h2.weights[ii]
+    ii = sortperm(reshape(H,:))
+    h2flat = H[ii]
     sm = cumsum(h2flat)
     sm /= sm[end]
     V = sort(map(v0 -> h2flat[sm .≤ v0][end], levels))
     if any(==(0), diff(V))
         @warn "Too few points to create valid contours"
     end
-    masked_weights = fill(NaN, size(h2.weights))
+    masked_weights = fill(NaN, size(H))
     if plotscatter && !threeD
-        mask = h2.weights .>= V[1]
+        mask = H .>= V[1]
     else
-        mask = trues(size(h2.weights))
+        mask = trues(size(H))
     end
-    masked_weights[mask] .= h2.weights[mask]
-    levels_final = [0; V; maximum(h2.weights) * (1 + 1e-4)]
-    RecipesBase.plot!(p, X, Y, masked_weights'; seriestype=:heatmap, hist2d_kwargs...)
+    masked_weights[mask] .= H[mask]
+    levels_final = [0; V; maximum(H) * (1 + 1e-4)]
+    RecipesBase.plot!(p, x, y, masked_weights; seriestype=:heatmap, hist2d_kwargs...)
     if plotcontours
-        RecipesBase.plot!(p, X, Y, h2.weights'; seriestype=:contour, levels=levels_final, colorbar=:none, contour_kwargs...)
+        RecipesBase.plot!(p, x, y, H; seriestype=:contour, levels=levels_final, colorbar=:none, contour_kwargs...)
     end
     p
 end
+
+# Default histogram calculations
+"""
+    prepare_hist(vector, nbins)
+
+Use the StatsBase function to return a centered histogram from `vector` with `nbins`.
+Must return a tuple of bin centres, followed by bin weights (of the same length).
+"""
+function prepare_hist(a, nbins)
+    h = fit(Histogram, a; nbins)
+    x = first(only(h.edges))+step(only(h.edges))/2 : step(only(h.edges)) : last(only(h.edges))-step(only(h.edges))/2
+    return x, h.weights
+end
+"""
+    prepare_hist(vector, nbins)
+
+Use the StatsBase function to return a centered histogram from `vector` with `nbins`x`nbins`.
+Must return a tuple of bin centres along the horizontal, bin centres along the vertical,
+and a matrix of bin weights (of matching dimensions).
+"""
+function prepare_hist(a, b, nbins)
+    h = fit(Histogram, (a,b); nbins)
+    y = range(first(h.edges[1]), step=step(h.edges[1]), length=size(h.weights,1))
+    x = range(first(h.edges[2]), step=step(h.edges[2]), length=size(h.weights,2))
+    return x, y, h.weights
+end
+
+
+
 
 
 end # module
