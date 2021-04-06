@@ -14,7 +14,7 @@ I recommend you save your figures as SVG.
 
 The edges of the outer contour are currently jagged compared to `corner.py`. I am still investigating how this can be improved.
 
-If `plotdatapoints` is true (default), the performance of Plots can suffer with very large datasets. In those cases, I recommend you either thin the data or disable that option to only show histograms and contours.
+If `plotscatter` is true (default), the performance of Plots can suffer with very large datasets. In those cases, I recommend you either thin the data or disable that option to only show histograms and contours.
 
 There is somewhat excessive space between the individual subplots compared to `corner.py` that cannot easily be removed. I am investigating manual layouts using `inset_subplots` to fix this.
 
@@ -90,11 +90,11 @@ corner(
 
 ### Full API
 ```julia
-corner(table [, labels]; plotcontours, plotdatapoints, plotpercentiles, hist_kwargs, hist2d_kwargs, contour_kwargs, scatter_kwargs, percentiles_kwargs, appearance)
+corner(table [, labels]; plotcontours, plotscatter, plotpercentiles, hist_kwargs, hist2d_kwargs, contour_kwargs, scatter_kwargs, percentiles_kwargs, appearance)
 ```
 The `corner` function also accepts the following keyword arguments:
 * `plotcontours=true`: Overplot contours on each 2D histogram
-* `plotdatapoints=true`: Plot individual data points under the histogram to reveal outliers. Disable to improve performance on large datasets.
+* `plotscatter=true`: Plot individual data points under the histogram to reveal outliers. Disable to improve performance on large datasets.
 * `plotpercentiles=[15,50,84]`: What percentiles should be used for the vertical lines in the 1D histogram. Pass an empty vector to hide.
 * `hist_kwargs=(;)`: plot keywords for the 1D histograms.
 * `hist2d_kwargs=(;)`: plot keywords for the 2D histograms.
