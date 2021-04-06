@@ -9,10 +9,11 @@ using Statistics
 using StatsBase
 
 using Printf
+using Requires
 
 function corner(
         table,
-        labels = string.(Tables.columnnames(table));
+        labels = map(string, Tables.columnnames(table));
         plotcontours=true,
         plotscatter=true,
         plotpercentiles=[15,50,84],
@@ -30,6 +31,10 @@ function corner(
     # Simple error check to see if the user has imported a plotting package...
     if !hasmethod(RecipesBase.plot, ())
         error("You must run `using Plots` before calling this function")
+    end
+
+    if !Tables.istable(table)
+        error("You must supply data in a format consistent with the definition in Tables.jl, e.g. a Named Tuple of vectors.")
     end
 
     columns = Tables.columnnames(table)
@@ -82,11 +87,10 @@ function corner(
         subplot = 
         if row == col
             # 1D histogram
-            hist(getproperty(table,columns[row]), histfunc, merge(appearance, kw, hist_kwargs), plotpercentiles, merge(kw, percentiles_kwargs))
-            # RecipesBase.plot(framestyle=:none, background_color_inside=:transparent)
+            hist(Tables.getcolumn(table, columns[row]), histfunc, merge(appearance, kw, hist_kwargs), plotpercentiles, merge(kw, percentiles_kwargs))
         elseif row > col
             # 2D histogram 
-            hist(getproperty(table,columns[row]), getproperty(table,columns[col]), histfunc, merge(appearance, kw, hist2d_kwargs), contour_kwargs, scatter_kwargs, plotcontours, plotscatter)
+            hist(Tables.getcolumn(table, columns[row]), view(Tables.getcolumn(table, columns[col]),:), histfunc, merge(appearance, kw, hist2d_kwargs), contour_kwargs, scatter_kwargs, plotcontours, plotscatter)
         else
             RecipesBase.plot(framestyle=:none, background_color_inside=:transparent)
         end
@@ -225,6 +229,21 @@ function prepare_hist(a, b, nbins)
 end
 
 
+# Special support for MCMCChains.
+# They have additional table fields :iteration and :chain that should not be shown
+# by default.
+# In future, we might add the ability to colour the output by chain number.
+function __init__()
+    @require MCMCChains="c7f686f2-ff18-58e9-bc7b-31028e88f75d" begin
+        function corner(chains::MCMCChains.Chains, args...; kwargs...)
+            props = keys(chains)
+            values = (reshape(chains[prop].data,:) for prop in props)
+            table = namedtuple(props, values)
+            return corner(table, args...; kwargs...)
+        end
+    end
+    nothing
+end
 
 
 

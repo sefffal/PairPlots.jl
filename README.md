@@ -108,6 +108,9 @@ The `corner` function also accepts the following keyword arguments:
 
 Remaining keyword arguments are forwarded to the main plot that holds the all of the subplots. For example, passing `size=(1000,1000)` sets the size of the overall figure not each individual subplot.
 
+#### MCMCChains
+`MCMCChains.MCMCChain` values can be passed directly to `corner`. In this case, the fields :iteration and :chain are filtered out automatically and all chains are concatenated. 
+
 #### `histfunc`
 If you wish to calculate the histograms yourself, you can provide a callback function with two methods: one to calculate the 1D histograms along the diagonal, and another to calculate the 2D histograms.
 
@@ -141,7 +144,7 @@ corner(data, histfunc=myhist)
 This package is built on top of the great packages Plots, GR, RecipesBase, NamedTupleTools, and Tables. The overall inspiration and a few peices of code are taken directly from corner.py, whose authors IMO should be cited if you use this pacakge.
 
 ## TODO:
-- Direct support for MCMCChains
+- Support for colouring individual chains separately when using MCMCChains
 - Supertitle support using a hidden extra plot
 - Smooth edges of the outer contour
 - Denser plot grid
