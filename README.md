@@ -1,6 +1,6 @@
-# CornerPlots.jl
+# PairPlots.jl
 
-This package produces corner plots, a grid of 1D and 2D histograms that allow you to visualize high dimensional data.
+This package produces corner plots, otherwise known as pair plots or scatter plot matrices: grids of 1D and 2D histograms that allow you to visualize high dimensional data.
 
 The defaults in this package aim to reproduce the output of the well-known Python library [corner.py](https://corner.readthedocs.io/en/latest/index.html) as closely as possible. If these are not to your tastes, this package is highly configurable (see examples below).
 
@@ -32,7 +32,7 @@ This package uses [RecipesBase](http://juliaplots.org/RecipesBase.jl/stable/) ra
 
 Basics:
 ```julia
-using Plots, CornerPlots
+using Plots, PairPlots
 gr()
 
 # Generate some data to visualize
