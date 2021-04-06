@@ -9,15 +9,6 @@ using Statistics
 using StatsBase
 
 using Printf
-# Notes: density=true requires using StatsPlots
-
-# TODO: hexbin for backends that support it
-# TODO: bins
-
-# TODO: levels does not appear right vs corner, check cdf math
-
-# TODO: I think for corner.corner they use a special colormar 
-# with filled contours to hide the points inside the contour??
 
 function corner(
         table,
@@ -202,22 +193,5 @@ function hist(x, y, hist2d_kwargs, contour_kwargs, scatter_kwargs, plotcontours,
     p
 end
 
-# function coords_from_mask(mask)
-#     c = count(mask)
-#     xs = Vector{Int}(undef, c)
-#     ys = Vector{Int}(undef, c)
-#     k = 0
-#     for i in axes(mask,1), j in axes(mask,2)
-#         if mask[i,j]
-#             k += 1
-#             xs[k] = i
-#             ys[k] = j
-#         end
-#     end
-#     return xs, ys
-# end
-
-# Precompile statements
-# precompile(corner, (NamedTuple{(:a, :b), Tuple{Vector{Float64}, Vector{Float64}}},))
 
 end # module
