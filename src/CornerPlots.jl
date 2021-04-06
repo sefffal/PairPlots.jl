@@ -23,7 +23,7 @@ function corner(
         table,
         labels = string.(Tables.columnnames(table));
         plotcontours=true,
-        plotdatapoints=true,
+        plotscatter=true,
         plotpercentiles=[15,50,84],
         hist_kwargs=(;),
         hist2d_kwargs=(;),
@@ -89,7 +89,7 @@ function corner(
             # RecipesBase.plot(framestyle=:none, background_color_inside=:transparent)
         elseif row > col
             # 2D histogram 
-            hist(getproperty(table,columns[row]), getproperty(table,columns[col]), merge(appearance, kw, hist2d_kwargs), contour_kwargs, scatter_kwargs, plotcontours, plotdatapoints)
+            hist(getproperty(table,columns[row]), getproperty(table,columns[col]), merge(appearance, kw, hist2d_kwargs), contour_kwargs, scatter_kwargs, plotcontours, plotscatter)
         else
             RecipesBase.plot(framestyle=:none, background_color_inside=:transparent)
         end
@@ -154,7 +154,7 @@ function hist(x, hist_kwargs, plotpercentiles, percentiles_kwargs,)
     RecipesBase.plot!(p, y, h_scaled; seriestype=:step, kw...)
     return p
 end
-function hist(x, y, hist2d_kwargs, contour_kwargs, scatter_kwargs, plotcontours, plotdatapoints)
+function hist(x, y, hist2d_kwargs, contour_kwargs, scatter_kwargs, plotcontours, plotscatter)
     h1 = fit(Histogram, (y,x); hist2d_kwargs.nbins)
     p = RecipesBase.plot()
     threeD = hasproperty(hist2d_kwargs, :seriestype) && hist2d_kwargs.seriestype == :wireframe
@@ -165,7 +165,7 @@ function hist(x, y, hist2d_kwargs, contour_kwargs, scatter_kwargs, plotcontours,
         # end
         plotcontours = false
     end
-    if plotdatapoints
+    if plotscatter
         if hasproperty(scatter_kwargs, :seriestype) && scatter_kwargs.seriestype == :scatter3d
             z = zeros(size(y))
             RecipesBase.plot!(p, y, x, z; scatter_kwargs...)
@@ -188,7 +188,7 @@ function hist(x, y, hist2d_kwargs, contour_kwargs, scatter_kwargs, plotcontours,
         @warn "Too few points to create valid contours"
     end
     masked_weights = fill(NaN, size(h2.weights))
-    if plotdatapoints && !threeD
+    if plotscatter && !threeD
         mask = h2.weights .>= V[1]
     else
         mask = trues(size(h2.weights))
