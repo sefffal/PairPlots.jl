@@ -1,4 +1,4 @@
-module CornerPlots
+module PairPlots
 
 using RecipesBase
 using Measures
