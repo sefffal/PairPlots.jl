@@ -9,8 +9,10 @@ See also: [StatsPlots.cornerplot](https://github.com/JuliaPlots/StatsPlots.jl#co
 This package is curently experimental and under active development. 
 
 ## Notes
-This pacakge is currently only tested using the GR plots backend, and furthermore, saving plots as PNG or PDF often produces artifacts.
+This pacakge is currently only tested using the GR plots backend, and furthermore, saving plots as PNG or PDF occaisonally produces artifacts.
 I recommend you save your figures as SVG.
+
+If you pass additional keyword arguments to customize the appearance of the plots, it is recommended to use their canonical form e.g. `seriestype` instead of `st`, `markersize` instead of `ms`. PairPlots attempts to do the "smart" thing when certain combinations of keywords are present, and the shorthands might interfere with this.
 
 The edges of the outer contour are currently jagged compared to `corner.py`. I am still investigating how this can be improved.
 
