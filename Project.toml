@@ -1,4 +1,4 @@
-name = "CornerPlots"
+name = "PairPlots"
 uuid = "43a3c2be-4208-490b-832a-a21dcd55d7da"
 authors = ["William Thompson <wthompson@uvic.ca>"]
 version = "0.1.0"
