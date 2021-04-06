@@ -67,9 +67,9 @@ corner(
 ![](images/themed.png)
 
 
-3D wireframe and line plot (WIP):
+3D wireframe and line plots:
 ```julia
-corner(table, hist2d_kwargs=(;seriestype=:wireframe,nbins=15), plotdatapoints=false)
+corner(table, hist2d_kwargs=(;seriestype=:wireframe, nbins=15), plotscatter=false, dpi=200)
 ```
 ![](images/3d-mesh-2.png)
 
