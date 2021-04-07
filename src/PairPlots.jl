@@ -13,10 +13,13 @@ using Requires
 using StaticArrays
 using PolygonOps
 using Contour
+using Plots
+
 
 function corner(
         table,
         labels = map(string, Tables.columnnames(table));
+        title="",
         plotcontours=true,
         plotscatter=true,
         plotpercentiles=[15,50,84],
@@ -28,6 +31,9 @@ function corner(
         scatter_kwargs=(;),
         percentiles_kwargs=(;),
         appearance=(;),
+        lens=nothing,
+        lens_kwargs=(;),
+        bonusplot=nothing,
         # Remaining kwargs are for the overall plot group
         kwargs...
     )
@@ -65,14 +71,15 @@ function corner(
         yformatter=:plain,
         zformatter=t->"",
         titlefontsize=10,
-        tick_direction=:out
+        tick_direction=:out,
+        label="",
     ), appearance)
 
     threeD = get(hist2d_kwargs, :seriestype, nothing) == :wireframe
 
     # Calculate a default reasonable size unless overriden
-    s = 250*n
-    kwargs = merge((;size = (s,s)), kwargs)
+    # s = 250*n
+    # kwargs = merge((;size = (s,s)), kwargs)
 
 
     # Rather than messing with linking axes, let's just take over setting the plot limits ourselves
@@ -83,15 +90,41 @@ function corner(
     lim_factor = 1.05
 
 
-    subplots = []
+    # Overall plot scale factor
+    sf = 1
+
+    pad_top = 20sf
+    pad_left = 20sf
+    w=40sf
+    h=40sf
+    p=1sf
+    pad_right = 0sf
+    pad_bottom = 10sf
+    pad_bonus = iseven(n) ? 20sf : 5sf
+
+
+    full_width = (pad_left+(w+p)*n+pad_right)
+    full_height = (pad_top+(h+p)*n+pad_bottom)
+    parent = RecipesBase.plot(
+        # size=((w+p)*n, ((w+p)*n+pad_top)),
+        size=(full_width*4,full_height*4),
+        framestyle=:none,
+        title=title;
+        left_margin=-10Measures.mm,
+        kwargs...
+    )
+
 
     # Build grid of nxn plots
+    k = 1
     for row in 1:n, col in 1:n
 
         if row < col
-            push!(subplots, RecipesBase.plot(framestyle=:none, background_color_inside=:transparent))
+            # push!(subplots, emptyplot())
             continue
         end
+        k+=1
+
 
         # fmt(label) = "\$\\mathrm{$label}\$"
         fmt(label) = "\$$label\$"
@@ -103,29 +136,65 @@ function corner(
             yformatter = threeD || col == 1 && row > 1 ? appearance.yformatter : t->"",
 
             # For crudlely tweaking aspect ratios of the plots to account for
-            top_margin = row == 1 ? 10Measures.mm : :match,
-            left_margin = col == 1 ? 8Measures.mm : :match,
-            right_margin = col == n ? 6Measures.mm : :match,
+            # top_margin = row == 1 ? 10Measures.mm : :match,
+            # left_margin = col == 1 ? 8Measures.mm : :match,
+            # right_margin = col == n ? 6Measures.mm : :match,
 
             xlims=(mins[col], maxs[col]).*lim_factor,
+            label="",
+            subplot=k,
         )
+        x=(col-1)*(w+p)+pad_left
+        y=(row-1)*(h+p)+pad_top
+        inset = bbox(x*Measures.mm, y*Measures.mm, w*Measures.mm, h*Measures.mm, :left)
+    
 
         if row != col
             kw = (;kw..., ylims=(mins[row], maxs[row]).*lim_factor)
         end
 
-        subplot = 
+        # subplot = 
         if row == col
             # 1D histogram
-            hist(Tables.getcolumn(table, row), histfunc, merge(appearance, kw, hist_kwargs), plotpercentiles, merge(kw, percentiles_kwargs))
+            # RecipesBase.plot!(rand(10,10);seriestype=:heatmap, colorbar=:none, framestyle=:none, kw...)
+            hist(Tables.getcolumn(table, row), histfunc, merge(appearance, kw, hist_kwargs, (;inset)), plotpercentiles, merge(kw, percentiles_kwargs))
         else row > col
             # 2D histogram 
-            hist(Tables.getcolumn(table, row), Tables.getcolumn(table, col), histfunc, merge(appearance, kw, hist2d_kwargs), contour_kwargs, scatter_kwargs, plotcontours, plotscatter, filterscatter)
+            # RecipesBase.plot!(rand(10,10);seriestype=:heatmap, colorbar=:none, framestyle=:none, kw...)
+            hist(Tables.getcolumn(table, row), Tables.getcolumn(table, col), histfunc, merge(appearance, kw, hist2d_kwargs, (;inset)), merge(kw,contour_kwargs), merge(kw,scatter_kwargs), plotcontours, plotscatter, filterscatter)
         end
-        push!(subplots, subplot)
+        # push!(subplots, subplot)
     end
 
-    RecipesBase.plot(subplots...; layout=(n,n), legend=:none, kwargs...)
+    if !isnothing(lens)
+        k += 1
+        nspan = floor(mean(1:n))
+        x=nspan*(w+p)+pad_bonus+pad_left
+        y=pad_top
+        bonuswidth = full_width-x
+        bonusheight = full_height-pad_bottom-pad_top-nspan*(h+p) - pad_bonus 
+        inset = bbox(x*Measures.mm, y*Measures.mm, bonuswidth*Measures.mm, bonusheight*Measures.mm, :left)
+        if lens ∈ columns
+            kw = (;label="", subplot=k, title=labels[findfirst(==(lens), columns)])
+            hist(Tables.getcolumn(table, lens), histfunc, merge(appearance, kw, hist_kwargs, (;inset), lens_kwargs), plotpercentiles, merge(kw, percentiles_kwargs))
+        elseif lens[1] ∈ columns && lens[2] ∈ columns
+            kw = (;label="", subplot=k, title=labels[findfirst(==(lens[1]), columns)]*" vs. "*labels[findfirst(==(lens[2]), columns)])
+            hist(Tables.getcolumn(table, lens[1]), Tables.getcolumn(table, lens[2]), histfunc, merge(appearance, kw, hist2d_kwargs, (;inset), lens_kwargs), merge(kw,contour_kwargs), merge(kw,scatter_kwargs), plotcontours, plotscatter, filterscatter)
+        end
+    elseif !isnothing(bonusplot)
+        k += 1
+        nspan = floor(mean(1:n))
+        x=nspan*(w+p)+pad_bonus+pad_left
+        y=pad_top
+        bonuswidth = full_width-x-pad_bonus
+        bonusheight = full_height-pad_bottom-pad_top-nspan*(h+p) - pad_bonus 
+        inset = bbox(x*Measures.mm, y*Measures.mm, bonuswidth*Measures.mm, bonusheight*Measures.mm, :left)
+        kw = (;inset,subplot=k)
+        bonusplot(kw)
+    end
+
+
+    return parent
 end
 export corner
 
@@ -152,33 +221,23 @@ function hist(a, histfunc, hist_kwargs, plotpercentiles, percentiles_kwargs,)
         title = @sprintf("\$%s = %.2f^{+%.2f}_{-%.2f}\$", hist_kwargs.title, pcs_title[2], high, low)
         xc = mean(x)
         yc = maximum(h_scaled) * 1.15
-        if hasproperty(hist_kwargs, :titlefontsize)
-            color = get(hist_kwargs, :titlefontcolor, :black)
-            hist_kwargs = merge(
-                delete(hist_kwargs,:title),
-                (;annotation=(xc, yc, (title, color, hist_kwargs.titlefontsize))),
-                # ylims=(NaN, yc*1.1)),
-            )
-        else
-            hist_kwargs = merge(
-                delete(hist_kwargs,:title),
-                (;annotation=(xc, yc, title)),
-                # ylims=(NaN, yc*1.1)),
-            )
-        end    
+        hist_kwargs = (;hist_kwargs..., title)
     end
     hist_kwargs = delete(hist_kwargs, :nbins)
     percentiles_kwargs = delete(percentiles_kwargs,:title)
-    p = RecipesBase.plot()
-    if length(pcs) > 0
-        RecipesBase.plot!(p, pcs; seriestype=:vline, percentiles_kwargs...)
-    end
+    # p = RecipesBase.plot()
+
     kw = merge((;seriestype=:step), hist_kwargs)
     if kw.seriestype==:step
         x = x .- step(x)/2
     end
-    RecipesBase.plot!(p, x, h_scaled; seriestype=:step, kw...)
-    return p
+    RecipesBase.plot!(x, h_scaled; seriestype=:step, kw...)
+
+    if length(pcs) > 0
+        RecipesBase.plot!(pcs; seriestype=:vline, percentiles_kwargs...)
+    end
+
+    # return p
 end
 function hist(a, b, histfunc, hist2d_kwargs, contour_kwargs, scatter_kwargs, plotcontours, plotscatter, filterscatter)
 
@@ -215,7 +274,7 @@ function hist(a, b, histfunc, hist2d_kwargs, contour_kwargs, scatter_kwargs, plo
 
     levels_final = [0; V; maximum(H) * (1 + 1e-4)]
 
-    p = RecipesBase.plot()
+    # p = RecipesBase.plot()
     if threeD
         scatter_kwargs = merge(scatter_kwargs, (; seriestype=:scatter3d))
         # if !hasproperty(contour_kwargs, :seriestype)
@@ -223,7 +282,7 @@ function hist(a, b, histfunc, hist2d_kwargs, contour_kwargs, scatter_kwargs, plo
         # end
         plotcontours = false
     end
-    RecipesBase.plot!(p, x, y, masked_weights; seriestype=:heatmap, hist2d_kwargs...)
+    RecipesBase.plot!(x, y, masked_weights; seriestype=:heatmap, hist2d_kwargs...)
 
     if plotscatter
         if filterscatter
@@ -234,67 +293,23 @@ function hist(a, b, histfunc, hist2d_kwargs, contour_kwargs, scatter_kwargs, plo
         # TODO: handle threeD
         if get(scatter_kwargs, :seriestype, nothing) == :scatter3d
             z = zeros(size(y))
-            RecipesBase.plot!(p, b, a, z; scatter_kwargs...)
+            RecipesBase.plot!(b, a, z; scatter_kwargs...)
         else
-            RecipesBase.plot!(p, points; seriestype=:scatter, scatter_kwargs...)
+            RecipesBase.plot!(points; seriestype=:scatter, scatter_kwargs...)
         end
     end
 
     if plotcontours
-        RecipesBase.plot!(p, x, y, H; seriestype=:contour, levels=levels_final, colorbar=:none, contour_kwargs...)
+        RecipesBase.plot!(x, y, H; seriestype=:contour, levels=levels_final, colorbar=:none, contour_kwargs...)
         # GR does not yet support transparent filled contours. This would allow us to have even nicer edges to the histogram/contour boundary
         # outer_cmap = cgrad([RGBA(255,255,255,1.0), RGBA(255,255,255,0.0)])
         # RecipesBase.plot!(p, x, y, H; seriestype=:contourf, levels=[0,levels_final[2], levels_final[3]], colorbar=:none, contour_kwargs..., color=outer_cmap)
     end
-    p
+    # p
 end
 
+emptyplot() = RecipesBase.plot(framestyle=:none, background_color_inside=:transparent)
 
-# function hist(a, b, histfunc, hist2d_kwargs, contour_kwargs, scatter_kwargs, plotcontours, plotscatter, filterscatter)
-
-#     x, y, H = histfunc(a, b, hist2d_kwargs.nbins)
-    
-#     p = RecipesBase.plot()
-#     threeD = get(hist2d_kwargs, :seriestype, nothing) == :wireframe
-#     if threeD
-#         scatter_kwargs = merge(scatter_kwargs, (; seriestype=:scatter3d))
-#         # if !hasproperty(contour_kwargs, :seriestype)
-#         #     contour_kwargs = merge(contour_kwargs, (;seriestype=:contour3d))
-#         # end
-#         plotcontours = false
-#     end
-#     if plotscatter
-#         if get(scatter_kwargs, :seriestype, nothing) == :scatter3d
-#             z = zeros(size(y))
-#             RecipesBase.plot!(p, b, a, z; scatter_kwargs...)
-#         else
-#             RecipesBase.plot!(p, b, a; seriestype=:scatter, scatter_kwargs...)
-#         end
-#     end
-
-#     levels = 1 .- exp.(-0.5 .* (0.5:0.5:2.1).^2)
-#     ii = sortperm(reshape(H,:))
-#     h2flat = H[ii]
-#     sm = cumsum(h2flat)
-#     sm /= sm[end]
-#     V = sort(map(v0 -> h2flat[sm .≤ v0][end], levels))
-#     if any(==(0), diff(V))
-#         @warn "Too few points to create valid contours"
-#     end
-#     masked_weights = fill(NaN, size(H))
-#     if plotscatter && !threeD
-#         mask = H .>= V[1]
-#     else
-#         mask = trues(size(H))
-#     end
-#     masked_weights[mask] .= H[mask]
-#     levels_final = [0; V; maximum(H) * (1 + 1e-4)]
-#     RecipesBase.plot!(p, x, y, masked_weights; seriestype=:heatmap, hist2d_kwargs...)
-#     if plotcontours
-#         RecipesBase.plot!(p, x, y, H; seriestype=:contour, levels=levels_final, colorbar=:none, contour_kwargs...)
-#     end
-#     p
-# end
 # Default histogram calculations
 """
     prepare_hist(vector, nbins)
