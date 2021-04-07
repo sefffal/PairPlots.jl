@@ -1,4 +1,4 @@
-<h1><img src="images/logo.png" width=25/> PairPlots.jl</h1>
+<h1><img src="images/logo.png" width=50/> PairPlots.jl</h1>
 
 This package produces corner plots, otherwise known as pair plots or scatter plot matrices: grids of 1D and 2D histograms that allow you to visualize high dimensional data.
 
