@@ -8,6 +8,10 @@ See also: [StatsPlots.cornerplot](https://github.com/JuliaPlots/StatsPlots.jl#co
 
 This package is curently experimental and under active development. 
 
+## Installation
+At the Julia REPL, type `]` followed by `add https://github.com/sefffal/PairPlots.jl.git`
+You must also install Plots.
+
 ## Notes
 This pacakge is currently only tested using the GR plots backend, and furthermore, saving plots as PNG or PDF occaisonally produces artifacts.
 I recommend you save your figures as SVG.
@@ -16,6 +20,8 @@ If you pass additional keyword arguments to customize the appearance of the plot
 
 ## Usage
 ```julia
+using Plots, PairPlots
+
 corner(table [, labels])
 ```
 This function has one required argument, a [Tables.jl](https://tables.juliadata.org/stable/) compatible table consisting of one or more columns. This can simply be a named tuple of vectors, a [DataFrame](https://dataframes.juliadata.org/stable/), [TypedTable](https://typedtables.juliadata.org/stable/), result of an execute statement from [SQLLite](https://juliadatabases.org/SQLite.jl/stable/), data loaded from [Arrow](https://arrow.juliadata.org/stable/manual/#Writing-arrow-data), etc.
@@ -46,7 +52,7 @@ corner(table)
 ```
 ![](images/basic.png)
 
-Single variable:
+Single variable fallback:
 ```julia
 corner((;d))
 ```
@@ -64,6 +70,38 @@ corner(
 )
 ```
 ![](images/themed.png)
+
+
+Enlarging one subplot with `lens`:
+```julia
+# Plot a 1D histogram
+corner(table, lens=:a)
+
+# Plot a 2D histogram
+corner(table, lens=(:b, :a))
+
+# Plot a 2D histogram with customization
+corner(
+    table,
+    lens=(:b, :a),
+    lens_kwargs=(
+        title="b - a heatmap",
+        plotscatter=false,
+        hist2d_kwargs=(;color=:plasma),
+        contour_kwargs=(;color=:white)
+    )
+)
+```
+![](images/lens-gallery.png)
+
+
+Adding an extra unrelated subplot with `bonusplot`:
+```julia
+f(kw)=heatmap!(rand(10,10); kw...)
+corner((;a,b,c,d,e=a), title="Corner Plot", bonusplot=f)
+```
+The syntax for this is a little tricky due to API limitations. the `bonusplot` argument accepts a
+function that overplots your desired plot, and must accept a named tuple of keyword arguments to forward to the plotting function. This is necessary for the layout to work as expected.
 
 
 3D wireframe and line plots:
