@@ -38,12 +38,15 @@ using Plots, PairPlots
 gr()
 
 # Generate some data to visualize
-a = randn(10000)
-b = 2randn(10000)
-c = a .+ b
-d = a .* b
+N = 300_000
+a = [2randn(N÷2) .+ 6; randn(N÷2)]
+b = [3randn(N÷2); 2randn(N÷2)]
+c = randn(N)
+d = c .+ 0.6randn(N)
 
-table = (;a,b,c,d)
+# Pass data in a format compatible with Tables.jl
+# Here, simply a named tuple of vectors.
+table = (;a, b, c, d)
 
 corner(table)
 ```

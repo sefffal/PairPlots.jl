@@ -242,6 +242,9 @@ function hist(a, b, histfunc, hist2d_kwargs, contour_kwargs, scatter_kwargs, plo
 
     if plotcontours
         RecipesBase.plot!(p, x, y, H; seriestype=:contour, levels=levels_final, colorbar=:none, contour_kwargs...)
+        # GR does not yet support transparent filled contours. This would allow us to have even nicer edges to the histogram/contour boundary
+        # outer_cmap = cgrad([RGBA(255,255,255,1.0), RGBA(255,255,255,0.0)])
+        # RecipesBase.plot!(p, x, y, H; seriestype=:contourf, levels=[0,levels_final[2], levels_final[3]], colorbar=:none, contour_kwargs..., color=outer_cmap)
     end
     p
 end
