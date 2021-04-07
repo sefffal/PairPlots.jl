@@ -71,18 +71,27 @@ corner(
 
 3D wireframe and line plots:
 ```julia
-corner(table, hist2d_kwargs=(;seriestype=:wireframe, nbins=15), plotscatter=false, dpi=200)
+α=[randn(50000); 0.5randn(50000).+4]
+β=2randn(100000)
+
+corner(
+    (;α,β),
+    [raw"\alpha", raw"\beta"],
+    hist2d_kwargs=(;seriestype=:wireframe),
+    plotscatter=false,
+    dpi=200
+)
 ```
 ![](images/3d-mesh-2.png)
 
 ```julia
 theme(:solarized);
-corner(
-    table,
-    hist2d_kwargs=(;color=:magma,seriestype=:wireframe),
-    hist_kwargs=(;color=:white,titlefontcolor=:white,seriestype=:line),
-    scatter_kwargs=(;color=:white);
-    percentiles_kwargs=(;color=:white),
+ corner(
+    (;a,b), filterscatter=false,
+    hist2d_kwargs=(;seriestype=:wireframe,color=:white,nbins=35),
+    hist_kwargs=(;color=:lightgrey,titlefontcolor=:white,seriestype=:line, linewidth=3),
+    scatter_kwargs=(;color=:grey);
+    percentiles_kwargs=(;color=:grey),
 )
 ```
 ![](images/3d-mesh.png)

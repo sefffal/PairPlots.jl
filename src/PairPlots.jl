@@ -10,6 +10,9 @@ using StatsBase
 
 using Printf
 using Requires
+using StaticArrays
+using PolygonOps
+using Contour
 
 function corner(
         table,
@@ -18,6 +21,7 @@ function corner(
         plotscatter=true,
         plotpercentiles=[15,50,84],
         histfunc=prepare_hist,
+        filterscatter=true,
         hist_kwargs=(;),
         hist2d_kwargs=(;),
         contour_kwargs=(;),
@@ -37,6 +41,11 @@ function corner(
         error("You must supply data in a format consistent with the definition in Tables.jl, e.g. a Named Tuple of vectors.")
     end
 
+
+    if any(!isascii, labels)
+        @warn "Non-ascii labels detected. Some plotting backends require passing these using LaTeX escapes, e.g. \\alpha instead of α"
+    end
+
     columns = Tables.columnnames(table)
     n = length(columns)
 
@@ -44,7 +53,7 @@ function corner(
     hist_kwargs=merge((; nbins=20, color=:black), hist_kwargs, (;yticks=[]))
     hist2d_kwargs=merge((; nbins=32, color=:Greys, colorbar=:none), hist2d_kwargs)
     contour_kwargs=merge((; color=:black, linewidth=1.5), contour_kwargs)
-    scatter_kwargs=merge((; color=:black, alpha=0.1, markersize=1.5), scatter_kwargs)
+    scatter_kwargs=merge((; color=:black, alpha=0.1, markersize=1.5, markerstrokewidth=0), scatter_kwargs)
     percentiles_kwargs=merge((;linestyle=:dash, color=:black), percentiles_kwargs)
     appearance = merge((;
         framestyle=:box,
@@ -56,6 +65,7 @@ function corner(
         yformatter=:plain,
         zformatter=t->"",
         titlefontsize=10,
+        tick_direction=:out
     ), appearance)
 
     threeD = get(hist2d_kwargs, :seriestype, nothing) == :wireframe
@@ -110,11 +120,10 @@ function corner(
             hist(Tables.getcolumn(table, row), histfunc, merge(appearance, kw, hist_kwargs), plotpercentiles, merge(kw, percentiles_kwargs))
         else row > col
             # 2D histogram 
-            hist(Tables.getcolumn(table, row), Tables.getcolumn(table, col), histfunc, merge(appearance, kw, hist2d_kwargs), contour_kwargs, scatter_kwargs, plotcontours, plotscatter)
+            hist(Tables.getcolumn(table, row), Tables.getcolumn(table, col), histfunc, merge(appearance, kw, hist2d_kwargs), contour_kwargs, scatter_kwargs, plotcontours, plotscatter, filterscatter)
         end
         push!(subplots, subplot)
     end
-
 
     RecipesBase.plot(subplots...; layout=(n,n), legend=:none, kwargs...)
 end
@@ -123,7 +132,6 @@ export corner
 function hist(a, histfunc, hist_kwargs, plotpercentiles, percentiles_kwargs,)
 
     x, h = histfunc(a, hist_kwargs.nbins)
-
 
     minx, maxx = extrema(a)
     extent = maxx - minx
@@ -172,28 +180,13 @@ function hist(a, histfunc, hist_kwargs, plotpercentiles, percentiles_kwargs,)
     RecipesBase.plot!(p, x, h_scaled; seriestype=:step, kw...)
     return p
 end
-function hist(a, b, histfunc, hist2d_kwargs, contour_kwargs, scatter_kwargs, plotcontours, plotscatter)
+function hist(a, b, histfunc, hist2d_kwargs, contour_kwargs, scatter_kwargs, plotcontours, plotscatter, filterscatter)
 
     x, y, H = histfunc(a, b, hist2d_kwargs.nbins)
-    
-    p = RecipesBase.plot()
-    threeD = get(hist2d_kwargs, :seriestype, nothing) == :wireframe
-    if threeD
-        scatter_kwargs = merge(scatter_kwargs, (; seriestype=:scatter3d))
-        # if !hasproperty(contour_kwargs, :seriestype)
-        #     contour_kwargs = merge(contour_kwargs, (;seriestype=:contour3d))
-        # end
-        plotcontours = false
-    end
-    if plotscatter
-        if get(scatter_kwargs, :seriestype, nothing) == :scatter3d
-            z = zeros(size(y))
-            RecipesBase.plot!(p, b, a, z; scatter_kwargs...)
-        else
-            RecipesBase.plot!(p, b, a; seriestype=:scatter, scatter_kwargs...)
-        end
-    end
 
+    threeD = get(hist2d_kwargs, :seriestype, nothing) == :wireframe
+
+    # Calculate levels for contours
     levels = 1 .- exp.(-0.5 .* (0.5:0.5:2.1).^2)
     ii = sortperm(reshape(H,:))
     h2flat = H[ii]
@@ -203,21 +196,102 @@ function hist(a, b, histfunc, hist2d_kwargs, contour_kwargs, scatter_kwargs, plo
     if any(==(0), diff(V))
         @warn "Too few points to create valid contours"
     end
+
+    # # Exclude histogram spaces outside the outer contour
     masked_weights = fill(NaN, size(H))
-    if plotscatter && !threeD
-        mask = H .>= V[1]
+    # # Old method of masking out histogram squares
+    # # if plotscatter && !threeD
+    # #     mask = H .>= V[1]
+    # # else
+    # #     mask = trues(size(H))
+    # # end
+    if plotscatter &&!threeD
+        mask = H .> V[1]
     else
         mask = trues(size(H))
     end
     masked_weights[mask] .= H[mask]
+    # masked_weights = H
+
     levels_final = [0; V; maximum(H) * (1 + 1e-4)]
+
+    p = RecipesBase.plot()
+    if threeD
+        scatter_kwargs = merge(scatter_kwargs, (; seriestype=:scatter3d))
+        # if !hasproperty(contour_kwargs, :seriestype)
+        #     contour_kwargs = merge(contour_kwargs, (;seriestype=:contour3d))
+        # end
+        plotcontours = false
+    end
     RecipesBase.plot!(p, x, y, masked_weights; seriestype=:heatmap, hist2d_kwargs...)
+
+    if plotscatter
+        if filterscatter
+            points = scatter_filtering(b, a, x,y,H, [V[1]])
+        else
+            points = (b,a)
+        end
+        # TODO: handle threeD
+        if get(scatter_kwargs, :seriestype, nothing) == :scatter3d
+            z = zeros(size(y))
+            RecipesBase.plot!(p, b, a, z; scatter_kwargs...)
+        else
+            RecipesBase.plot!(p, points; seriestype=:scatter, scatter_kwargs...)
+        end
+    end
+
     if plotcontours
         RecipesBase.plot!(p, x, y, H; seriestype=:contour, levels=levels_final, colorbar=:none, contour_kwargs...)
     end
     p
 end
 
+
+# function hist(a, b, histfunc, hist2d_kwargs, contour_kwargs, scatter_kwargs, plotcontours, plotscatter, filterscatter)
+
+#     x, y, H = histfunc(a, b, hist2d_kwargs.nbins)
+    
+#     p = RecipesBase.plot()
+#     threeD = get(hist2d_kwargs, :seriestype, nothing) == :wireframe
+#     if threeD
+#         scatter_kwargs = merge(scatter_kwargs, (; seriestype=:scatter3d))
+#         # if !hasproperty(contour_kwargs, :seriestype)
+#         #     contour_kwargs = merge(contour_kwargs, (;seriestype=:contour3d))
+#         # end
+#         plotcontours = false
+#     end
+#     if plotscatter
+#         if get(scatter_kwargs, :seriestype, nothing) == :scatter3d
+#             z = zeros(size(y))
+#             RecipesBase.plot!(p, b, a, z; scatter_kwargs...)
+#         else
+#             RecipesBase.plot!(p, b, a; seriestype=:scatter, scatter_kwargs...)
+#         end
+#     end
+
+#     levels = 1 .- exp.(-0.5 .* (0.5:0.5:2.1).^2)
+#     ii = sortperm(reshape(H,:))
+#     h2flat = H[ii]
+#     sm = cumsum(h2flat)
+#     sm /= sm[end]
+#     V = sort(map(v0 -> h2flat[sm .≤ v0][end], levels))
+#     if any(==(0), diff(V))
+#         @warn "Too few points to create valid contours"
+#     end
+#     masked_weights = fill(NaN, size(H))
+#     if plotscatter && !threeD
+#         mask = H .>= V[1]
+#     else
+#         mask = trues(size(H))
+#     end
+#     masked_weights[mask] .= H[mask]
+#     levels_final = [0; V; maximum(H) * (1 + 1e-4)]
+#     RecipesBase.plot!(p, x, y, masked_weights; seriestype=:heatmap, hist2d_kwargs...)
+#     if plotcontours
+#         RecipesBase.plot!(p, x, y, H; seriestype=:contour, levels=levels_final, colorbar=:none, contour_kwargs...)
+#     end
+#     p
+# end
 # Default histogram calculations
 """
     prepare_hist(vector, nbins)
@@ -242,6 +316,30 @@ function prepare_hist(a, b, nbins)
     y = range(first(h.edges[1]), step=step(h.edges[1]), length=size(h.weights,1))
     x = range(first(h.edges[2]), step=step(h.edges[2]), length=size(h.weights,2))
     return x, y, h.weights
+end
+
+# Filter the scatter plot to remove points inside the first contour
+# for performance and better display
+function scatter_filtering(b, a, x,y,H, level)
+
+    inds = eachindex(b,a)
+    outside = trues(size(inds))
+
+    # calculate the outer contour manually
+    c = contours(x,y,H', level)
+    for poly in lines(first(levels(c)))
+        xs, ys = coordinates(poly)
+        poly = SVector.(xs,ys)
+        push!(poly, SVector(xs[begin], ys[begin]))
+        # poly = [xs ys; xs[begin] ys[begin]]
+        for i in inds
+            point = SVector(b[i],a[i])
+            ins = inpolygon(point, poly, in=false, on=true, out=true)
+            outside[i] &= ins
+        end
+    end
+    return b[outside], a[outside]
+
 end
 
 
