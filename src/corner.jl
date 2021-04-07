@@ -1,4 +1,4 @@
-using Plots
+using .Plots
 function corner(
     table,
     labels = map(string, Tables.columnnames(table));
