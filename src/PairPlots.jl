@@ -97,7 +97,7 @@ function corner(
     pad_left = 20sf
     w=40sf
     h=40sf
-    p=1sf
+    p= threeD ? 10sf : 1sf
     pad_right = 0sf
     pad_bottom = 10sf
     pad_bonus = iseven(n) ? 20sf : 5sf
@@ -111,6 +111,7 @@ function corner(
         framestyle=:none,
         title=title;
         left_margin=-10Measures.mm,
+        background_color_inside=:transparent,
         kwargs...
     )
 
@@ -131,7 +132,7 @@ function corner(
         kw = (;
             title = row == col ? labels[row] : "",
             xguide = threeD || row == n ? fmt(labels[col]) : "",
-            yguide = threeD || col == 1  && row > 1 ? fmt(labels[row]) : "",
+            yguide = col == 1  && row > 1 ? fmt(labels[row]) : "",
             xformatter = threeD || row == n ? appearance.xformatter : t->"",
             yformatter = threeD || col == 1 && row > 1 ? appearance.yformatter : t->"",
 
