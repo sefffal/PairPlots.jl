@@ -158,5 +158,4 @@ This package is built on top of the great packages Plots, GR, RecipesBase, Named
 ## TODO:
 - Support for colouring individual chains separately when using MCMCChains
 - Supertitle support using a hidden extra plot
-- Smooth edges of the outer contour
 - Denser plot grid
