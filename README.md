@@ -50,13 +50,13 @@ table = (;a, b, c, d)
 
 corner(table)
 ```
-![](images/basic.png)
+<img src="images/basic.png" width=350/>
 
 Single variable fallback:
 ```julia
 corner((;d))
 ```
-<img src="images/single-variable.png" width=350/>
+<img src="images/single-variable.png" width=150/>
 
 Appearance:
 ```julia
@@ -69,7 +69,8 @@ corner(
     percentiles_kwargs=(;color=:white),
 )
 ```
-![](images/themed.png)
+<img src="images/themed.png" width=350/>
+
 
 
 Enlarging one subplot with `lens`:
@@ -117,7 +118,7 @@ corner(
     dpi=200
 )
 ```
-![](images/3d-mesh-2.png)
+<img src="images/3d-mesh-2.png" width=300/>
 
 ```julia
 theme(:solarized);
@@ -129,7 +130,7 @@ theme(:solarized);
     percentiles_kwargs=(;color=:grey),
 )
 ```
-![](images/3d-mesh.png)
+<img src="images/3d-mesh.png" width=300/>
 
 
 
