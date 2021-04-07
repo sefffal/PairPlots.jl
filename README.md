@@ -14,12 +14,6 @@ I recommend you save your figures as SVG.
 
 If you pass additional keyword arguments to customize the appearance of the plots, it is recommended to use their canonical form e.g. `seriestype` instead of `st`, `markersize` instead of `ms`. PairPlots attempts to do the "smart" thing when certain combinations of keywords are present, and the shorthands might interfere with this.
 
-The edges of the outer contour are currently jagged compared to `corner.py`. I am still investigating how this can be improved.
-
-If `plotscatter` is true (default), the performance of Plots can suffer with very large datasets. In those cases, I recommend you either thin the data or disable that option to only show histograms and contours.
-
-There is somewhat excessive space between the individual subplots compared to `corner.py` that cannot easily be removed. I am investigating manual layouts using `inset_subplots` to fix this.
-
 ## Usage
 ```julia
 corner(table [, labels])
@@ -157,5 +151,3 @@ This package is built on top of the great packages Plots, GR, RecipesBase, Named
 
 ## TODO:
 - Support for colouring individual chains separately when using MCMCChains
-- Supertitle support using a hidden extra plot
-- Denser plot grid
