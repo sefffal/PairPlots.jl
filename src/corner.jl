@@ -21,10 +21,6 @@ function corner(
     kwargs...
 )
 
-# Simple error check to see if the user has imported a plotting package...
-if !hasmethod(RecipesBase.plot, ())
-    error("You must run `using Plots` before calling this function")
-end
 
 if !Tables.istable(table)
     error("You must supply data in a format consistent with the definition in Tables.jl, e.g. a Named Tuple of vectors.")
@@ -39,7 +35,7 @@ columns = Tables.columnnames(table)
 n = length(columns)
 
 # Merge keywords for different subplots & series
-hist_kwargs=merge((; nbins=20, color=:black), hist_kwargs, (;yticks=[]))
+hist_kwargs=merge((; nbins=20, color=:black, yticks=[], minorgrid=false, minorticks=false), hist_kwargs)
 hist2d_kwargs=merge((; nbins=32, color=:Greys, colorbar=:none), hist2d_kwargs)
 contour_kwargs=merge((; color=:black, linewidth=1.5), contour_kwargs)
 scatter_kwargs=merge((; color=:black, alpha=0.1, markersize=1.5, markerstrokewidth=0), scatter_kwargs)
@@ -140,11 +136,9 @@ for row in 1:n, col in 1:n
     # subplot = 
     if row == col
         # 1D histogram
-        # RecipesBase.plot!(rand(10,10);seriestype=:heatmap, colorbar=:none, framestyle=:none, kw...)
         hist(Tables.getcolumn(table, row), histfunc, merge(appearance, kw, hist_kwargs, (;inset)), plotpercentiles, merge(kw, percentiles_kwargs))
     else row > col
         # 2D histogram 
-        # RecipesBase.plot!(rand(10,10);seriestype=:heatmap, colorbar=:none, framestyle=:none, kw...)
         hist(Tables.getcolumn(table, row), Tables.getcolumn(table, col), histfunc, merge(appearance, kw, hist2d_kwargs, (;inset)), merge(kw,contour_kwargs), merge(kw,scatter_kwargs), plotcontours, plotscatter, filterscatter)
     end
     # push!(subplots, subplot)
