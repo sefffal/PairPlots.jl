@@ -27,6 +27,12 @@ function hist(a, histfunc, hist_kwargs, plotpercentiles, percentiles_kwargs,)
 
     x, h = histfunc(a, hist_kwargs.nbins)
 
+    if length(x) == 1
+        @warn "1D histgoram has only one bin"
+        RecipesBase.plot!(; framestyle=:none, title="invalid", hist_kwargs.subplot, hist_kwargs.inset, )
+        return
+    end
+
     minx, maxx = extrema(a)
     extent = maxx - minx
     # h_scaled = h ./ maximum(h) .* extent
@@ -56,7 +62,9 @@ function hist(a, histfunc, hist_kwargs, plotpercentiles, percentiles_kwargs,)
     if kw.seriestype==:step
         x = x .- step(x)/2
     end
-    RecipesBase.plot!(x, h_scaled; seriestype=:step, kw...)
+    RecipesBase.plot!(x, h_scaled; kw...)
+    # RecipesBase.plot!(x, h_scaled; kw.inset, kw.subplot)
+    # RecipesBase.plot!(x, h_scaled; kw.inset, kw.subplot, kw.seriestype, kw.xrotation, kw.yrotation, kw.tick_direction, kw.grid, kw.yformatter, kw.xlims, yticks)
 
     if length(pcs) > 0
         RecipesBase.plot!(pcs; seriestype=:vline, percentiles_kwargs...)
@@ -76,26 +84,32 @@ function hist(a, b, histfunc, hist2d_kwargs, contour_kwargs, scatter_kwargs, plo
     h2flat = H[ii]
     sm = cumsum(h2flat)
     sm /= sm[end]
-    V = sort(map(v0 -> h2flat[sm .≤ v0][end], levels))
-    if any(==(0), diff(V))
-        @warn "Too few points to create valid contours"
+    if all(isnan, sm)
+        @warn "Could not compute valid contours"
+        plotcontours = false
+        V = [0]
+    else
+        V = sort(map(v0 -> h2flat[sm .≤ v0][end], levels))
+        if any(==(0), diff(V))
+            @warn "Too few points to create valid contours"
+        end
     end
 
     # # Exclude histogram spaces outside the outer contour
-    masked_weights = fill(NaN, size(H))
-    # # Old method of masking out histogram squares
-    # # if plotscatter && !threeD
-    # #     mask = H .>= V[1]
-    # # else
-    # #     mask = trues(size(H))
-    # # end
-    if plotscatter &&!threeD
-        mask = H .> V[1]
-    else
-        mask = trues(size(H))
-    end
-    masked_weights[mask] .= H[mask]
-    # masked_weights = H
+    # masked_weights = fill(NaN, size(H))
+    # # # Old method of masking out histogram squares
+    # # # if plotscatter && !threeD
+    # # #     mask = H .>= V[1]
+    # # # else
+    # # #     mask = trues(size(H))
+    # # # end
+    # if plotscatter &&!threeD
+    #     mask = H .> V[1]
+    # else
+    #     mask = trues(size(H))
+    # end
+    # masked_weights[mask] .= H[mask]
+    masked_weights = H
 
     levels_final = [0; V; maximum(H) * (1 + 1e-4)]
 
@@ -156,8 +170,8 @@ and a matrix of bin weights (of matching dimensions).
 """
 function prepare_hist(a, b, nbins)
     h = fit(Histogram, (a,b); nbins)
-    y = range(first(h.edges[1]), step=step(h.edges[1]), length=size(h.weights,1))
-    x = range(first(h.edges[2]), step=step(h.edges[2]), length=size(h.weights,2))
+    y = range(first(h.edges[1])+step(h.edges[1])/2, step=step(h.edges[1]), length=size(h.weights,1))
+    x = range(first(h.edges[2])+step(h.edges[2])/2, step=step(h.edges[2]), length=size(h.weights,2))
     return x, y, h.weights
 end
 
@@ -195,7 +209,7 @@ function __init__()
         function corner(chains::MCMCChains.Chains, args...; kwargs...)
             props = keys(chains)
             # values = (reshape(chains[prop].data,:) for prop in props)
-            values = (vec(chains[prop].data) for prop in props)
+            values = [vec(chains[prop].data) for prop in props]
             table = namedtuple(props, values)
             return corner(table, args...; kwargs...)
         end
