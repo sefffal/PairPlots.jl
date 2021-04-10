@@ -104,6 +104,14 @@ corner((;a,b,c,d,e=a), title="Corner Plot", bonusplot=f)
 The syntax for this is a little tricky due to API limitations. the `bonusplot` argument accepts a
 function that overplots your desired plot, and must accept a named tuple of keyword arguments to forward to the plotting function. This is necessary for the layout to work as expected.
 
+Minimal look:
+```julia
+a = randn(100000); b = randn(100000) .+ a; c = 4randn(100000) .+ a
+
+corner((;a,b,c), hist_kwargs=(;title=""), appearance=(;framestyle=:grid, ticks=[]), plotpercentiles=[])
+```
+<img src="images/minimal.png" width=350/>
+
 
 3D wireframe and line plots:
 ```julia
