@@ -86,9 +86,9 @@ end
 
 
 # Rather than messing with linking axes, let's just take over setting the plot limits ourselves
-# ex = [extrema(Tables.getcolumn(table, i)) for i in 1:n]
+ex = [extrema(Tables.getcolumn(table, i)) for i in 1:n]
 
-ex = [(-5, +5) .* std(Tables.getcolumn(table, i)) for i in 1:n]
+# ex = [(-5, +5) .* std(Tables.getcolumn(table, i)) for i in 1:n]
 
 mins = [ex[1] for ex in ex]
 maxs = [ex[2] for ex in ex]
