@@ -158,7 +158,8 @@ Must return a tuple of bin centres, followed by bin weights (of the same length)
 """
 function prepare_hist(a, nbins)
     h = fit(Histogram, a; nbins)
-    x = first(only(h.edges))+step(only(h.edges))/2 : step(only(h.edges)) : last(only(h.edges))-step(only(h.edges))/2
+    # x = first(only(h.edges))+step(only(h.edges))/2 : step(only(h.edges)) : last(only(h.edges))-step(only(h.edges))/2
+    x = range(first(h.edges[1])+step(h.edges[1])/2, step=step(h.edges[1]), length=size(h.weights,1))
     return x, h.weights
 end
 """

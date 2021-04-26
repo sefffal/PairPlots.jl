@@ -17,6 +17,22 @@ function corner(
     lens=nothing,
     lens_kwargs=(;),
     bonusplot=nothing,
+
+
+    # By how much should we oversize the limits
+    lim_factor = 1.05,
+
+    # Plot layout options (subject to change)
+    # Overall plot scale factor
+    sf = 1,
+    pad_top = 20sf,
+    pad_left = 20sf,
+    w=40sf,
+    h=40sf,
+    p=nothing, # 1sf noramlly, 10sf if 3D
+    pad_right = 0sf,
+    pad_bottom = 10sf,
+    pad_bonus = nothing,
     # Remaining kwargs are for the overall plot group
     kwargs...
 )
@@ -55,6 +71,14 @@ appearance = merge((;
 ), appearance)
 
 threeD = get(hist2d_kwargs, :seriestype, nothing) == :wireframe
+# Increase padding for 3D plots
+if isnothing(p)
+    p = threeD ? 10sf : 1sf
+end
+
+if isnothing(pad_bonus)
+    pad_bonus = iseven(n) ? 20sf : 5sf
+end
 
 # Calculate a default reasonable size unless overriden
 # s = 250*n
@@ -62,24 +86,13 @@ threeD = get(hist2d_kwargs, :seriestype, nothing) == :wireframe
 
 
 # Rather than messing with linking axes, let's just take over setting the plot limits ourselves
-ex = [extrema(Tables.getcolumn(table, i)) for i in 1:n]
+# ex = [extrema(Tables.getcolumn(table, i)) for i in 1:n]
+
+ex = [(-5, +5) .* std(Tables.getcolumn(table, i)) for i in 1:n]
+
 mins = [ex[1] for ex in ex]
 maxs = [ex[2] for ex in ex]
-# By how much should we oversize the limits
-lim_factor = 1.05
 
-
-# Overall plot scale factor
-sf = 1
-
-pad_top = 20sf
-pad_left = 20sf
-w=40sf
-h=40sf
-p= threeD ? 10sf : 1sf
-pad_right = 0sf
-pad_bottom = 10sf
-pad_bonus = iseven(n) ? 20sf : 5sf
 
 
 full_width = (pad_left+(w+p)*n+pad_right)
