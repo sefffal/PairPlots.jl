@@ -123,12 +123,31 @@ function hist(a, b, histfunc, hist2d_kwargs, contour_kwargs, scatter_kwargs, plo
     end
     RecipesBase.plot!(x, y, masked_weights; seriestype=:heatmap, hist2d_kwargs...)
 
+
+    pad_x = [first(x)-step(x); x; last(x)+step(x)]
+    pad_y = [first(y)-step(y); y; last(y)+step(y)]
+    pad_H = [
+        zeros(size(H,2))' 0 0
+        zeros(size(H,1)) H zeros(size(H,1))
+        zeros(size(H,2))' 0 0
+    ]
+    if plotcontours
+        # RecipesBase.plot!(x, y, H; seriestype=:contour, levels=levels_final, colorbar=:none, contour_kwargs...)
+        
+        
+        # calculate the outer contour manually
+        c = contours(pad_x,pad_y,pad_H', V)
+        points = scatter_filtering(b, a, x,y, first(Contour.levels(c)))
+    elseif filterscatter
+        c = contours(pad_x,pad_y,pad_H', [V[1]])
+    end
+
+    if filterscatter
+        points = scatter_filtering(b, a, x,y, first(Contour.levels(c)))
+    else
+        points = (b,a)
+    end
     if plotscatter
-        if filterscatter
-            points = scatter_filtering(b, a, x,y,H, [V[1]])
-        else
-            points = (b,a)
-        end
         # TODO: handle threeD
         if get(scatter_kwargs, :seriestype, nothing) == :scatter3d
             z = zeros(size(y))
@@ -139,10 +158,12 @@ function hist(a, b, histfunc, hist2d_kwargs, contour_kwargs, scatter_kwargs, plo
     end
 
     if plotcontours
-        RecipesBase.plot!(x, y, H; seriestype=:contour, levels=levels_final, colorbar=:none, contour_kwargs...)
-        # GR does not yet support transparent filled contours. This would allow us to have even nicer edges to the histogram/contour boundary
-        # outer_cmap = cgrad([RGBA(255,255,255,1.0), RGBA(255,255,255,0.0)])
-        # RecipesBase.plot!(p, x, y, H; seriestype=:contourf, levels=[0,levels_final[2], levels_final[3]], colorbar=:none, contour_kwargs..., color=outer_cmap)
+        # RecipesBase.plot!(x, y, H; seriestype=:contour, levels=levels_final, colorbar=:none, contour_kwargs...)
+        for level in Contour.levels(c), poly in lines(level)
+            xs, ys = coordinates(poly)
+            RecipesBase.plot!(xs, ys; levels=levels_final, colorbar=:none, contour_kwargs...)
+        end
+        
     end
     # p
 end
@@ -178,20 +199,20 @@ end
 
 # Filter the scatter plot to remove points inside the first contour
 # for performance and better display
-function scatter_filtering(b, a, x,y,H, level)
+function scatter_filtering(b, a, x,y, level)
 
     inds = eachindex(b,a)
     outside = trues(size(inds))
 
     # calculate the outer contour manually
-    c = contours(x,y,H', level)
-    for poly in lines(first(levels(c)))
+    for poly in lines(level)
         xs, ys = coordinates(poly)
         poly = SVector.(xs,ys)
         push!(poly, SVector(xs[begin], ys[begin]))
         # poly = [xs ys; xs[begin] ys[begin]]
         for i in inds
             point = SVector(b[i],a[i])
+            # This logic does not seem to be 100% right
             ins = inpolygon(point, poly, in=false, on=true, out=true)
             outside[i] &= ins
         end

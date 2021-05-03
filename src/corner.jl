@@ -51,7 +51,7 @@ columns = Tables.columnnames(table)
 n = length(columns)
 
 # Merge keywords for different subplots & series
-hist_kwargs=merge((; nbins=20, color=:black, yticks=[], minorgrid=false, minorticks=false), hist_kwargs)
+hist_kwargs=merge((; nbins=20, color=:black, yticks=[], minorgrid=false, minorticks=false, ylims=(0,NaN)), hist_kwargs)
 hist2d_kwargs=merge((; nbins=32, color=:Greys, colorbar=:none), hist2d_kwargs)
 contour_kwargs=merge((; color=:black, linewidth=1.5), contour_kwargs)
 scatter_kwargs=merge((; color=:black, alpha=0.1, markersize=1.5, markerstrokewidth=0), scatter_kwargs)
