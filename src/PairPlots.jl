@@ -123,7 +123,8 @@ function hist(a, b, histfunc, hist2d_kwargs, contour_kwargs, scatter_kwargs, plo
     end
     RecipesBase.plot!(x, y, masked_weights; seriestype=:heatmap, hist2d_kwargs...)
 
-
+    # We place a line of zeros on all sides of the histogram
+    # for the sake of cleaner contours.
     pad_x = [first(x)-step(x); x; last(x)+step(x)]
     pad_y = [first(y)-step(y); y; last(y)+step(y)]
     pad_H = [
