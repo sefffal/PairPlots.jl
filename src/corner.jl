@@ -19,8 +19,8 @@ function corner(
     bonusplot=nothing,
 
 
-    # By how much should we oversize the limits
-    lim_factor = 1.05,
+    # By how much should we oversize the limits? Use this option with caution.
+    lim_factor = 1.00,
 
     # Plot layout options (subject to change)
     # Overall plot scale factor
