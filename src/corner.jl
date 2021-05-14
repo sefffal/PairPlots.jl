@@ -18,6 +18,8 @@ function corner(
     lens_kwargs=(;),
     bonusplot=nothing,
 
+    # Format of 1D histogram titles
+    titlefmt="\$%s = %.2f^{+%.2f}_{-%.2f}\$",
 
     # By how much should we oversize the limits? Use this option with caution.
     lim_factor = 1.00,
@@ -149,7 +151,7 @@ for row in 1:n, col in 1:n
     # subplot = 
     if row == col
         # 1D histogram
-        hist(Tables.getcolumn(table, row), histfunc, merge(appearance, kw, hist_kwargs, (;inset)), plotpercentiles, merge(kw, percentiles_kwargs))
+        hist(Tables.getcolumn(table, row), histfunc, merge(appearance, kw, hist_kwargs, (;inset)), plotpercentiles, merge(kw, percentiles_kwargs), titlefmt)
     else row > col
         # 2D histogram 
         hist(Tables.getcolumn(table, row), Tables.getcolumn(table, col), histfunc, merge(appearance, kw, hist2d_kwargs, (;inset)), merge(kw,contour_kwargs), merge(kw,scatter_kwargs), plotcontours, plotscatter, filterscatter)
