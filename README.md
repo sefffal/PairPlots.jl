@@ -160,6 +160,7 @@ The `corner` function also accepts the following keyword arguments:
 * `scatter_kwargs=(;)`: plot keywords for the data points scattered under the 2D histograms. 
 * `percentiles_kwargs=(;)`: plot keywords for the vertical percentile lines on the 1D histograms. 
 * `appearance=(;)`: General keywords for all subplots.
+* `titlefmt="\$%s = %.2f^{+%.2f}_{-%.2f}\$"`: Printf format string for titles along the 1D histograms
 
 Remaining keyword arguments are forwarded to the main plot that holds the all of the subplots. For example, passing `size=(1000,1000)` sets the size of the overall figure not each individual subplot.
 
