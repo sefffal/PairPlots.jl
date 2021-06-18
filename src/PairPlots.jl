@@ -39,7 +39,7 @@ function hist(a, histfunc, hist_kwargs, plotpercentiles, percentiles_kwargs,)
     # h_scaled .+= minx
     h_scaled = h
     pcs = []
-    a_sorted = sort(a)
+    a_sorted = sort(vec(a))
     if length(plotpercentiles) > 0
         pcs = quantile(a_sorted, plotpercentiles./100, sorted=true)
     end
@@ -179,7 +179,7 @@ Use the StatsBase function to return a centered histogram from `vector` with `nb
 Must return a tuple of bin centres, followed by bin weights (of the same length).
 """
 function prepare_hist(a, nbins)
-    h = fit(Histogram, a; nbins)
+    h = fit(Histogram, vec(a); nbins)
     # x = first(only(h.edges))+step(only(h.edges))/2 : step(only(h.edges)) : last(only(h.edges))-step(only(h.edges))/2
     x = range(first(h.edges[1])+step(h.edges[1])/2, step=step(h.edges[1]), length=size(h.weights,1))
     return x, h.weights
@@ -192,7 +192,7 @@ Must return a tuple of bin centres along the horizontal, bin centres along the v
 and a matrix of bin weights (of matching dimensions).
 """
 function prepare_hist(a, b, nbins)
-    h = fit(Histogram, (a,b); nbins)
+    h = fit(Histogram, (vec(a),vec(b)); nbins)
     y = range(first(h.edges[1])+step(h.edges[1])/2, step=step(h.edges[1]), length=size(h.weights,1))
     x = range(first(h.edges[2])+step(h.edges[2])/2, step=step(h.edges[2]), length=size(h.weights,2))
     return x, y, h.weights
