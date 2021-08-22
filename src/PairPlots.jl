@@ -25,7 +25,7 @@ export corner
 
 function hist(a, histfunc, hist_kwargs, plotpercentiles, percentiles_kwargs, titlefmt)
 
-    x, h = histfunc(a, hist_kwargs.nbins)
+    x, h = histfunc(vec(a), hist_kwargs.nbins)
 
     if length(x) == 1
         @warn "1D histgoram has only one bin"
@@ -74,7 +74,7 @@ function hist(a, histfunc, hist_kwargs, plotpercentiles, percentiles_kwargs, tit
 end
 function hist(a, b, histfunc, hist2d_kwargs, contour_kwargs, scatter_kwargs, plotcontours, plotscatter, filterscatter)
 
-    x, y, H = histfunc(a, b, hist2d_kwargs.nbins)
+    x, y, H = histfunc(vec(a), vec(b), hist2d_kwargs.nbins)
 
     threeD = get(hist2d_kwargs, :seriestype, nothing) == :wireframe
 

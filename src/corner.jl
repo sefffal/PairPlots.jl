@@ -28,7 +28,7 @@ function corner(
     # Overall plot scale factor
     sf = 1,
     pad_top = 20sf,
-    pad_left = 20sf,
+    pad_left = nothing,
     w=40sf,
     h=40sf,
     p=nothing, # 1sf noramlly, 10sf if 3D
@@ -45,12 +45,18 @@ if !Tables.istable(table)
 end
 
 
+
 if any(!isascii, labels)
     @warn "Non-ascii labels detected. Some plotting backends require passing these using LaTeX escapes, e.g. \\alpha instead of α"
 end
 
 columns = Tables.columnnames(table)
 n = length(columns)
+
+if isnothing(pad_left)
+    pad_left = 20sf + 1sf*length(columns)
+end
+println("TESTTESTTEST")
 
 # Merge keywords for different subplots & series
 hist_kwargs=merge((; nbins=20, color=:black, yticks=[], minorgrid=false, minorticks=false, ylims=(0,NaN)), hist_kwargs)
@@ -90,10 +96,12 @@ end
 # Rather than messing with linking axes, let's just take over setting the plot limits ourselves
 ex = [extrema(Tables.getcolumn(table, i)) for i in 1:n]
 
-# ex = [(-5, +5) .* std(Tables.getcolumn(table, i)) for i in 1:n]
-
-mins = [ex[1] for ex in ex]
-maxs = [ex[2] for ex in ex]
+mids = [(ex[1]+ex[2])/2 for ex in ex]
+widths = [(ex[2]-ex[1])/2 for ex in ex]
+mins = [mid-width*lim_factor for (mid,width) in zip(mids,widths)]
+maxs = [mid+width*lim_factor for (mid,width) in zip(mids,widths)]
+# mins = [ex[1] for ex in ex]
+# maxs = [ex[2] for ex in ex]
 
 
 
@@ -121,7 +129,6 @@ for row in 1:n, col in 1:n
     end
     k+=1
 
-
     # fmt(label) = "\$\\mathrm{$label}\$"
     kw = (;
         title = row == col ? labels[row] : "",
@@ -135,7 +142,7 @@ for row in 1:n, col in 1:n
         # left_margin = col == 1 ? 8Measures.mm : :match,
         # right_margin = col == n ? 6Measures.mm : :match,
 
-        xlims=(mins[col], maxs[col]).*lim_factor,
+        xlims=(mins[col], maxs[col]),
         label="",
         subplot=k,
     )
@@ -145,7 +152,7 @@ for row in 1:n, col in 1:n
 
 
     if row != col
-        kw = (;kw..., ylims=(mins[row], maxs[row]).*lim_factor)
+        kw = (;kw..., ylims=(mins[row], maxs[row]))
     end
 
     # subplot = 
