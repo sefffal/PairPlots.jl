@@ -56,7 +56,6 @@ n = length(columns)
 if isnothing(pad_left)
     pad_left = 20sf + 1sf*length(columns)
 end
-println("TESTTESTTEST")
 
 # Merge keywords for different subplots & series
 hist_kwargs=merge((; nbins=20, color=:black, yticks=[], minorgrid=false, minorticks=false, ylims=(0,NaN)), hist_kwargs)
