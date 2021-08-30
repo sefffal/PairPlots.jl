@@ -23,7 +23,7 @@ function corner end
 corner(args...; kwargs...) = error("You must run `using Plots` before using this package.")
 export corner
 
-function hist(a, histfunc, hist_kwargs, plotpercentiles, percentiles_kwargs, titlefmt)
+function hist(a, histfunc, hist_kwargs, plotpercentiles, percentiles_kwargs, titlefmt, unit)
 
     x, h = histfunc(vec(a), hist_kwargs.nbins)
 
@@ -49,7 +49,7 @@ function hist(a, histfunc, hist_kwargs, plotpercentiles, percentiles_kwargs, tit
         med = pcs_title[2]
         low = med - pcs_title[1]
         high =  pcs_title[3] - med
-        title = @eval (@sprintf($titlefmt, $(hist_kwargs.title), $(pcs_title[2]), $high, $low))
+        title = @eval (@sprintf($titlefmt, $(hist_kwargs.title), $(pcs_title[2]), $high, $low, $unit))
         xc = mean(x)
         yc = maximum(h_scaled) * 1.15
         hist_kwargs = (;hist_kwargs..., title)

@@ -1,7 +1,9 @@
 using .Plots
 function corner(
     table,
-    labels = map(string, Tables.columnnames(table));
+    labels = map(string, Tables.columnnames(table)),
+    units = ["" for _ in labels],
+    ;
     title="",
     plotcontours=true,
     plotscatter=true,
@@ -19,7 +21,7 @@ function corner(
     bonusplot=nothing,
 
     # Format of 1D histogram titles
-    titlefmt="\$%s = %.2f^{+%.2f}_{-%.2f}\$",
+    titlefmt="\$\\mathrm{%s = %.2f^{+%.2f}_{-%.2f} \\; %s}\$",
 
     # By how much should we oversize the limits? Use this option with caution.
     lim_factor = 1.00,
@@ -46,8 +48,8 @@ end
 
 
 
-if any(!isascii, labels)
-    @warn "Non-ascii labels detected. Some plotting backends require passing these using LaTeX escapes, e.g. \\alpha instead of α"
+if any(!isascii, labels) ||  any(!isascii, units)
+    @warn "Non-ascii labels or units detected. Some plotting backends require passing these using LaTeX escapes, e.g. \\alpha instead of α"
 end
 
 columns = Tables.columnnames(table)
@@ -61,7 +63,7 @@ end
 hist_kwargs=merge((; nbins=20, color=:black, yticks=[], minorgrid=false, minorticks=false, ylims=(0,NaN)), hist_kwargs)
 hist2d_kwargs=merge((; nbins=32, color=:Greys, colorbar=:none), hist2d_kwargs)
 contour_kwargs=merge((; color=:black, linewidth=1.5), contour_kwargs)
-scatter_kwargs=merge((; color=:black, alpha=0.1, markersize=1.5, markerstrokewidth=0), scatter_kwargs)
+scatter_kwargs=merge((; color=:black, alpha=0.1, markersize=0.6, markerstrokewidth=0), scatter_kwargs)
 percentiles_kwargs=merge((;linestyle=:dash, color=:black), percentiles_kwargs)
 appearance = merge((;
     framestyle=:box,
@@ -116,7 +118,7 @@ parent = RecipesBase.plot(
     kwargs...
 )
 
-fmt(label) = "\$$label\$"
+fmt(label, unit) = "\$\\mathrm{$label \\; $unit}\$"
 
 # Build grid of nxn plots
 k = 1
@@ -131,8 +133,8 @@ for row in 1:n, col in 1:n
     # fmt(label) = "\$\\mathrm{$label}\$"
     kw = (;
         title = row == col ? labels[row] : "",
-        xguide = threeD || row == n ? fmt(labels[col]) : "",
-        yguide = col == 1  && row > 1 ? fmt(labels[row]) : "",
+        xguide = threeD || row == n ? fmt(labels[col], units[col]) : "",
+        yguide = col == 1  && row > 1 ? fmt(labels[row], units[row]) : "",
         xformatter = threeD || row == n ? appearance.xformatter : t->"",
         yformatter = threeD || col == 1 && row > 1 ? appearance.yformatter : t->"",
 
@@ -157,7 +159,8 @@ for row in 1:n, col in 1:n
     # subplot = 
     if row == col
         # 1D histogram
-        hist(Tables.getcolumn(table, row), histfunc, merge(appearance, kw, hist_kwargs, (;inset)), plotpercentiles, merge(kw, percentiles_kwargs), titlefmt)
+        unit = units[row]
+        hist(Tables.getcolumn(table, row), histfunc, merge(appearance, kw, hist_kwargs, (;inset)), plotpercentiles, merge(kw, percentiles_kwargs), titlefmt, unit)
     else row > col
         # 2D histogram 
         hist(Tables.getcolumn(table, row), Tables.getcolumn(table, col), histfunc, merge(appearance, kw, hist2d_kwargs, (;inset)), merge(kw,contour_kwargs), merge(kw,scatter_kwargs), plotcontours, plotscatter, filterscatter)
