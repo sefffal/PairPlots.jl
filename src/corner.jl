@@ -46,14 +46,18 @@ if !Tables.istable(table)
     error("You must supply data in a format consistent with the definition in Tables.jl, e.g. a Named Tuple of vectors.")
 end
 
-
-
 if any(!isascii, labels) ||  any(!isascii, units)
     @warn "Non-ascii labels or units detected. Some plotting backends require passing these using LaTeX escapes, e.g. \\alpha instead of α"
 end
 
 columns = Tables.columnnames(table)
 n = length(columns)
+
+# filter out empty (0 variance) variables
+ii_empty = findall(==(0), var.(getindex.(Ref(table), columns)))
+if length(ii_empty) > 0
+    @warn "Skipping entries with zero variance" skip=columns[ii_empty]
+end
 
 if isnothing(pad_left)
     pad_left = 20sf + 1sf*length(columns)
@@ -63,7 +67,7 @@ end
 hist_kwargs=merge((; nbins=20, color=:black, yticks=[], minorgrid=false, minorticks=false, ylims=(0,NaN)), hist_kwargs)
 hist2d_kwargs=merge((; nbins=32, color=:Greys, colorbar=:none), hist2d_kwargs)
 contour_kwargs=merge((; color=:black, linewidth=1.5), contour_kwargs)
-scatter_kwargs=merge((; color=:black, alpha=0.1, markersize=0.6, markerstrokewidth=0), scatter_kwargs)
+scatter_kwargs=merge((; color=:black, alpha=0.5, markersize=0.6, markerstrokewidth=0), scatter_kwargs)
 percentiles_kwargs=merge((;linestyle=:dash, color=:black), percentiles_kwargs)
 appearance = merge((;
     framestyle=:box,
@@ -103,6 +107,8 @@ mins = [mid-width*lim_factor for (mid,width) in zip(mids,widths)]
 maxs = [mid+width*lim_factor for (mid,width) in zip(mids,widths)]
 # mins = [ex[1] for ex in ex]
 # maxs = [ex[2] for ex in ex]
+
+
 
 
 

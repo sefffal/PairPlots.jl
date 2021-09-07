@@ -29,8 +29,8 @@ function hist(a, histfunc, hist_kwargs, plotpercentiles, percentiles_kwargs, tit
 
     if length(x) == 1
         @warn "1D histgoram has only one bin"
-        RecipesBase.plot!(; framestyle=:none, title="invalid", hist_kwargs.subplot, hist_kwargs.inset, )
-        return
+        # RecipesBase.plot!(; framestyle=:none, title="invalid", hist_kwargs.subplot, hist_kwargs.inset, )
+        # return
     end
 
     minx, maxx = extrema(a)
@@ -84,7 +84,7 @@ function hist(a, b, histfunc, hist2d_kwargs, contour_kwargs, scatter_kwargs, plo
     h2flat = H[ii]
     sm = cumsum(h2flat)
     sm /= sm[end]
-    if all(isnan, sm)
+    if all(isnan, sm) || length(H) <= 1
         @warn "Could not compute valid contours"
         plotcontours = false
         V = [0]
