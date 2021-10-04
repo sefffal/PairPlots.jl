@@ -11,12 +11,11 @@ This package is curently experimental and under active development.  See also: [
 
 
 ## Installation
-At the Julia REPL, type `]` followed by `add https://github.com/sefffal/PairPlots.jl.git`
-You must also install Plots.
+At the Julia REPL, type `]` followed by `add PairPlots`
+You must also install Plots, e.g. `add Plots` if you have not already done so.
 
 ## Notes
-This pacakge is currently only tested using the GR plots backend, and furthermore, saving plots as PNG or PDF occaisonally produces artifacts.
-I recommend you save your figures as SVG.
+This pacakge is currently only tested using the GR plots backend. I recommend you save your figures as SVG or PNG.
 
 If you pass additional keyword arguments to customize the appearance of the plots, it is recommended to use their canonical form e.g. `seriestype` instead of `st`, `markersize` instead of `ms`. PairPlots attempts to do the "smart" thing when certain combinations of keywords are present, and the shorthands might interfere with this.
 
