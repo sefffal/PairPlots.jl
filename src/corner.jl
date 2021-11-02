@@ -54,7 +54,7 @@ columns = Tables.columnnames(table)
 n = length(columns)
 
 # filter out empty (0 variance) variables
-ii_empty = findall(==(0), var.(getindex.(Ref(table), columns)))
+ii_empty = findall(==(0),  var.(collect(Tables.columns(table))))
 if length(ii_empty) > 0
     @warn "Skipping entries with zero variance" skip=columns[ii_empty]
 end
@@ -99,7 +99,7 @@ end
 
 
 # Rather than messing with linking axes, let's just take over setting the plot limits ourselves
-ex = [extrema(Tables.getcolumn(table, i)) for i in 1:n]
+ex = extrema.(collect(Tables.columns(table)))
 
 mids = [(ex[1]+ex[2])/2 for ex in ex]
 widths = [(ex[2]-ex[1])/2 for ex in ex]
@@ -162,14 +162,14 @@ for row in 1:n, col in 1:n
         kw = (;kw..., ylims=(mins[row], maxs[row]))
     end
 
-    # subplot = 
+    table_keys = Tables.columnnames(table)
     if row == col
         # 1D histogram
         unit = units[row]
-        hist(Tables.getcolumn(table, row), histfunc, merge(appearance, kw, hist_kwargs, (;inset)), plotpercentiles, merge(kw, percentiles_kwargs), titlefmt, unit)
+        hist(Tables.getcolumn(table, table_keys[row]), histfunc, merge(appearance, kw, hist_kwargs, (;inset)), plotpercentiles, merge(kw, percentiles_kwargs), titlefmt, unit)
     else row > col
         # 2D histogram 
-        hist(Tables.getcolumn(table, row), Tables.getcolumn(table, col), histfunc, merge(appearance, kw, hist2d_kwargs, (;inset)), merge(kw,contour_kwargs), merge(kw,scatter_kwargs), plotcontours, plotscatter, filterscatter)
+        hist(Tables.getcolumn(table, table_keys[row]), Tables.getcolumn(table, table_keys[col]), histfunc, merge(appearance, kw, hist2d_kwargs, (;inset)), merge(kw,contour_kwargs), merge(kw,scatter_kwargs), plotcontours, plotscatter, filterscatter)
     end
     # push!(subplots, subplot)
 end
