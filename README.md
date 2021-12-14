@@ -59,6 +59,13 @@ corner((;d))
 ```
 <img src="images/single-variable.png" width=150/>
 
+
+Basic scatter plot:
+```julia
+corner(table, plotcontours=false, filterscatter=false)
+```
+<img width="531" alt="image" src="https://user-images.githubusercontent.com/7330605/146047141-75de3bcb-bede-4996-b8dc-517d50eb995e.png">
+
 Appearance:
 ```julia
 theme(:dark) # See PlotThemes.jl included with Plots.
