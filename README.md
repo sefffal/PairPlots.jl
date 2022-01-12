@@ -4,6 +4,8 @@ This package produces corner plots, otherwise known as pair plots or scatter plo
 
 Documentation: [Read on JuliaHub](https://juliahub.com/docs/PairPlots)
 
+[![Package Downloads](https://shields.io/endpoint?url=https://pkgs.genieframework.com/api/v1/badge/PairPlots)](https://pkgs.genieframework.com?packages=PairPlots)
+
 
 The defaults in this package aim to reproduce the output of the well-known Python library [corner.py](https://corner.readthedocs.io/en/latest/index.html) as closely as possible. If these are not to your tastes, this package is highly configurable (see examples below).
 
