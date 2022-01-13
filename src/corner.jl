@@ -47,7 +47,11 @@ if !Tables.istable(table)
 end
 
 if any(!isascii, labels) ||  any(!isascii, units)
-    @warn "Non-ascii labels or units detected. Some plotting backends require passing these using LaTeX escapes, e.g. \\alpha instead of α"
+    labels = map(unicode_to_latex, labels)
+    units = map(unicode_to_latex, units)
+    if any(!isascii, labels) ||  any(!isascii, units)
+        @warn "Non-ascii labels or units detected that could not be automatically substituted using the REPL completions list. Some plotting backends require passing these using LaTeX escapes, e.g. \\alpha instead of α."
+    end    
 end
 
 columns = Tables.columnnames(table)
