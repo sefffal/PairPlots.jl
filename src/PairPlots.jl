@@ -13,7 +13,7 @@ using Requires
 using StaticArrays
 using PolygonOps
 using Contour
-
+using Latexify
 
 function corner end
 # We pull in Plots only using Requires instead of as a diret dependency, so 
@@ -222,26 +222,6 @@ function scatter_filtering(b, a, x,y, level)
 
 end
 
-using REPL
-"""
-    unicode_to_latex("string")
-
-Replace all occurences of unicode characters in a string with their LaTeX escapes.
-Uses the REPL completions list. It's not perfect, but helps.
-This is needed because plots does not support mixing latex with unicode in labels etc.
-and we need LaTeX to put superscripts and subscripts, etc.
-"""
-function unicode_to_latex(str)
-    characters = map(collect(str)) do c
-        if haskey(symbol_replacements2, c)
-            symbol_replacements2[c]
-        else
-            string(c)
-        end
-    end
-    return prod(characters)
-end
-const symbol_replacements2 = Dict(only(v)=>k for (k,v) in REPL.REPLCompletions.latex_symbols if length(v)==1)
 
 # Special support for MCMCChains.
 # They have additional table fields :iteration and :chain that should not be shown

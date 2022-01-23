@@ -47,8 +47,8 @@ if !Tables.istable(table)
 end
 
 if any(!isascii, labels) ||  any(!isascii, units)
-    labels = map(unicode_to_latex, labels)
-    units = map(unicode_to_latex, units)
+    labels = latexify.(labels, env=:raw)
+    units = latexify.(units, env=:raw)
     if any(!isascii, labels) ||  any(!isascii, units)
         @warn "Non-ascii labels or units detected that could not be automatically substituted using the REPL completions list. Some plotting backends require passing these using LaTeX escapes, e.g. \\alpha instead of α."
     end    
