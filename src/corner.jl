@@ -1,7 +1,7 @@
 using .Plots
 function corner(
     table,
-    labels = map(string, Tables.columnnames(table)),
+    labels = latexify.(Tables.columnnames(table), env=:raw),
     units = ["" for _ in labels],
     ;
     title="",
@@ -47,10 +47,8 @@ if !Tables.istable(table)
 end
 
 if any(!isascii, labels) ||  any(!isascii, units)
-    labels = latexify.(labels, env=:raw)
-    units = latexify.(units, env=:raw)
     if any(!isascii, labels) ||  any(!isascii, units)
-        @warn "Non-ascii labels or units detected that could not be automatically substituted using the REPL completions list. Some plotting backends require passing these using LaTeX escapes, e.g. \\alpha instead of α."
+        @warn "Non-ascii labels or units detected, this may not work correctly that could not be automatically substituted using the REPL completions list. Some plotting backends require passing these using LaTeX escapes, e.g. \\alpha instead of α."
     end    
 end
 
