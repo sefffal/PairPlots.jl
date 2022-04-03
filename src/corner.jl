@@ -4,6 +4,7 @@ function corner(
     labels = latexify.(Tables.columnnames(table), env=:raw),
     units = ["" for _ in labels],
     ;
+    truths=nothing,
     title="",
     plotcontours=true,
     plotscatter=true,
@@ -15,6 +16,7 @@ function corner(
     contour_kwargs=(;),
     scatter_kwargs=(;),
     percentiles_kwargs=(;),
+    truths_kwargs=(;),
     appearance=(;),
     lens=nothing,
     lens_kwargs=(;),
@@ -55,6 +57,10 @@ end
 columns = Tables.columnnames(table)
 n = length(columns)
 
+if isnothing(truths)
+    truths =  [[] for _ in columns]
+end
+
 # filter out empty (0 variance) variables
 ii_empty = findall(==(0),  var.(collect(Tables.columns(table))))
 if length(ii_empty) > 0
@@ -71,6 +77,7 @@ hist2d_kwargs=merge((; nbins=32, color=:Greys, colorbar=:none), hist2d_kwargs)
 contour_kwargs=merge((; color=:black, linewidth=1.5), contour_kwargs)
 scatter_kwargs=merge((; color=:black, alpha=0.5, markersize=0.6, markerstrokewidth=0), scatter_kwargs)
 percentiles_kwargs=merge((;linestyle=:dash, color=:black), percentiles_kwargs)
+truths_kwargs=merge((;color=:blue), truths_kwargs)
 appearance = merge((;
     framestyle=:box,
     xrotation = 45,
@@ -168,10 +175,10 @@ for row in 1:n, col in 1:n
     if row == col
         # 1D histogram
         unit = units[row]
-        hist(Tables.getcolumn(table, table_keys[row]), histfunc, merge(appearance, kw, hist_kwargs, (;inset)), plotpercentiles, merge(kw, percentiles_kwargs), titlefmt, unit)
+        hist(Tables.getcolumn(table, table_keys[row]), truths[row], histfunc, merge(appearance, kw, hist_kwargs, (;inset)), plotpercentiles, merge(kw, percentiles_kwargs), merge(kw, truths_kwargs), titlefmt, unit)
     else row > col
         # 2D histogram 
-        hist(Tables.getcolumn(table, table_keys[row]), Tables.getcolumn(table, table_keys[col]), histfunc, merge(appearance, kw, hist2d_kwargs, (;inset)), merge(kw,contour_kwargs), merge(kw,scatter_kwargs), plotcontours, plotscatter, filterscatter)
+        hist(Tables.getcolumn(table, table_keys[row]), Tables.getcolumn(table, table_keys[col]), truths[row], truths[col], histfunc, merge(appearance, kw, hist2d_kwargs, (;inset)), merge(kw,contour_kwargs), merge(kw,scatter_kwargs),  merge(kw, truths_kwargs), plotcontours, plotscatter, filterscatter)
     end
     # push!(subplots, subplot)
 end

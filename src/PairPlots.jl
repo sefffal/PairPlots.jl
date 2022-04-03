@@ -23,7 +23,7 @@ function corner end
 corner(args...; kwargs...) = error("You must run `using Plots` before using this package.")
 export corner
 
-function hist(a, histfunc, hist_kwargs, plotpercentiles, percentiles_kwargs, titlefmt, unit)
+function hist(a, truths, histfunc, hist_kwargs, plotpercentiles, percentiles_kwargs, truths_kwargs, titlefmt, unit)
 
     x, h = histfunc(vec(a), hist_kwargs.nbins)
 
@@ -70,9 +70,11 @@ function hist(a, histfunc, hist_kwargs, plotpercentiles, percentiles_kwargs, tit
         RecipesBase.plot!(pcs; seriestype=:vline, percentiles_kwargs...)
     end
 
+    length(truths) > 0 && RecipesBase.plot!(collect(truths); truths_kwargs..., seriestype=:vline)
+
     # return p
 end
-function hist(a, b, histfunc, hist2d_kwargs, contour_kwargs, scatter_kwargs, plotcontours, plotscatter, filterscatter)
+function hist(a, b, truthsa, truthsb, histfunc, hist2d_kwargs, contour_kwargs, scatter_kwargs, truths_kwargs, plotcontours, plotscatter, filterscatter)
 
     x, y, H = histfunc(vec(a), vec(b), hist2d_kwargs.nbins)
 
@@ -166,7 +168,10 @@ function hist(a, b, histfunc, hist2d_kwargs, contour_kwargs, scatter_kwargs, plo
         end
         
     end
-    # p
+
+    length(truthsa) > 0 && RecipesBase.plot!(collect(truthsa); truths_kwargs..., seriestype=:hline)
+    length(truthsb) > 0 && RecipesBase.plot!(collect(truthsb); truths_kwargs..., seriestype=:vline)
+    nothing
 end
 
 emptyplot() = RecipesBase.plot(framestyle=:none, background_color_inside=:transparent)
