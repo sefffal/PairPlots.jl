@@ -192,13 +192,13 @@ if !isnothing(lens)
     bonusheight = full_height-pad_bottom-pad_top-nspan*(h+p) - pad_bonus 
     inset = bbox(x*Measures.mm, y*Measures.mm, bonuswidth*Measures.mm, bonusheight*Measures.mm, :left)
     if lens ∈ columns
-        unit = units[1]
+        unit = units[findfirst(==(lens), columns)]
         kw = (;label="", subplot=k, title=labels[findfirst(==(lens), columns)])
-        hist(Tables.getcolumn(table, lens),truths[1],histfunc,merge(appearance, kw, hist_kwargs, (;inset), get(lens_kwargs,:hist_kwargs,(;))), plotpercentiles, merge(kw, percentiles_kwargs, get(lens_kwargs,:hist_kwargs,(;))),merge(kw, truths_kwargs),titlefmt,unit)
+        hist(Tables.getcolumn(table, lens), truths[findfirst(==(lens), columns)], histfunc,merge(appearance, kw, hist_kwargs, (;inset), get(lens_kwargs,:hist_kwargs,(;))), plotpercentiles, merge(kw, percentiles_kwargs, get(lens_kwargs,:hist_kwargs,(;))), merge(kw, truths_kwargs),titlefmt,unit)
 
     elseif lens[1] ∈ columns && lens[2] ∈ columns
         kw = (;label="", subplot=k, yguide=fmt(labels[findfirst(==(lens[1]), columns)],units[findfirst(==(lens[1]), columns)]), xguide=fmt(labels[findfirst(==(lens[2]), columns)],units[findfirst(==(lens[2]), columns)]))
-        hist(Tables.getcolumn(table, lens[1]),Tables.getcolumn(table, lens[2]),truths[1],truths[2],histfunc, merge(appearance, kw, hist2d_kwargs, (;inset), lens_kwargs, get(lens_kwargs,:hist2d_kwargs,(;))), merge(kw,contour_kwargs,get(lens_kwargs,:contour_kwargs,(;))), merge(kw,scatter_kwargs,get(lens_kwargs,:scatter_kwargs,(;))), merge(kw, truths_kwargs),get(lens_kwargs,:plotcontours,plotcontours), get(lens_kwargs,:plotscatter,plotscatter), get(lens_kwargs,:filterscatter,filterscatter))
+        hist(Tables.getcolumn(table, lens[1]), Tables.getcolumn(table, lens[2]), truths[findfirst(==(lens[1]), columns)], truths[findfirst(==(lens[2]), columns)], histfunc, merge(appearance, kw, hist2d_kwargs, (;inset), lens_kwargs, get(lens_kwargs,:hist2d_kwargs,(;))), merge(kw,contour_kwargs,get(lens_kwargs,:contour_kwargs,(;))), merge(kw,scatter_kwargs,get(lens_kwargs,:scatter_kwargs,(;))), merge(kw, truths_kwargs), get(lens_kwargs,:plotcontours,plotcontours), get(lens_kwargs,:plotscatter,plotscatter), get(lens_kwargs,:filterscatter,filterscatter))
     end
 elseif !isnothing(bonusplot)
     k += 1
