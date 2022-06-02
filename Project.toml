@@ -1,7 +1,7 @@
 name = "PairPlots"
 uuid = "43a3c2be-4208-490b-832a-a21dcd55d7da"
 authors = ["William Thompson <wthompson@uvic.ca>"]
-version = "0.6.1"
+version = "0.6.0"
 
 [deps]
 Contour = "d38c429a-6771-53c6-b99e-75d170b6e991"
