@@ -1,4 +1,4 @@
-<h1><img src="images/logo.png" width=50/> PairPlots.jl</h1>
+<h1><img src="https://github.com/sefffal/PairPlots.jl/blob/master/images/logo.png" width=50/> PairPlots.jl</h1>
 
 This package produces corner plots, otherwise known as pair plots or scatter plot matrices: grids of 1D and 2D histograms that allow you to visualize high dimensional data.
 
@@ -53,13 +53,13 @@ table = (;a, b, c, d)
 
 corner(table)
 ```
-<img src="images/basic.png" width=350/>
+<img src="https://github.com/sefffal/PairPlots.jl/blob/master/images/basic.png" width=350/>
 
 Single variable fallback:
 ```julia
 corner((;d))
 ```
-<img src="images/single-variable.png" width=150/>
+<img src="https://github.com/sefffal/PairPlots.jl/blob/master/images/single-variable.png" width=150/>
 
 
 Basic scatter plot:
@@ -79,7 +79,7 @@ corner(
     percentiles_kwargs=(;color=:white),
 )
 ```
-<img src="images/themed.png" width=350/>
+<img src="https://github.com/sefffal/PairPlots.jl/blob/master/images/themed.png" width=350/>
 
 
 
@@ -103,7 +103,7 @@ corner(
     )
 )
 ```
-![](images/lens-gallery.png)
+![](https://github.com/sefffal/PairPlots.jl/blob/master/images/lens-gallery.png)
 
 
 Adding an extra unrelated subplot with `bonusplot`:
@@ -120,7 +120,7 @@ a = randn(100000); b = randn(100000) .+ a; c = 4randn(100000) .+ a
 
 corner((;a,b,c), hist_kwargs=(;title=""), appearance=(;framestyle=:grid, ticks=[]), plotpercentiles=[])
 ```
-<img src="images/minimal.png" width=350/>
+<img src="https://github.com/sefffal/PairPlots.jl/blob/master/images/minimal.png" width=350/>
 
 
 3D wireframe and line plots:
@@ -136,7 +136,7 @@ corner(
     dpi=200
 )
 ```
-<img src="images/3d-mesh-2.png" width=300/>
+<img src="https://github.com/sefffal/PairPlots.jl/blob/master/images/3d-mesh-2.png" width=300/>
 
 ```julia
 theme(:solarized);
@@ -148,7 +148,7 @@ theme(:solarized);
     percentiles_kwargs=(;color=:grey),
 )
 ```
-<img src="images/3d-mesh.png" width=300/>
+<img src="https://github.com/sefffal/PairPlots.jl/blob/master/images/3d-mesh.png" width=300/>
 
 
 
