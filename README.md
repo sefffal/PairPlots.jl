@@ -1,5 +1,4 @@
-<h1><img src="https://github.com/sefffal/PairPlots.jl/blob/master/images/logo.png" width=50/> PairPlots.jl</h1>
-
+# ![](https://github.com/sefffal/PairPlots.jl/blob/master/images/logo.png) PairPlots.jl
 This package produces corner plots, otherwise known as pair plots or scatter plot matrices: grids of 1D and 2D histograms that allow you to visualize high dimensional data.
 
 Documentation: [Read on JuliaHub](https://juliahub.com/docs/PairPlots)
@@ -53,20 +52,20 @@ table = (;a, b, c, d)
 
 corner(table)
 ```
-<img src="https://github.com/sefffal/PairPlots.jl/blob/master/images/basic.png" width=350/>
+![](https://github.com/sefffal/PairPlots.jl/blob/master/images/basic.png)
 
 Single variable fallback:
 ```julia
 corner((;d))
 ```
-<img src="https://github.com/sefffal/PairPlots.jl/blob/master/images/single-variable.png" width=150/>
+![](https://github.com/sefffal/PairPlots.jl/blob/master/images/single-variable.png)
 
 
 Basic scatter plot:
 ```julia
 corner(table, plotcontours=false, filterscatter=false)
 ```
-<img width="531" alt="image" src="https://user-images.githubusercontent.com/7330605/146047141-75de3bcb-bede-4996-b8dc-517d50eb995e.png">
+![](https://user-images.githubusercontent.com/7330605/146047141-75de3bcb-bede-4996-b8dc-517d50eb995e.png)
 
 Appearance:
 ```julia
@@ -79,7 +78,7 @@ corner(
     percentiles_kwargs=(;color=:white),
 )
 ```
-<img src="https://github.com/sefffal/PairPlots.jl/blob/master/images/themed.png" width=350/>
+![](https://github.com/sefffal/PairPlots.jl/blob/master/images/themed.png)
 
 
 
@@ -120,7 +119,7 @@ a = randn(100000); b = randn(100000) .+ a; c = 4randn(100000) .+ a
 
 corner((;a,b,c), hist_kwargs=(;title=""), appearance=(;framestyle=:grid, ticks=[]), plotpercentiles=[])
 ```
-<img src="https://github.com/sefffal/PairPlots.jl/blob/master/images/minimal.png" width=350/>
+![](https://github.com/sefffal/PairPlots.jl/blob/master/images/minimal.png)
 
 
 3D wireframe and line plots:
@@ -136,7 +135,7 @@ corner(
     dpi=200
 )
 ```
-<img src="https://github.com/sefffal/PairPlots.jl/blob/master/images/3d-mesh-2.png" width=300/>
+![](https://github.com/sefffal/PairPlots.jl/blob/master/images/3d-mesh-2.png)
 
 ```julia
 theme(:solarized);
@@ -148,7 +147,7 @@ theme(:solarized);
     percentiles_kwargs=(;color=:grey),
 )
 ```
-<img src="https://github.com/sefffal/PairPlots.jl/blob/master/images/3d-mesh.png" width=300/>
+![](https://github.com/sefffal/PairPlots.jl/blob/master/images/3d-mesh.png)
 
 
 
