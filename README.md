@@ -1,4 +1,6 @@
-# ![](https://github.com/sefffal/PairPlots.jl/blob/master/images/logo.png) PairPlots.jl
+<img src="https://github.com/sefffal/PairPlots.jl/blob/master/images/logo.png" width=100>
+
+# PairPlots.jl
 This package produces corner plots, otherwise known as pair plots or scatter plot matrices: grids of 1D and 2D histograms that allow you to visualize high dimensional data.
 
 Documentation: [Read on JuliaHub](https://juliahub.com/docs/PairPlots)
