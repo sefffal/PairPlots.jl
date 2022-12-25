@@ -3,10 +3,11 @@ Base.Experimental.@optlevel 0
 
 export pairplot, TableSeries, ConfidenceLimits
 
+using Makie: Makie
 using Tables
 using Printf
 using Latexify: latexify
-using Statistics: quantile
+using StatsBase: fit, quantile, Histogram, sturges
 using OrderedCollections: OrderedDict
 
 #=
@@ -103,11 +104,6 @@ struct Marker1 <: AbstractSeries
 end
 Marker = Marker1
 
-# # Fallback for single series
-# @nospecialize function pairplot(args::Any...; kwargs...)
-#     pairplot(Series(args...; kwargs...))
-# end
-
 
 abstract type VizType end
 abstract type VizTypeBody <: VizType end
@@ -117,11 +113,29 @@ struct HexBin <: VizTypeBody
 end
 HexBin(;kwargs...) = HexBin(kwargs)
 
+struct Contour1 <: VizTypeBody
+    kwargs
+end
+Contour1(;kwargs...) = Contour1(kwargs)
+
+struct Contourf1 <: VizTypeBody
+    kwargs
+end
+Contourf1(;kwargs...) = Contourf1(kwargs)
+
+
+## Diagonals
+
 abstract type VizTypeDiag <: VizType end
 struct Hist1D <: VizTypeDiag
     kwargs
 end
 Hist1D(;kwargs...) = Hist1D(kwargs)
+
+struct Density1 <: VizTypeDiag
+    kwargs
+end
+Density1(;kwargs...) = Density1(kwargs)
 
 
 colnames(t::TableSeries1) = Tables.columnnames(t.table)
@@ -130,7 +144,6 @@ colnames(t::NamedTuple) = keys(t)
 colnames(t::AbstractDict) = keys(t)
 
 
-using Makie
 
 @nospecialize
 
@@ -146,7 +159,8 @@ function pairplot(
     kwargs...,
 )
     fig = Figure(;figure...)
-    pairplot(fig.layout, bodyplottypes, diagplottypes, series..., )
+    pairplot(fig.layout, bodyplottypes, diagplottypes, series...; kwargs...)
+    return fig
 end
 
 # Create a pairplot by plotting into a grid position of a figure.
@@ -208,7 +222,11 @@ function pairplot(
             xlabel=label_map[colname_col],
             xgridvisible=false,
             ygridvisible=false,
+            # Ensure any axis title that gets added doesn't break the tight layout
             alignmode = row_ind == 1 ? Inside() : Makie.Mixed(;left=nothing, right=nothing, bottom=nothing, top=Makie.Protrusion(0.0)),
+            xautolimitmargin=(0f0,0f0),
+            yautolimitmargin=(0f0,0f0),
+            # User options
             axis...,
         )
 
@@ -259,40 +277,84 @@ function pairplot(
     Makie.colgap!(grid, Makie.Fixed(0))
 
 
-
-    return Base.@locals
+    return
 
 end
 
 # Note: stephist coming soon in a Makie PR
 
-function diagplot(ax::Axis, viztype::Hist1D, series::TableSeries1, colname)
+function diagplot(ax::Axis, viz::Hist1D, series::TableSeries1, colname)
     dat = series.table[colname]
 
     h = Makie.hist!(
         ax,
         dat;
         color=:gray,
-        viztype.kwargs...
+        viz.kwargs...,
+        series.kwargs...,
     )
     Makie.ylims!(ax,low=0)
 end
-function diagplot(ax::Axis, viztype::Any, series::ConfidenceLimits6, colname)
+
+function diagplot(ax::Axis, viz::Density1, series::TableSeries1, colname)
+    dat = series.table[colname]
+
+    h = Makie.density!(
+        ax,
+        dat;
+        color=:gray,
+        viz.kwargs...,
+        series.kwargs...,
+    )
+    Makie.ylims!(ax,low=0)
+end
+function diagplot(ax::Axis, viz::Any, series::ConfidenceLimits6, colname)
     low, mid, high = series.limits[colname]
 
     title = @eval (@sprintf($(series.titlefmt), $mid, $high, $low))
     ax.title = Makie.latexstring(ax.title[], title)
 
 
-    Makie.vlines!(ax, [mid-low, mid, mid+high]; linestyle=:dash, color=:black, series.kwargs...)
+    Makie.vlines!(
+        ax,
+        [mid-low, mid, mid+high];
+        linestyle=:dash,
+        color=:black,
+        viz.kwargs...,
+        series.kwargs...,
+    )
 end
 
-function bodyplot(ax::Axis, viztype::VizTypeBody, series::TableSeries1, colname_row, colname_col)
-
-    Makie.hexbin!(ax, series.table[colname_col], series.table[colname_row]; viztype.kwargs...)
+function bodyplot(ax::Axis, viz::HexBin, series::TableSeries1, colname_row, colname_col)
+    Makie.hexbin!(
+        ax,
+        series.table[colname_col],
+        series.table[colname_row];
+        viz.kwargs...,
+        series.kwargs...,
+    )
 end
 
-function bodyplot(ax::Axis, viztype::Any, series::ConfidenceLimits6, colname_row, colname_col)
+function bodyplot(ax::Axis, viz::Contour1, series::TableSeries1, colname_row, colname_col)
+
+    h = fit(Histogram, (vec(series.table[colname_row]),vec(series.table[colname_col])); nbins=get(series.kwargs, :bins, sturges(length(series.table[colname_row]))))
+    y = range(first(h.edges[1])+step(h.edges[1])/2, step=step(h.edges[1]), length=size(h.weights,1))
+    x = range(first(h.edges[2])+step(h.edges[2])/2, step=step(h.edges[2]), length=size(h.weights,2))
+
+    Makie.contour!(ax, x, y, transpose(h.weights); viz.kwargs..., series.kwargs...)
+end
+
+function bodyplot(ax::Axis, viz::Contourf1, series::TableSeries1, colname_row, colname_col)
+
+    h = fit(Histogram, (vec(series.table[colname_row]),vec(series.table[colname_col])); nbins=get(series.kwargs, :bins, sturges(length(series.table[colname_row]))))
+    y = range(first(h.edges[1])+step(h.edges[1])/2, step=step(h.edges[1]), length=size(h.weights,1))
+    x = range(first(h.edges[2])+step(h.edges[2])/2, step=step(h.edges[2]), length=size(h.weights,2))
+
+    Makie.contourf!(ax, x, y, transpose(h.weights); interpolate=false, viz.kwargs..., series.kwargs...)
+end
+
+
+function bodyplot(ax::Axis, viz::Any, series::ConfidenceLimits6, colname_row, colname_col)
     # No-op
 end
 
