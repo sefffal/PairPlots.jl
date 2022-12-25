@@ -1,207 +1,328 @@
 module PairPlots
+Base.Experimental.@optlevel 0
 
-using RecipesBase
-using Measures
-using NamedTupleTools
+export pairplot, TableSeries, ConfidenceLimits
+
 using Tables
-
-using Statistics
-using StatsBase
-
 using Printf
-using Requires
-using StaticArrays
-using PolygonOps
-using Contour
-using Latexify
+using Latexify: latexify
+using Statistics: quantile
+using OrderedCollections: OrderedDict
 
-function corner end
-# We pull in Plots only using Requires instead of as a diret dependency, so 
-# that upstream packages can add us as a dependency e.g. for visualizing 
-# a custom datastructure without needing all of Plots.
-# Give the user a helpful error message if they have not imported Plots yet
-corner(args...; kwargs...) = error("You must run `using Plots` before using this package.")
-export corner
+#=
+Goals:
+* Revise interface
+* Supoprt multiple chains
+* Simpler styling...
+* truth values, markers
+* Support plotting distributions directly 
+* -> MultinomialGaussian fitting for clean ellipses
 
-function hist(a, truths, histfunc, hist_kwargs, plotpercentiles, percentiles_kwargs, truths_kwargs, titlefmt, unit)
 
-    x, h = histfunc(vec(a), hist_kwargs.nbins)
+We have two axes of customization, a bit like grammer of graphics.
+We have:
+    * data kinds, e.g. mix of Distribution and Table series
+    * visualization kinds, e.g. hexbin vs. contour vs...
+        * This may in theory vary at each position.
 
-    if length(x) == 1
-        @warn "1D histgoram has only one bin"
-        # RecipesBase.plot!(; framestyle=:none, title="invalid", hist_kwargs.subplot, hist_kwargs.inset, )
-        # return
-    end
 
-    minx, maxx = extrema(a)
-    extent = maxx - minx
-    # h_scaled = h ./ maximum(h) .* extent
-    # h_scaled .+= minx
-    h_scaled = h
-    pcs = []
-    a_sorted = sort(vec(a))
-    if length(plotpercentiles) > 0
-        pcs = quantile(a_sorted, plotpercentiles./100, sorted=true)
-    end
-    # WIP: replace the title with an annotation so that the margins don't get messed up.
-    if get(hist_kwargs, :title, "") != ""
-        pcs_title = quantile(a_sorted, [0.16, 0.5, 0.84], sorted=true)
-        med = pcs_title[2]
-        low = med - pcs_title[1]
-        high =  pcs_title[3] - med
-        title = @eval (@sprintf($titlefmt, $(hist_kwargs.title), $(pcs_title[2]), $high, $low, $unit))
-        xc = mean(x)
-        yc = maximum(h_scaled) * 1.15
-        hist_kwargs = (;hist_kwargs..., title)
-    end
-    hist_kwargs = delete(hist_kwargs, :nbins)
-    percentiles_kwargs = delete(percentiles_kwargs,:title)
-    # p = RecipesBase.plot()
+want to kep basic pairplot(chain)
+also want 
+pairplot(
+    PairPlots.Series(chain, color=...),
+    PairPlots.Series(chain, color=...),
+    PairPlots.Lines((a=1, b=2,)),
+    PairPlots.Marker(chain, color=...),
+    
+)
 
-    kw = merge((;seriestype=:step), hist_kwargs)
-    if kw.seriestype==:step
-        x = x .- step(x)/2
-    end
-    RecipesBase.plot!(x, h_scaled; kw...)
-    # RecipesBase.plot!(x, h_scaled; kw.inset, kw.subplot)
-    # RecipesBase.plot!(x, h_scaled; kw.inset, kw.subplot, kw.seriestype, kw.xrotation, kw.yrotation, kw.tick_direction, kw.grid, kw.yformatter, kw.xlims, yticks)
+pairplot(
+    Series(chains, color=red, scatter=true, )
+)
 
-    if length(pcs) > 0
-        RecipesBase.plot!(pcs; seriestype=:vline, percentiles_kwargs...)
-    end
+try to make still work if a series is missing a column.
 
-    length(truths) > 0 && RecipesBase.plot!(collect(truths); truths_kwargs..., seriestype=:vline)
 
-    # return p
+=#
+
+abstract type AbstractSeries end
+
+
+struct TableSeries1 <: AbstractSeries
+    table
+    kwargs
 end
-function hist(a, b, truthsa, truthsb, histfunc, hist2d_kwargs, contour_kwargs, scatter_kwargs, truths_kwargs, plotcontours, plotscatter, filterscatter)
+TableSeries(data; kwargs...) = TableSeries1(data, kwargs)
 
-    x, y, H = histfunc(vec(a), vec(b), hist2d_kwargs.nbins)
 
-    threeD = get(hist2d_kwargs, :seriestype, nothing) == :wireframe
+# """
 
-    # Calculate levels for contours
-    levels = 1 .- exp.(-0.5 .* (0.5:0.5:2.1).^2)
-    ii = sortperm(reshape(H,:))
-    h2flat = H[ii]
-    sm = cumsum(h2flat)
-    sm /= sm[end]
-    if all(isnan, sm) || length(H) <= 1
-        @warn "Could not compute valid contours"
-        plotcontours = false
-        V = [0]
-    else
-        V = sort(map(v0 -> h2flat[sm .≤ v0][end], levels))
-        if any(==(0), diff(V))
-            @warn "Too few points to create valid contours"
+# - table: Data table
+# - labels: Vector of labels for each column.
+# - units: Vector of units for each column.
+# - kwargs: Keyword arguments to forward to the plotting library
+# """
+# function series( 
+#     table, 
+#     # labels = latexify.(Tables.columnnames(table), env=:raw), 
+#     # units  = ["" for _ in labels]; 
+#     kwargs...
+# )
+#     if Tables.istable(table)
+#         TableSeries1(table; kwargs)
+#     elseif 
+#     Series2(table, labels, units; kwargs...)
+# end
+
+struct ConfidenceLimits6 <: AbstractSeries
+    limits
+    titlefmt
+    kwargs
+end
+function ConfidenceLimits(table, fmt_str="\$\\mathrm{%.2f^{+%.2f}_{-%.2f}}\$"; kwargs...)
+    cn = colnames(table)
+    limits = map(cn) do colname
+        percentiles = quantile(vec(table[colname]), (0.16, 0.5, 0.84))
+        cen = percentiles[2]
+        low = cen - percentiles[1]
+        high = percentiles[3] - cen
+        colname => (low, cen, high)
+    end
+    return ConfidenceLimits6(OrderedDict(limits), fmt_str, kwargs)
+end
+
+struct Lines1 <: AbstractSeries
+    table
+    kwargs
+end
+Lines = Lines1
+
+struct Marker1 <: AbstractSeries
+    table
+    kwargs
+end
+Marker = Marker1
+
+# # Fallback for single series
+# @nospecialize function pairplot(args::Any...; kwargs...)
+#     pairplot(Series(args...; kwargs...))
+# end
+
+
+abstract type VizType end
+abstract type VizTypeBody <: VizType end
+
+struct HexBin <: VizTypeBody
+    kwargs
+end
+HexBin(;kwargs...) = HexBin(kwargs)
+
+abstract type VizTypeDiag <: VizType end
+struct Hist1D <: VizTypeDiag
+    kwargs
+end
+Hist1D(;kwargs...) = Hist1D(kwargs)
+
+
+colnames(t::TableSeries1) = Tables.columnnames(t.table)
+colnames(t::ConfidenceLimits6) = keys(t.limits)
+colnames(t::NamedTuple) = keys(t)
+colnames(t::AbstractDict) = keys(t)
+
+
+using Makie
+
+@nospecialize
+
+GridPosTypes = Union{Figure, GridPosition, GridSubposition}
+
+# Create a pairplot without providing a figure
+# @nospecialize 
+function pairplot(
+    bodyplottypes::VizTypeBody,
+    diagplottypes::VizTypeDiag,
+    series::AbstractSeries...;
+    figure=(;),
+    kwargs...,
+)
+    fig = Figure(;figure...)
+    pairplot(fig.layout, bodyplottypes, diagplottypes, series..., )
+end
+
+# Create a pairplot by plotting into a grid position of a figure.
+function pairplot(
+    grid::Makie.GridLayout,
+    bodyplottypes::VizTypeBody,
+    diagplottypes::VizTypeDiag,
+    series::AbstractSeries...;
+    labels = Dict(),
+    units = Dict(),
+    axis=(;)
+)
+    
+    # We support multiple series that may have disjoint columns
+    # Get the ordered union of all table columns.
+    columns = unique(Iterators.flatten(map(colnames, series)))
+
+    # Map of column key to label text. 
+    # By default, just latexify the column key but allow override.
+    label_map = Dict(
+        name => Makie.latexstring("\\mathrm{", latexify(name, env=:raw), "}")
+        for name in columns
+    )
+    label_map = merge(label_map, labels)
+
+    # Similarly for units. By default empty string, but allow override.
+    units_map = Dict(
+        name => L""
+        for name in columns
+    )
+    units_map = merge(units_map, units)
+
+    # Rather than computing limits in this version, let's try to rely on 
+    # Makie doing a good job of linking axes.
+
+    N = length(columns)
+
+    # Keep lists of axes by row number and by column number.
+    # We'll use these afterwards to link axes together.
+    axes_by_row = Dict{Int,Vector{Axis}}()
+    axes_by_col = Dict{Int,Vector{Axis}}()
+    sizehint!(axes_by_col, N)
+    sizehint!(axes_by_row, N)
+    
+    # Build grid of nxn plots
+    for row_ind in 1:N, col_ind in 1:N
+
+        # TODO: make this optional
+        if row_ind < col_ind
+            continue
         end
-    end
-
-    # # Exclude histogram spaces outside the outer contour
-    # masked_weights = fill(NaN, size(H))
-    # # # Old method of masking out histogram squares
-    # # # if plotscatter && !threeD
-    # # #     mask = H .>= V[1]
-    # # # else
-    # # #     mask = trues(size(H))
-    # # # end
-    # if plotscatter &&!threeD
-    #     mask = H .> V[1]
-    # else
-    #     mask = trues(size(H))
-    # end
-    # masked_weights[mask] .= H[mask]
-    masked_weights = H
-
-    levels_final = [0; V; maximum(H) * (1 + 1e-4)]
-
-    # p = RecipesBase.plot()
-    if threeD
-        scatter_kwargs = merge(scatter_kwargs, (; seriestype=:scatter3d))
-        # if !hasproperty(contour_kwargs, :seriestype)
-        #     contour_kwargs = merge(contour_kwargs, (;seriestype=:contour3d))
-        # end
-        plotcontours = false
-    end
-    RecipesBase.plot!(x, y, masked_weights; seriestype=:heatmap, hist2d_kwargs...)
-
-    # We place a line of zeros on all sides of the histogram
-    # for the sake of cleaner contours.
-    pad_x = [first(x)-step(x); x; last(x)+step(x)]
-    pad_y = [first(y)-step(y); y; last(y)+step(y)]
-    pad_H = [
-        zeros(size(H,2))' 0 0
-        zeros(size(H,1)) H zeros(size(H,1))
-        zeros(size(H,2))' 0 0
-    ]
-    if plotcontours
-        # RecipesBase.plot!(x, y, H; seriestype=:contour, levels=levels_final, colorbar=:none, contour_kwargs...)
         
-        
-        # calculate the outer contour manually
-        c = contours(pad_x,pad_y,pad_H', V)
-        points = scatter_filtering(b, a, x,y, first(Contour.levels(c)))
-    elseif filterscatter
-        c = contours(pad_x,pad_y,pad_H', [V[1]])
-    end
+        colname_row = columns[row_ind]
+        colname_col = columns[col_ind]
 
-    if filterscatter
-        points = scatter_filtering(b, a, x,y, first(Contour.levels(c)))
-    else
-        points = (b,a)
-    end
-    if plotscatter
-        # TODO: handle threeD
-        if get(scatter_kwargs, :seriestype, nothing) == :scatter3d
-            z = zeros(size(y))
-            RecipesBase.plot!(b, a, z; scatter_kwargs...)
-        else
-            RecipesBase.plot!(points; seriestype=:scatter, scatter_kwargs...)
+        ax = Axis(
+            grid[row_ind, col_ind];
+            ylabel=label_map[colname_row],
+            xlabel=label_map[colname_col],
+            xgridvisible=false,
+            ygridvisible=false,
+            alignmode = row_ind == 1 ? Inside() : Makie.Mixed(;left=nothing, right=nothing, bottom=nothing, top=Makie.Protrusion(0.0)),
+            axis...,
+        )
+
+        axes_by_col[col_ind]= push!(get(axes_by_col, col_ind, Axis[]), ax)
+        if row_ind != col_ind
+            axes_by_row[row_ind]= push!(get(axes_by_row, row_ind, Axis[]), ax)
         end
-    end
 
-    if plotcontours
-        # RecipesBase.plot!(x, y, H; seriestype=:contour, levels=levels_final, colorbar=:none, contour_kwargs...)
-        for level in Contour.levels(c), poly in lines(level)
-            xs, ys = coordinates(poly)
-            RecipesBase.plot!(xs, ys; levels=levels_final, colorbar=:none, contour_kwargs...)
+        # For each slot, loop through all series and fill it in accordingly.
+        # We have two slot types: bodyplot, like a 3D histogram, and diagplot, along the diagonal
+        for ser in series
+            cn = colnames(ser)
+            # We only include
+            if colname_row in cn && colname_col in cn
+                if row_ind == col_ind
+                    # Label(grid[row_ind, col_ind], string(colname_row),
+                    #     halign = :center,
+                    #     valign=:bottom,
+                    #     tellwidth=false,
+                    #     tellheight=false
+                    # )
+                    diagplot(ax, diagplottypes, ser, colname_row)
+                else
+                    bodyplot(ax, bodyplottypes, ser, colname_row, colname_col)
+                end
+            end
         end
-        
+
+        # Hide labels etc. as needed for a compact view
+        if row_ind < N
+            Makie.hidexdecorations!(ax, grid=false)
+        end
+        if col_ind > 1 || row_ind == 1
+            Makie.hideydecorations!(ax, grid=false)
+        end
+
     end
 
-    length(truthsa) > 0 && RecipesBase.plot!(collect(truthsa); truths_kwargs..., seriestype=:hline)
-    length(truthsb) > 0 && RecipesBase.plot!(collect(truthsb); truths_kwargs..., seriestype=:vline)
-    nothing
+    # Link all axes
+    for axes in values(axes_by_row)
+        Makie.linkyaxes!(axes...)
+    end
+    for axes in values(axes_by_col)
+        Makie.linkxaxes!(axes...)
+    end
+
+    Makie.rowgap!(grid, Makie.Fixed(0))
+    Makie.colgap!(grid, Makie.Fixed(0))
+
+
+
+    return Base.@locals
+
 end
 
-emptyplot() = RecipesBase.plot(framestyle=:none, background_color_inside=:transparent)
+# Note: stephist coming soon in a Makie PR
 
-# Default histogram calculations
-"""
-    prepare_hist(vector, nbins)
+function diagplot(ax::Axis, viztype::Hist1D, series::TableSeries1, colname)
+    dat = series.table[colname]
 
-Use the StatsBase function to return a centered histogram from `vector` with `nbins`.
-Must return a tuple of bin centres, followed by bin weights (of the same length).
-"""
-function prepare_hist(a, nbins)
-    h = fit(Histogram, vec(a); nbins)
-    # x = first(only(h.edges))+step(only(h.edges))/2 : step(only(h.edges)) : last(only(h.edges))-step(only(h.edges))/2
-    x = range(first(h.edges[1])+step(h.edges[1])/2, step=step(h.edges[1]), length=size(h.weights,1))
-    return x, h.weights
+    h = Makie.hist!(
+        ax,
+        dat;
+        color=:gray,
+        viztype.kwargs...
+    )
+    Makie.ylims!(ax,low=0)
 end
-"""
-    prepare_hist(vector, nbins)
+function diagplot(ax::Axis, viztype::Any, series::ConfidenceLimits6, colname)
+    low, mid, high = series.limits[colname]
 
-Use the StatsBase function to return a centered histogram from `vector` with `nbins`x`nbins`.
-Must return a tuple of bin centres along the horizontal, bin centres along the vertical,
-and a matrix of bin weights (of matching dimensions).
-"""
-function prepare_hist(a, b, nbins)
-    h = fit(Histogram, (vec(a),vec(b)); nbins)
-    y = range(first(h.edges[1])+step(h.edges[1])/2, step=step(h.edges[1]), length=size(h.weights,1))
-    x = range(first(h.edges[2])+step(h.edges[2])/2, step=step(h.edges[2]), length=size(h.weights,2))
-    return x, y, h.weights
+    title = @eval (@sprintf($(series.titlefmt), $mid, $high, $low))
+    ax.title = Makie.latexstring(ax.title[], title)
+
+
+    Makie.vlines!(ax, [mid-low, mid, mid+high]; linestyle=:dash, color=:black, series.kwargs...)
 end
+
+function bodyplot(ax::Axis, viztype::VizTypeBody, series::TableSeries1, colname_row, colname_col)
+
+    Makie.hexbin!(ax, series.table[colname_col], series.table[colname_row]; viztype.kwargs...)
+end
+
+function bodyplot(ax::Axis, viztype::Any, series::ConfidenceLimits6, colname_row, colname_col)
+    # No-op
+end
+
+#####
+
+# # Default histogram calculations
+# """
+#     prepare_hist(vector, nbins)
+
+# Use the StatsBase function to return a centered histogram from `vector` with `nbins`.
+# Must return a tuple of bin centres, followed by bin weights (of the same length).
+# """
+# function prepare_hist(a, nbins)
+#     h = fit(Histogram, vec(a); nbins)
+#     x = range(first(h.edges[1])+step(h.edges[1])/2, step=step(h.edges[1]), length=size(h.weights,1))
+#     return x, h.weights
+# end
+# """
+#     prepare_hist(vector, nbins)
+
+# Use the StatsBase function to return a centered histogram from `vector` with `nbins`x`nbins`.
+# Must return a tuple of bin centres along the horizontal, bin centres along the vertical,
+# and a matrix of bin weights (of matching dimensions).
+# """
+# function prepare_hist(a, b, nbins)
+#     h = fit(Histogram, (vec(a),vec(b)); nbins)
+#     y = range(first(h.edges[1])+step(h.edges[1])/2, step=step(h.edges[1]), length=size(h.weights,1))
+#     x = range(first(h.edges[2])+step(h.edges[2])/2, step=step(h.edges[2]), length=size(h.weights,2))
+#     return x, y, h.weights
+# end
 
 # Filter the scatter plot to remove points inside the first contour
 # for performance and better display
@@ -227,26 +348,4 @@ function scatter_filtering(b, a, x,y, level)
 
 end
 
-
-# Special support for MCMCChains.
-# They have additional table fields :iteration and :chain that should not be shown
-# by default.
-# In future, we might add the ability to colour the output by chain number.
-function __init__()
-    @require MCMCChains="c7f686f2-ff18-58e9-bc7b-31028e88f75d" begin
-        function corner(chains::MCMCChains.Chains, args...; kwargs...)
-            props = keys(chains)
-            # values = (reshape(chains[prop].data,:) for prop in props)
-            values = [vec(chains[prop].data) for prop in props]
-            table = namedtuple(props, values)
-            return corner(table, args...; kwargs...)
-        end
-    end
-
-    @require Plots="91a5bcdd-55d7-5caf-9e0b-520d859cae80" include("corner.jl")
-    
-    nothing
 end
-
-
-end # module
