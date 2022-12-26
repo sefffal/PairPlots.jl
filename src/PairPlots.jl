@@ -1,13 +1,15 @@
 module PairPlots
 Base.Experimental.@optlevel 0
 
-export pairplot, TableSeries, ConfidenceLimits
+export pairplot, TableSeries, DistSeries
 
 using Makie: Makie
 using Tables
 using Printf
+using Contour: Contour as ContourLib
 using Latexify: latexify
 using StatsBase: fit, quantile, Histogram, sturges
+using Distributions
 using OrderedCollections: OrderedDict
 
 #=
@@ -48,61 +50,73 @@ try to make still work if a series is missing a column.
 
 abstract type AbstractSeries end
 
-
-struct TableSeries1 <: AbstractSeries
+struct TableSeries2 <: AbstractSeries
+    label
     table
     kwargs
 end
-TableSeries(data; kwargs...) = TableSeries1(data, kwargs)
+TableSeries(data; label=nothing, kwargs...) = TableSeries2(label, data, kwargs)
 
 
-# """
+# TODO: adapt to product_distribution
+struct DistSeries2 <: AbstractSeries
+    label
+    keys
+    dist
+    kwargs
+end
+function DistSeries(dists::UnivariateDistribution...; label=nothing, kwargs...)
+    keys = Symbol.(string.(1:length(dists)))
+    DistSeries(label, keys, dists...; kwargs...)
+end
+function DistSeries(keys, dists::UnivariateDistribution...; kwargs...)
+    DistSeries(keys, product_distribution(dists); kwargs...)
+end
+function DistSeries(dist::MultivariateDistribution; kwargs...)
+    keys = Symbol.(string.(1:length(dist)))
+    DistSeries(keys, dist; kwargs...)
+end
+function DistSeries(keys, dist::MultivariateDistribution; kwargs...)
+    if length(keys) != length(dist)
+        error("length of keys do not match dimensions of distribution")
+    end
+    DistSeries2(keys, dist, kwargs)
+end
+function DistSeries(keys, dist::MultivariateDistribution; kwargs...)
+    if length(keys) != length(dist)
+        error("length of keys do not match dimensions of distribution")
+    end
+    DistSeries2(keys, dist, kwargs)
+end
 
-# - table: Data table
-# - labels: Vector of labels for each column.
-# - units: Vector of units for each column.
-# - kwargs: Keyword arguments to forward to the plotting library
-# """
-# function series( 
-#     table, 
-#     # labels = latexify.(Tables.columnnames(table), env=:raw), 
-#     # units  = ["" for _ in labels]; 
-#     kwargs...
-# )
-#     if Tables.istable(table)
-#         TableSeries1(table; kwargs)
-#     elseif 
-#     Series2(table, labels, units; kwargs...)
+
+
+# struct ConfidenceLimits6 <: AbstractSeries
+#     limits
+#     titlefmt
+#     kwargs
 # end
-
-struct ConfidenceLimits6 <: AbstractSeries
-    limits
+struct MarginConfidenceLimits <: VizTypeDiag
     titlefmt
     kwargs
 end
-function ConfidenceLimits(table, fmt_str="\$\\mathrm{%.2f^{+%.2f}_{-%.2f}}\$"; kwargs...)
-    cn = colnames(table)
-    limits = map(cn) do colname
-        percentiles = quantile(vec(table[colname]), (0.16, 0.5, 0.84))
-        cen = percentiles[2]
-        low = cen - percentiles[1]
-        high = percentiles[3] - cen
-        colname => (low, cen, high)
-    end
-    return ConfidenceLimits6(OrderedDict(limits), fmt_str, kwargs)
+function MarginConfidenceLimits(titlefmt="\$\\mathrm{%.2f^{+%.2f}_{-%.2f}}\$"; kwargs...)
+    return MarginConfidenceLimits(titlefmt, kwargs)
 end
 
-struct Lines1 <: AbstractSeries
-    table
-    kwargs
-end
-Lines = Lines1
+# struct Lines1 <: AbstractSeries
+#     table
+#     kwargs
+# end
+# Lines = Lines1
 
-struct Marker1 <: AbstractSeries
-    table
-    kwargs
-end
-Marker = Marker1
+# struct Marker1 <: AbstractSeries
+#     table
+#     kwargs
+# end
+# Marker = Marker1
+
+## Body 
 
 
 abstract type VizType end
@@ -113,33 +127,42 @@ struct HexBin <: VizTypeBody
 end
 HexBin(;kwargs...) = HexBin(kwargs)
 
-struct Contour1 <: VizTypeBody
+struct Contour2 <: VizTypeBody
+    sigmas
     kwargs
 end
-Contour1(;kwargs...) = Contour1(kwargs)
+Contour2(;sigmas=0.5:0.5:2.1, kwargs...) = Contour2(sigmas, kwargs)
 
-struct Contourf1 <: VizTypeBody
+struct Contourf2 <: VizTypeBody
+    sigmas
     kwargs
 end
-Contourf1(;kwargs...) = Contourf1(kwargs)
+Contourf2(;sigmas=0.5:0.5:2.1, kwargs...) = Contourf2(sigmas, kwargs)
+
+struct Scatter <: VizTypeBody
+    kwargs
+end
+Scatter(;kwargs...) = Scatter(kwargs)
+
 
 
 ## Diagonals
 
 abstract type VizTypeDiag <: VizType end
-struct Hist1D <: VizTypeDiag
+struct MarginHist <: VizTypeDiag
     kwargs
 end
-Hist1D(;kwargs...) = Hist1D(kwargs)
+MarginHist(;kwargs...) = MarginHist(kwargs)
 
-struct Density1 <: VizTypeDiag
+struct MarginDensity <: VizTypeDiag
     kwargs
 end
-Density1(;kwargs...) = Density1(kwargs)
+MarginDensity(;kwargs...) = MarginDensity(kwargs)
 
 
-colnames(t::TableSeries1) = Tables.columnnames(t.table)
-colnames(t::ConfidenceLimits6) = keys(t.limits)
+colnames(t::TableSeries2) = Tables.columnnames(t.table)
+colnames(t::DistSeries2) = t.keys
+colnames(t::MarginConfidenceLimits) = keys(t.limits)
 colnames(t::NamedTuple) = keys(t)
 colnames(t::AbstractDict) = keys(t)
 
@@ -151,32 +174,156 @@ GridPosTypes = Union{Figure, GridPosition, GridSubposition}
 
 # Create a pairplot without providing a figure
 # @nospecialize 
+# function pairplot(
+#     bodyplottypes::VizTypeBody,
+#     diagplottypes::VizTypeDiag,
+#     series::AbstractSeries...;
+#     figure=(;),
+#     kwargs...,
+# )
+#     fig = Figure(;figure...)
+#     pairplot(fig.layout, bodyplottypes, diagplottypes, series...; kwargs...)
+#     return fig
+# end
+
+# # Create a pairplot by plotting into a grid position of a figure.
+# function pairplot(
+#     grid::Makie.GridLayout,
+#     bodyplottypes::VizTypeBody,
+#     diagplottypes::VizTypeDiag,
+#     series::AbstractSeries...;
+#     labels = Dict(),
+#     units = Dict(),
+#     axis=(;)
+# )
+    
+#     # We support multiple series that may have disjoint columns
+#     # Get the ordered union of all table columns.
+#     columns = unique(Iterators.flatten(map(colnames, series)))
+
+#     # Map of column key to label text. 
+#     # By default, just latexify the column key but allow override.
+#     label_map = Dict(
+#         name => Makie.latexstring("\\mathrm{", latexify(name, env=:raw), "}")
+#         for name in columns
+#     )
+#     label_map = merge(label_map, labels)
+
+#     # Similarly for units. By default empty string, but allow override.
+#     units_map = Dict(
+#         name => L""
+#         for name in columns
+#     )
+#     units_map = merge(units_map, units)
+
+#     # Rather than computing limits in this version, let's try to rely on 
+#     # Makie doing a good job of linking axes.
+
+#     N = length(columns)
+
+#     # Keep lists of axes by row number and by column number.
+#     # We'll use these afterwards to link axes together.
+#     axes_by_row = Dict{Int,Vector{Axis}}()
+#     axes_by_col = Dict{Int,Vector{Axis}}()
+#     sizehint!(axes_by_col, N)
+#     sizehint!(axes_by_row, N)
+    
+#     # Build grid of nxn plots
+#     for row_ind in 1:N, col_ind in 1:N
+
+#         # TODO: make this optional
+#         if row_ind < col_ind
+#             continue
+#         end
+        
+#         colname_row = columns[row_ind]
+#         colname_col = columns[col_ind]
+
+#         ax = Axis(
+#             grid[row_ind, col_ind];
+#             ylabel=label_map[colname_row],
+#             xlabel=label_map[colname_col],
+#             xgridvisible=false,
+#             ygridvisible=false,
+#             # Ensure any axis title that gets added doesn't break the tight layout
+#             alignmode = row_ind == 1 ? Inside() : Makie.Mixed(;left=nothing, right=nothing, bottom=nothing, top=Makie.Protrusion(0.0)),
+#             xautolimitmargin=(0f0,0f0),
+#             yautolimitmargin=(0f0,0f0),
+#             # User options
+#             axis...,
+#         )
+
+#         axes_by_col[col_ind]= push!(get(axes_by_col, col_ind, Axis[]), ax)
+#         if row_ind != col_ind
+#             axes_by_row[row_ind]= push!(get(axes_by_row, row_ind, Axis[]), ax)
+#         end
+
+#         # For each slot, loop through all series and fill it in accordingly.
+#         # We have two slot types: bodyplot, like a 3D histogram, and diagplot, along the diagonal
+#         for ser in series
+#             cn = colnames(ser)
+#             # We only include
+#             if colname_row in cn && colname_col in cn
+#                 if row_ind == col_ind
+#                     # Label(grid[row_ind, col_ind], string(colname_row),
+#                     #     halign = :center,
+#                     #     valign=:bottom,
+#                     #     tellwidth=false,
+#                     #     tellheight=false
+#                     # )
+#                     diagplot(ax, diagplottypes, ser, colname_row)
+#                 else
+#                     bodyplot(ax, bodyplottypes, ser, colname_row, colname_col)
+#                 end
+#             end
+#         end
+
+#         # Hide labels etc. as needed for a compact view
+#         if row_ind < N
+#             Makie.hidexdecorations!(ax, grid=false)
+#         end
+#         if col_ind > 1 || row_ind == 1
+#             Makie.hideydecorations!(ax, grid=false)
+#         end
+
+#     end
+
+#     # Link all axes
+#     for axes in values(axes_by_row)
+#         Makie.linkyaxes!(axes...)
+#     end
+#     for axes in values(axes_by_col)
+#         Makie.linkxaxes!(axes...)
+#     end
+
+#     Makie.rowgap!(grid, Makie.Fixed(0))
+#     Makie.colgap!(grid, Makie.Fixed(0))
+
+#     return
+
+# end
 function pairplot(
-    bodyplottypes::VizTypeBody,
-    diagplottypes::VizTypeDiag,
-    series::AbstractSeries...;
+    pairs::Pair{<:AbstractSeries}...;
     figure=(;),
     kwargs...,
 )
     fig = Figure(;figure...)
-    pairplot(fig.layout, bodyplottypes, diagplottypes, series...; kwargs...)
+    pairplot(fig.layout, pairs...; kwargs...)
     return fig
 end
 
 # Create a pairplot by plotting into a grid position of a figure.
 function pairplot(
     grid::Makie.GridLayout,
-    bodyplottypes::VizTypeBody,
-    diagplottypes::VizTypeDiag,
-    series::AbstractSeries...;
+    pairs::Pair{<:AbstractSeries}...;
     labels = Dict(),
     units = Dict(),
-    axis=(;)
+    diagaxis=(;),
+    bodyaxis=(;),
 )
-    
     # We support multiple series that may have disjoint columns
     # Get the ordered union of all table columns.
-    columns = unique(Iterators.flatten(map(colnames, series)))
+    columns = unique(Iterators.flatten(Iterators.map(colnames∘first, pairs)))
 
     # Map of column key to label text. 
     # By default, just latexify the column key but allow override.
@@ -216,7 +363,12 @@ function pairplot(
         colname_row = columns[row_ind]
         colname_col = columns[col_ind]
 
-        ax = Axis(
+        if row_ind == col_ind
+            kw = diagaxis
+        else
+            kw = bodyaxis
+        end
+        ax = Makie.Axis(
             grid[row_ind, col_ind];
             ylabel=label_map[colname_row],
             xlabel=label_map[colname_col],
@@ -227,7 +379,7 @@ function pairplot(
             xautolimitmargin=(0f0,0f0),
             yautolimitmargin=(0f0,0f0),
             # User options
-            axis...,
+            kw...,
         )
 
         axes_by_col[col_ind]= push!(get(axes_by_col, col_ind, Axis[]), ax)
@@ -237,20 +389,17 @@ function pairplot(
 
         # For each slot, loop through all series and fill it in accordingly.
         # We have two slot types: bodyplot, like a 3D histogram, and diagplot, along the diagonal
-        for ser in series
-            cn = colnames(ser)
-            # We only include
+        for (series_i,(series, vizlayers)) in enumerate(pairs)
+            cn = colnames(series)
             if colname_row in cn && colname_col in cn
-                if row_ind == col_ind
-                    # Label(grid[row_ind, col_ind], string(colname_row),
-                    #     halign = :center,
-                    #     valign=:bottom,
-                    #     tellwidth=false,
-                    #     tellheight=false
-                    # )
-                    diagplot(ax, diagplottypes, ser, colname_row)
-                else
-                    bodyplot(ax, bodyplottypes, ser, colname_row, colname_col)
+                for vizlayer in vizlayers    
+                    if row_ind == col_ind && vizlayer isa VizTypeDiag
+                        diagplot(ax, vizlayer, series_i, series, colname_row)
+                    elseif row_ind != col_ind && vizlayer isa VizTypeBody
+                        bodyplot(ax, vizlayer, series_i, series, colname_row, colname_col)
+                    else
+                        # skip
+                    end
                 end
             end
         end
@@ -276,115 +425,177 @@ function pairplot(
     Makie.rowgap!(grid, Makie.Fixed(0))
     Makie.colgap!(grid, Makie.Fixed(0))
 
-
     return
 
 end
 
 # Note: stephist coming soon in a Makie PR
 
-function diagplot(ax::Axis, viz::Hist1D, series::TableSeries1, colname)
-    dat = series.table[colname]
+function diagplot(ax::Axis, viz::MarginHist, series_i, series::TableSeries2, colname)
+    dat = getproperty(series.table, colname)
 
     h = Makie.hist!(
         ax,
         dat;
-        color=:gray,
-        viz.kwargs...,
+        color=Cycled(series_i),
         series.kwargs...,
+        viz.kwargs...,
     )
     Makie.ylims!(ax,low=0)
 end
 
-function diagplot(ax::Axis, viz::Density1, series::TableSeries1, colname)
-    dat = series.table[colname]
+function diagplot(ax::Axis, viz::MarginDensity, series_i, series::TableSeries2, colname)
+    dat = getproperty(series.table, colname)
 
     h = Makie.density!(
         ax,
         dat;
-        color=:gray,
-        viz.kwargs...,
+        color=Cycled(series_i),
         series.kwargs...,
+        viz.kwargs...,
     )
     Makie.ylims!(ax,low=0)
 end
-function diagplot(ax::Axis, viz::Any, series::ConfidenceLimits6, colname)
-    low, mid, high = series.limits[colname]
 
-    title = @eval (@sprintf($(series.titlefmt), $mid, $high, $low))
+
+function diagplot(ax::Axis, viz::MarginDensity, series_i, series::DistSeries2, colname)
+    col_ind = findfirst(==(colname), series.keys)
+
+    # TODO: temporary: work out a better way
+    D = rand(series.dist, 10000)
+    dat = view(D, col_ind, :) # the "column" index of the series actually indexes rows here
+
+    h = Makie.density!(
+        ax,
+        dat;
+        color=Cycled(series_i),
+        series.kwargs...,
+        viz.kwargs...,
+    )
+    Makie.ylims!(ax,low=0)
+end
+
+function diagplot(ax::Axis, viz::MarginConfidenceLimits, series_i, series::TableSeries2, colname)
+
+    percentiles = quantile(vec(getproperty(series.table, colname)), (0.16, 0.5, 0.84))
+    mid = percentiles[2]
+    low = mid - percentiles[1]
+    high = percentiles[3] - mid
+
+    title = @eval (@sprintf($(viz.titlefmt), $mid, $high, $low))
     ax.title = Makie.latexstring(ax.title[], title)
-
 
     Makie.vlines!(
         ax,
         [mid-low, mid, mid+high];
         linestyle=:dash,
-        color=:black,
-        viz.kwargs...,
+        color=Cycled(series_i),
+        depth_shift=-10f0,
         series.kwargs...,
+        viz.kwargs...,
     )
 end
 
-function bodyplot(ax::Axis, viz::HexBin, series::TableSeries1, colname_row, colname_col)
+function bodyplot(ax::Axis, viz::HexBin, series_i, series::TableSeries2, colname_row, colname_col)
     Makie.hexbin!(
         ax,
-        series.table[colname_col],
-        series.table[colname_row];
-        viz.kwargs...,
+        getproperty(series.table, colname_col),
+        getproperty(series.table, colname_row);
         series.kwargs...,
+        viz.kwargs...,
     )
 end
 
-function bodyplot(ax::Axis, viz::Contour1, series::TableSeries1, colname_row, colname_col)
+function bodyplot(ax::Axis, viz::HexBin, series_i, series::DistSeries2, colname_row, colname_col)
 
-    h = fit(Histogram, (vec(series.table[colname_row]),vec(series.table[colname_col])); nbins=get(series.kwargs, :bins, sturges(length(series.table[colname_row]))))
+    #TODO
+    col_ind = findfirst(==(colname_col), series.keys)
+    row_ind = findfirst(==(colname_row), series.keys)
+
+    # TODO: temporary: work out a better way
+    D = rand(series.dist, 50000)
+
+    Makie.hexbin!(
+        ax,
+        view(D, col_ind, :),
+        view(D, row_ind, :),;
+        series.kwargs...,
+        viz.kwargs...,
+    )
+end
+
+# Given a series and two columns, return a ContourLib.contours object.
+function prep_contours(series::TableSeries2, sigmas, colname_row, colname_col)
+    h = fit(Histogram, (vec(getproperty(series.table, colname_row)),vec(getproperty(series.table, colname_col))); nbins=get(series.kwargs, :bins, sturges(length(getproperty(series.table, colname_row)))))
     y = range(first(h.edges[1])+step(h.edges[1])/2, step=step(h.edges[1]), length=size(h.weights,1))
     x = range(first(h.edges[2])+step(h.edges[2])/2, step=step(h.edges[2]), length=size(h.weights,2))
+    h = h.weights
 
-    Makie.contour!(ax, x, y, transpose(h.weights); viz.kwargs..., series.kwargs...)
+    # Calculate levels for contours
+    levels = 1 .- exp.(-0.5 .* (sigmas).^2)
+    ii = sortperm(reshape(h,:))
+    h2flat = h[ii]
+    sm = cumsum(h2flat)
+    sm /= sm[end]
+    if all(isnan, sm) || length(h) <= 1
+        @warn "Could not compute valid contours"
+        plotcontours = false
+        V = [0]
+    else
+        V = sort(map(v0 -> h2flat[sm .≤ v0][end], levels))
+        if any(==(0), diff(V))
+            @warn "Too few points to create valid contours"
+        end
+    end
+    levels_final = [0; V; maximum(h) * (1 + 1e-4)]
+
+    pad_x = [first(x)-step(x); x; last(x)+step(x)]
+    pad_y = [first(y)-step(y); y; last(y)+step(y)]
+    pad_h = [
+        zeros(size(h,2))' 0 0
+        zeros(size(h,1)) h zeros(size(h,1))
+        zeros(size(h,2))' 0 0
+    ]
+    c = ContourLib.contours(pad_x,pad_y,pad_h', V)
 end
 
-function bodyplot(ax::Axis, viz::Contourf1, series::TableSeries1, colname_row, colname_col)
+function bodyplot(ax::Axis, viz::Contour2, series_i, series, colname_row, colname_col)
 
-    h = fit(Histogram, (vec(series.table[colname_row]),vec(series.table[colname_col])); nbins=get(series.kwargs, :bins, sturges(length(series.table[colname_row]))))
-    y = range(first(h.edges[1])+step(h.edges[1])/2, step=step(h.edges[1]), length=size(h.weights,1))
-    x = range(first(h.edges[2])+step(h.edges[2])/2, step=step(h.edges[2]), length=size(h.weights,2))
+    c = prep_contours(series::TableSeries2, viz.sigmas, colname_row, colname_col)
+   
+    color = get(viz.kwargs, :color, Cycled(series_i))
+    color = get(series.kwargs, :color, color)
 
-    Makie.contourf!(ax, x, y, transpose(h.weights); interpolate=false, viz.kwargs..., series.kwargs...)
+    levels = ContourLib.levels(c)
+    for (i,level) in enumerate(levels), poly in ContourLib.lines(level)
+        xs, ys = ContourLib.coordinates(poly)
+        # Makie.poly!(ax, Makie.Point2f.(zip(xs,ys)); strokewidth=2, series.kwargs...,  viz.kwargs..., color=:transparent, strokecolor=color)#(color, i/length(levels)))
+        Makie.lines!(ax, xs, ys;series.kwargs...,  viz.kwargs..., color)#(color, i/length(levels)))
+    end
+end
+
+function bodyplot(ax::Axis, viz::Contourf2, series_i, series::TableSeries2, colname_row, colname_col)
+
+    c = prep_contours(series::TableSeries2, viz.sigmas, colname_row, colname_col)
+   
+    color = get(viz.kwargs, :color, Cycled(series_i))
+    color = get(series.kwargs, :color, color)
+
+    levels = ContourLib.levels(c)
+    for (i,level) in enumerate(levels), poly in ContourLib.lines(level)
+        xs, ys = ContourLib.coordinates(poly)
+        Makie.poly!(ax, Makie.Point2f.(zip(xs,ys)); series.kwargs..., viz.kwargs..., color=color)#(color, 1/length(levels)))
+    end
 end
 
 
-function bodyplot(ax::Axis, viz::Any, series::ConfidenceLimits6, colname_row, colname_col)
-    # No-op
+function bodyplot(ax::Axis, viz::Scatter, series_i, series::TableSeries2, colname_row, colname_col)
+
+    Makie.scatter!(ax, getproperty(series.table, colname_col), getproperty(series.table, colname_row); series.kwargs..., viz.kwargs...)
 end
 
-#####
 
-# # Default histogram calculations
-# """
-#     prepare_hist(vector, nbins)
 
-# Use the StatsBase function to return a centered histogram from `vector` with `nbins`.
-# Must return a tuple of bin centres, followed by bin weights (of the same length).
-# """
-# function prepare_hist(a, nbins)
-#     h = fit(Histogram, vec(a); nbins)
-#     x = range(first(h.edges[1])+step(h.edges[1])/2, step=step(h.edges[1]), length=size(h.weights,1))
-#     return x, h.weights
-# end
-# """
-#     prepare_hist(vector, nbins)
-
-# Use the StatsBase function to return a centered histogram from `vector` with `nbins`x`nbins`.
-# Must return a tuple of bin centres along the horizontal, bin centres along the vertical,
-# and a matrix of bin weights (of matching dimensions).
-# """
-# function prepare_hist(a, b, nbins)
-#     h = fit(Histogram, (vec(a),vec(b)); nbins)
-#     y = range(first(h.edges[1])+step(h.edges[1])/2, step=step(h.edges[1]), length=size(h.weights,1))
-#     x = range(first(h.edges[2])+step(h.edges[2])/2, step=step(h.edges[2]), length=size(h.weights,2))
-#     return x, y, h.weights
-# end
 
 # Filter the scatter plot to remove points inside the first contour
 # for performance and better display

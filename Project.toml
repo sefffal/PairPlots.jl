@@ -5,6 +5,7 @@ version = "0.6.0"
 
 [deps]
 Contour = "d38c429a-6771-53c6-b99e-75d170b6e991"
+Distributions = "31c24e10-a181-5473-b8eb-7969acd0382f"
 Latexify = "23fbe1c1-3f47-55db-b15f-69d7ec21a316"
 Makie = "ee78f7c6-11fb-53f2-987a-cfe4a2b5a57a"
 Measures = "442fdcdd-2543-5da2-b0f3-8c86c306513e"
