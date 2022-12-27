@@ -41,13 +41,13 @@ struct Contour <: VizTypeBody
     sigmas
     kwargs
 end
-Contour(;sigmas=0.5:0.5:2.1, kwargs...) = Contour(sigmas, kwargs)
+Contour(;sigmas=1:2, kwargs...) = Contour(sigmas, kwargs)
 
 struct Contourf <: VizTypeBody
     sigmas
     kwargs
 end
-Contourf(;sigmas=0.5:0.5:2.1, kwargs...) = Contourf(sigmas, kwargs)
+Contourf(;sigmas=1:2, kwargs...) = Contourf(sigmas, kwargs)
 
 struct Scatter <: VizTypeBody
     kwargs
@@ -93,9 +93,13 @@ function pairplot(
     figure=(;),
     kwargs...,
 )
-    N = length(input)+1
+
+    # TODO: auto size figure based on the number of columns.
+    # We need to resolve all the inputs first, so this fix will 
+    # require inverting the pairplot method cascade to do inputs, 
+    # then the grid/gridpos/figure argument last.
     fig = Makie.Figure(;
-        resolution=(300N, 300N),
+        resolution=(800, 800),
         figure...
     )
     pairplot(fig.layout, input...; kwargs...)
@@ -117,7 +121,7 @@ function pairplot(
         single_series_color = Makie.RGBA(0., 0., 0., 0.5)
         single_series_default_viz = (
             PairPlots.HexBin(colormap=Makie.cgrad([:transparent, :black]),bins=32),
-            PairPlots.Scatter(filtersigma=0.5), 
+            PairPlots.Scatter(filtersigma=2), 
             PairPlots.Contour(),
             PairPlots.MarginDensity(
                 color=:transparent,
@@ -394,7 +398,7 @@ function prep_contours(series::Series, sigmas, colname_row, colname_col)
     h = pdf.(Ref(ik), x, y')
     
     # Calculate levels for contours
-    levels = 1 .- exp.(-0.5 .* (sigmas).^2)
+    levels = 1 .- exp.(-0.5 .* (1 ./sigmas).^2)
     ii = sortperm(reshape(h,:))
     h2flat = h[ii]
     sm = cumsum(h2flat)
