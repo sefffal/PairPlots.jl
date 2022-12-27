@@ -116,48 +116,58 @@ function pairplot(
     # Otherwise fall back to cycling the colours ourselves.
     # The Makie color cycle functionality isn't quite flexible enough (but almost!).
 
+    single_series_color = Makie.RGBA(0., 0., 0., 0.5)
+    single_series_default_viz = (
+        PairPlots.HexBin(colormap=Makie.cgrad([:transparent, :black]),bins=32),
+        PairPlots.Scatter(filtersigma=2), 
+        PairPlots.Contour(),
+        PairPlots.MarginDensity(
+            color=:transparent,
+            strokecolor=:black,
+            strokewidth=1.5f0
+        ),
+        PairPlots.MarginConfidenceLimits()
+    )
+
+    series_i = 0
+    function SeriesDefaults(dat)
+        series_i += 1
+        wc = Makie.wong_colors(0.5)
+        color = wc[mod1(series_i, length(wc))]
+        return Series(dat; color, strokecolor=color)
+    end
+    multi_series_default_viz = (
+        PairPlots.Scatter(filtersigma=0.5), 
+        PairPlots.Contourf(),
+        PairPlots.MarginDensity(
+            color=:transparent,
+            strokewidth=2.5f0
+        )
+    )
+    many_series_default_viz = (
+        PairPlots.Contour(sigmas=[1]),
+        PairPlots.MarginDensity(
+            color=:transparent,
+            strokewidth=2.5f0
+        )
+    )
 
     if length(datapairs) == 1
-        single_series_color = Makie.RGBA(0., 0., 0., 0.5)
-        single_series_default_viz = (
-            PairPlots.HexBin(colormap=Makie.cgrad([:transparent, :black]),bins=32),
-            PairPlots.Scatter(filtersigma=2), 
-            PairPlots.Contour(),
-            PairPlots.MarginDensity(
-                color=:transparent,
-                strokecolor=:black,
-                strokewidth=1.5f0
-            ),
-            PairPlots.MarginConfidenceLimits()
-        )
+
         defaults1((data,vizlayers)::Pair) = Series(data; color=single_series_color) => vizlayers
         defaults1(series::Series) = series => single_series_default_viz
         defaults1(data::Any) = Series(data; color=single_series_color) => single_series_default_viz
         pairplot(grid, defaults1(first(datapairs)); kwargs...)
-    else
-        series_i = 0
-        function SeriesDefaults(dat)
-            series_i += 1
-            wc = Makie.wong_colors(0.5)
-            if series_i in axes(wc,1)
-                color = wc[series_i]
-            else
-                color = Makie.RGBA(0., 0., 0., 0.5)
-            end
-            return Series(dat; color, strokecolor=color)
-        end
-        multi_series_default_viz = (
-            PairPlots.Scatter(filtersigma=0.5), 
-            PairPlots.Contourf(),
-            PairPlots.MarginDensity(
-                color=:transparent,
-                strokewidth=2.5f0
-            )
-        )
-        defaults((data,vizlayers)::Pair) = SeriesDefaults(data) => vizlayers
-        defaults(series::Series) = series => multi_series_default_viz
-        defaults(data::Any) = SeriesDefaults(data) => multi_series_default_viz
-        pairplot(grid, map(defaults, datapairs)...; kwargs...)
+    elseif length(datapairs) <= 5
+        defaults_upto5((data,vizlayers)::Pair) = SeriesDefaults(data) => vizlayers
+        defaults_upto5(series::Series) = series => multi_series_default_viz
+        defaults_upto5(data::Any) = SeriesDefaults(data) => multi_series_default_viz
+        pairplot(grid, map(defaults_upto5, datapairs)...; kwargs...)
+    else # More than 5 series
+        defaults_morethan5((data,vizlayers)::Pair) = SeriesDefaults(data) => vizlayers
+        defaults_morethan5(series::Series) = series => many_series_default_viz
+        defaults_morethan5(data::Any) = SeriesDefaults(data) => many_series_default_viz
+        pairplot(grid, map(defaults_morethan5, datapairs)...; kwargs...)
     end
 
     return
