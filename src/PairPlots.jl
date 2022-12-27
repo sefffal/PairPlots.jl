@@ -108,28 +108,66 @@ function pairplot(
     @nospecialize datapairs::Any...;
     kwargs...,
 )
-    # Default to grayscale for a single series
-    TS = if length(datapairs) <= 1
-        dat -> Series(dat; color=Makie.RGBA(0., 0., 0., 0.5))
-    else
-        dat -> Series(dat)
-    end
-    defaults((data,vizlayers)::Pair) = TS(data) => vizlayers
-    defaults(data::Any) = TS(data) => (
-        PairPlots.HexBin(colormap=Makie.cgrad([:transparent, :black]),bins=32),
-        PairPlots.Scatter(filtersigma=0.5), 
-        PairPlots.Contour(),
-        PairPlots.MarginDensity(
-            color=:transparent,
-            strokecolor=:black,
-            strokewidth=1.5f0
-        ),
-        PairPlots.MarginConfidenceLimits()
-    )
+    # Default to grayscale for a single series.
+    # Otherwise fall back to cycling the colours ourselves.
+    # The Makie color cycle functionality isn't quite flexible enough (but almost!).
 
-    seriespairs = map(defaults, datapairs)
-    pairplot(grid, seriespairs...; kwargs...)
+
+    if length(datapairs) == 1
+        single_series_color = Makie.RGBA(0., 0., 0., 0.5)
+        single_series_default_viz = (
+            PairPlots.HexBin(colormap=Makie.cgrad([:transparent, :black]),bins=32),
+            PairPlots.Scatter(filtersigma=0.5), 
+            PairPlots.Contour(),
+            PairPlots.MarginDensity(
+                color=:transparent,
+                strokecolor=:black,
+                strokewidth=1.5f0
+            ),
+            PairPlots.MarginConfidenceLimits()
+        )
+        defaults1((data,vizlayers)::Pair) = Series(data; color=single_series_color) => vizlayers
+        defaults1(series::Series) = series => single_series_default_viz
+        defaults1(data::Any) = Series(data; color=single_series_color) => single_series_default_viz
+        pairplot(grid, defaults1(first(datapairs)); kwargs...)
+    else
+        series_i = 0
+        function SeriesDefaults(dat)
+            series_i += 1
+            wc = Makie.wong_colors(0.5)
+            if series_i in axes(wc,1)
+                color = wc[series_i]
+            else
+                color = Makie.RGBA(0., 0., 0., 0.5)
+            end
+            return Series(dat; color, strokecolor=color)
+        end
+        multi_series_default_viz = (
+            PairPlots.Scatter(filtersigma=0.5), 
+            PairPlots.Contourf(),
+            PairPlots.MarginDensity(
+                color=:transparent,
+                strokewidth=2.5f0
+            )
+        )
+        defaults((data,vizlayers)::Pair) = SeriesDefaults(data) => vizlayers
+        defaults(series::Series) = series => multi_series_default_viz
+        defaults(data::Any) = SeriesDefaults(data) => multi_series_default_viz
+        pairplot(grid, map(defaults, datapairs)...; kwargs...)
+    end
+
     return
+end
+
+# Handle plotting into a GridPosition instead of a GridLayout
+function pairplot(
+    gridpos::Makie.GridPosition,
+    @nospecialize datapairs::Any...;
+    kwargs...,
+)
+    grid = Makie.GridLayout(gridpos)
+    pairplot(grid, datapairs...; kwargs...)
+    return grid
 end
 
 # Create a pairplot by plotting into a grid position of a figure.
@@ -182,7 +220,7 @@ function pairplot(
 
         # TODO: make this first condition optional to enable a full grid
         # Also skip diagonals if no diagonal viz layers
-        if row_ind < col_ind || !anydiag_viz
+        if row_ind < col_ind || (row_ind==col_ind && !anydiag_viz)
             continue
         end
         
@@ -248,8 +286,8 @@ function pairplot(
         Makie.linkxaxes!(axes...)
     end
 
-    Makie.rowgap!(grid, Makie.Fixed(0))
-    Makie.colgap!(grid, Makie.Fixed(0))
+    # Makie.rowgap!(grid, 0)
+    # Makie.colgap!(grid, 0)
 
     # We sometimes end up with an extra first row if there are no diagonal vizualization layers
     Makie.trim!(grid)
@@ -266,7 +304,6 @@ function diagplot(ax::Makie.Axis, viz::MarginHist, series_i, series::Series, col
     h = Makie.hist!(
         ax,
         dat;
-        color=Makie.Cycled(series_i),
         series.kwargs...,
         viz.kwargs...,
     )
@@ -279,7 +316,6 @@ function diagplot(ax::Makie.Axis, viz::MarginDensity, series_i, series::Series, 
     h = Makie.density!(
         ax,
         dat;
-        color=Makie.Cycled(series_i),
         series.kwargs...,
         viz.kwargs...,
     )
@@ -301,7 +337,6 @@ function diagplot(ax::Makie.Axis, viz::MarginConfidenceLimits, series_i, series:
         ax,
         [mid-low, mid, mid+high];
         linestyle=:dash,
-        color=Makie.Cycled(series_i),
         depth_shift=-10f0,
         series.kwargs...,
         viz.kwargs...,
@@ -393,28 +428,22 @@ function bodyplot(ax::Makie.Axis, viz::Contour, series_i, series, colname_row, c
 
     c = prep_contours(series::Series, viz.sigmas, colname_row, colname_col)
    
-    color = get(series.kwargs, :color, Makie.Cycled(series_i))
-    color = get(viz.kwargs, :color, color)
-
     levels = ContourLib.levels(c)
     for (i,level) in enumerate(levels), poly in ContourLib.lines(level)
         xs, ys = ContourLib.coordinates(poly)
         # Makie.poly!(ax, Makie.Point2f.(zip(xs,ys)); strokewidth=2, series.kwargs...,  viz.kwargs..., color=:transparent, strokecolor=color)#(color, i/length(levels)))
-        Makie.lines!(ax, xs, ys; strokewidth=1.5, series.kwargs...,  viz.kwargs..., color)
+        Makie.lines!(ax, xs, ys; strokewidth=1.5, series.kwargs...,  viz.kwargs...)
     end
 end
 
 function bodyplot(ax::Makie.Axis, viz::Contourf, series_i, series::Series, colname_row, colname_col)
 
     c = prep_contours(series::Series, viz.sigmas, colname_row, colname_col)
-   
-    color = get(series.kwargs, :color, Makie.Cycled(series_i))
-    color = get(viz.kwargs, :color, color)
 
     levels = ContourLib.levels(c)
     for (i,level) in enumerate(levels), poly in ContourLib.lines(level)
         xs, ys = ContourLib.coordinates(poly)
-        Makie.poly!(ax, Makie.Point2f.(zip(xs,ys)); series.kwargs..., viz.kwargs..., color=color)#(color, 1/length(levels)))
+        Makie.poly!(ax, Makie.Point2f.(zip(xs,ys)); series.kwargs..., viz.kwargs...)#(color, 1/length(levels)))
     end
 end
 
