@@ -215,9 +215,6 @@ end
 
 
 colnames(t::Series) = Tables.columnnames(t.table)
-colnames(t::MarginConfidenceLimits) = keys(t.limits)
-colnames(t::NamedTuple) = keys(t)
-colnames(t::AbstractDict) = keys(t)
 
 
 GridPosTypes = Union{Makie.Figure, Makie.GridPosition, Makie.GridSubposition}

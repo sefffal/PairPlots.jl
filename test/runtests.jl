@@ -11,4 +11,12 @@ using PairPlots
     )
     
     @test pairplot(table) isa Figure
+    @test pairplot((;table.a)) isa Figure
+    @test pairplot(
+        table => (PairPlots.Hist())
+    ) isa Figure
+    @test pairplot(
+        table => (PairPlots.Hist(), PairPlots.MarginHist())
+    ) isa Figure
+
 end
