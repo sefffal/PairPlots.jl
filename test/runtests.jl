@@ -1,5 +1,6 @@
 using Test
 using Makie
+using PairPlots
 
 @testset "Basic functionality" begin
     
