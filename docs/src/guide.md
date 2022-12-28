@@ -265,11 +265,10 @@ pairplot(
 )
 ```
 
-
-```@example 1
 You can customize each series independently if you wish.
+```@example 1
 pairplot(
-    table1 => (PairPlots.HexBin(colormap=:magma),),
-    table2 => (PairPlots.Contour2(color=:white, strokewidth=3),)
+    table2 => (PairPlots.HexBin(colormap=:magma), PairPlots.MarginDensity(color=:orange),  PairPlots.MarginConfidenceLimits(color=:black)),
+    table1 => (PairPlots.Contour(color=:cyan, strokewidth=5),),
 )
 ```

@@ -414,6 +414,7 @@ Additional arguments:
 * diagaxis: customize the Makie.Axis of plots along the diagonal with a named tuple of keyword arguments.
 * bodyaxis: customize the Makie.Axis of plots under the diagonal with a named tuple of keyword arguments.
 * legend:  additional keyword arguments to the Legend constructor, used if one or more series are labelled.
+
 You can of course also create your own Legend and inset it into the Figure for complete control. 
 """
 function pairplot(
