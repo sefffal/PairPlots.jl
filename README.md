@@ -1,4 +1,4 @@
-<img src="https://github.com/sefffal/PairPlots.jl/blob/master/images/logo.png" width=100>
+<img src="https://github.com/sefffal/PairPlots.jl/blob/master/docs/src/assets/logo.png" width=100>
 
 # PairPlots.jl
 
@@ -7,7 +7,6 @@
 
 [![](https://img.shields.io/badge/docs-dev-blue.svg)](https://sefffal.github.io/PairPlots.jl/dev/)
 ![Build status](https://github.com/sefffal/PairPlots.jl/actions/workflows/ci.yml/badge.svg)
-[![][codecov-img]][codecov-url]
 [![Package Downloads](https://shields.io/endpoint?url=https://pkgs.genieframework.com/api/v1/badge/PairPlots)](https://pkgs.genieframework.com?packages=PairPlots)
 
 
