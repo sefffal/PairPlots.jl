@@ -1,0 +1,4 @@
+[deps]
+Makie = "ee78f7c6-11fb-53f2-987a-cfe4a2b5a57a"
+PairPlots = "43a3c2be-4208-490b-832a-a21dcd55d7da"
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
