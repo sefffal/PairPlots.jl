@@ -1,0 +1,10 @@
+
+
+article.content img {
+    max-width: min(100%, 450px);
+}
+
+
+article.content svg {
+    max-width: min(100%, 800px);
+}
