@@ -413,6 +413,8 @@ Additional arguments:
 * labels: customize the axes labels with a Dict of column name (symbol) to string, Makie rich text, or LaTeX string.
 * diagaxis: customize the Makie.Axis of plots along the diagonal with a named tuple of keyword arguments.
 * bodyaxis: customize the Makie.Axis of plots under the diagonal with a named tuple of keyword arguments.
+* legend:  additional keyword arguments to the Legend constructor, used if one or more series are labelled.
+You can of course also create your own Legend and inset it into the Figure for complete control. 
 """
 function pairplot(
     grid::Makie.GridLayout,
@@ -420,6 +422,7 @@ function pairplot(
     labels::AbstractDict{Symbol} = Dict{Symbol,Any}(),
     diagaxis=(;),
     bodyaxis=(;),
+    legend=(;),
 )
     # We support multiple series that may have disjoint columns
     # Get the ordered union of all table columns.
@@ -529,6 +532,37 @@ function pairplot(
         Makie.linkxaxes!(axes...)
     end
     # Wishlist: link x axis of bottom right diagonal plot with y axis of bottom row.
+
+    # Ensure labels are spaced nicely
+    if N > 1
+        yspace = maximum(Makie.tight_yticklabel_spacing!, axes_by_row[N])
+        xspace = maximum(Makie.tight_xticklabel_spacing!, axes_by_col[1])
+        for ax in axes_by_row[N]
+            ax.xticklabelspace = xspace
+        end
+        for ax in axes_by_col[1]
+            ax.yticklabelspace = yspace
+        end
+    end
+
+    # Add legend if needed (any series has a non-nothing label)
+    if any(((ser,_),)->!isnothing(ser.label), pairs)
+
+        legend_strings = map(((ser,_),)->isnothing(ser.label) ? "" : ser.label, pairs)
+        legend_entries = map(pairs) do (ser, _)
+            Makie.LineElement(;ser.kwargs...)
+        end
+        Makie.Legend(
+            grid[N == 1 ? 1 : end-1, N <= 2 ? 2 : N ],
+            collect(legend_entries),
+            collect(legend_strings);
+            tellwidth=false,
+            tellheight=false,
+            valign = :bottom,
+            halign = :left,
+            legend...
+        )
+    end
 
     return
 

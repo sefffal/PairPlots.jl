@@ -218,7 +218,7 @@ Adjust the spacing between axes inside a pair plot:
 ```@example 1
 fig = Figure(resolution=(600,600))
 
-# pairplots must go into a GridLayout. If you pass a GridPosition instead,
+# Pair Plots must go into a Makie GridLayout. If you pass a GridPosition instead,
 # PairPlots will create one for you.
 # We can then adjust the spacing within that GridLayout.
 
@@ -232,5 +232,44 @@ fig
 ```
 
 
-
 ## Multiple Series
+
+You can plot multiple series by simply passing more than one table to `pairplot`
+They don't have to have all the same column names.
+```@example 1
+# The simplest table format is just a named tuple of vectors.
+# You can also pass a DataFrame, or any other Tables.jl compatible object.
+table1 = (;
+    x = randn(10000),
+    y = randn(10000),
+)
+
+table2 = (;
+    x = 1 .+ randn(10000),
+    y = 2 .+ randn(10000),
+    z = randn(10000),
+)
+
+pairplot(table1, table2)
+```
+
+You may want to add a legend:
+```@example 1
+
+c1 = Makie.wong_colors(0.5)[1]
+c2 = Makie.wong_colors(0.5)[2]
+
+pairplot(
+    PairPlots.Series(table1, label="table 1", color=c1, strokecolor=c1),
+    PairPlots.Series(table2, label="table 2", color=c2, strokecolor=c2),
+)
+```
+
+
+```@example 1
+You can customize each series independently if you wish.
+pairplot(
+    table1 => (PairPlots.HexBin(colormap=:magma),),
+    table2 => (PairPlots.Contour2(color=:white, strokewidth=3),)
+)
+```

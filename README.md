@@ -5,7 +5,7 @@
 
 *Beautiful and flexible vizualizations of high dimensional data*
 
-[![](https://img.shields.io/badge/docs-dev-blue.svg)](https://juliaastro.github.io/PairPlots.jl/dev/)
+[![](https://img.shields.io/badge/docs-dev-blue.svg)](https://sefffal.github.io/PairPlots.jl/dev/)
 ![Build status](https://github.com/sefffal/PairPlots.jl/actions/workflows/ci.yml/badge.svg)
 [![][codecov-img]][codecov-url]
 [![Package Downloads](https://shields.io/endpoint?url=https://pkgs.genieframework.com/api/v1/badge/PairPlots)](https://pkgs.genieframework.com?packages=PairPlots)
@@ -15,7 +15,7 @@ This package produces pair plots, otherwise known as corner plots or scatter plo
 
 Pair plots are an excellent way to vizualize the results of MCMC simulations, but are also a useful way to vizualize correlations in general data tables.
 
-Read the documentation here: (https://juliaastro.github.io/PairPlots.jl/dev/)
+Read the documentation here: (https://sefffal.github.io/PairPlots.jl/dev/)
 
 The default styles of this package roughly reproduces the style of the Python library [corner.py](https://corner.readthedocs.io/en/latest/index.html) for a single series, and [chainconsumer.py](https://samreay.github.io/ChainConsumer/usage.html) for multiple series.
 If these are not to your tastes, this package is highly configurable.
