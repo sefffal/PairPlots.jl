@@ -1,212 +1,32 @@
 <img src="https://github.com/sefffal/PairPlots.jl/blob/master/images/logo.png" width=100>
 
 # PairPlots.jl
-This package produces corner plots, otherwise known as pair plots or scatter plot matrices: grids of 1D and 2D histograms that allow you to visualize high dimensional data.
 
-Documentation: [Read on JuliaHub](https://juliahub.com/docs/PairPlots)
 
+*Beautiful and flexible vizualizations of high dimensional data*
+
+[![](https://img.shields.io/badge/docs-dev-blue.svg)](https://sefffal.github.io/PairPlots.jl/dev/)
+![Build status](https://github.com/sefffal/PairPlots.jl/actions/workflows/ci.yml/badge.svg)
+[![][codecov-img]][codecov-url]
 [![Package Downloads](https://shields.io/endpoint?url=https://pkgs.genieframework.com/api/v1/badge/PairPlots)](https://pkgs.genieframework.com?packages=PairPlots)
 
 
-The defaults in this package aim to reproduce the output of the well-known Python library [corner.py](https://corner.readthedocs.io/en/latest/index.html) as closely as possible. If these are not to your tastes, this package is highly configurable (see examples below).
+This package produces pair plots, otherwise known as corner plots or scatter plot matrices: grids of 1D and 2D histograms that allow you to visualize high dimensional data.
 
-This package is curently experimental and under active development.  See also: [StatsPlots.cornerplot](https://github.com/JuliaPlots/StatsPlots.jl#corrplot-and-cornerplot), [GeoStats.cornerplot](https://juliaearth.github.io/GeoStats.jl/stable/plotting.html#cornerplot), and [CornerPlot.jl](https://github.com/kilianbreathnach/CornerPlot.jl) for Gadfly.
+Pair plots are an excellent way to vizualize the results of MCMC simulations, but are also a useful way to vizualize correlations in general data tables.
 
+Read the documentation here: (https://sefffal.github.io/PairPlots.jl/dev/)
 
-## Installation
-At the Julia REPL, type `]` followed by `add PairPlots`
-You must also install Plots, e.g. `add Plots` if you have not already done so.
+The default styles of this package roughly reproduces the style of the Python library [corner.py](https://corner.readthedocs.io/en/latest/index.html) for a single series, and [chainconsumer.py](https://samreay.github.io/ChainConsumer/usage.html) for multiple series.
+If these are not to your tastes, this package is highly configurable.
 
-## Notes
-This pacakge is currently only tested using the GR plots backend. I recommend you save your figures as SVG or PNG.
+The current version of PairPlots.jl requires the [Makie](https://makie.juliaplots.org/) plotting library. If instead you prefer to use Plots.jl, you can install the legacy version `0.6` of PairPlots (see [archived documentation here](https://github.com/sefffal/PairPlots.jl/blob/b632abd79c0dfbe7387d44393f4fb5b7f74ac5d8/README.md))
 
-If you pass additional keyword arguments to customize the appearance of the plots, it is recommended to use their canonical form e.g. `seriestype` instead of `st`, `markersize` instead of `ms`. PairPlots attempts to do the "smart" thing when certain combinations of keywords are present, and the shorthands might interfere with this.
-
-## Usage
-```julia
-using Plots, PairPlots
-
-corner(table [, labels])
-```
-This function has one required argument, a [Tables.jl](https://tables.juliadata.org/stable/) compatible table consisting of one or more columns. This can simply be a named tuple of vectors, a [DataFrame](https://dataframes.juliadata.org/stable/), [TypedTable](https://typedtables.juliadata.org/stable/), result of an execute statement from [SQLite](https://juliadatabases.org/SQLite.jl/stable/), data loaded from [Arrow](https://arrow.juliadata.org/stable/manual/#Writing-arrow-data), etc.
-
-The variable names are by default taken from the column names of the input table, but can also be supplied by a second vector of strings.
-
-This package uses [RecipesBase](http://juliaplots.org/RecipesBase.jl/stable/) rather than [Plots](http://docs.juliaplots.org/latest/) directly, so you must also load Plots in order to see any output. The package is only tested with [GR](https://github.com/jheinen/GR.jl).
-
-### Examples
-
-Basics:
-```julia
-using Plots, PairPlots
-gr()
-
-# Generate some data to visualize
-N = 100_000
-a = [2randn(N÷2) .+ 6; randn(N÷2)]
-b = [3randn(N÷2); 2randn(N÷2)]
-c = randn(N)
-d = c .+ 0.6randn(N)
-
-# Pass data in a format compatible with Tables.jl
-# Here, simply a named tuple of vectors.
-table = (;a, b, c, d)
-
-corner(table)
-```
-![](https://github.com/sefffal/PairPlots.jl/blob/master/images/basic.png)
-
-Single variable fallback:
-```julia
-corner((;d))
-```
-![](https://github.com/sefffal/PairPlots.jl/blob/master/images/single-variable.png)
-
-
-Basic scatter plot:
-```julia
-corner(table, plotcontours=false, filterscatter=false)
-```
-![](https://user-images.githubusercontent.com/7330605/146047141-75de3bcb-bede-4996-b8dc-517d50eb995e.png)
-
-Appearance:
-```julia
-theme(:dark) # See PlotThemes.jl included with Plots.
-corner(
-    table,
-    hist2d_kwargs=(;color=:magma),
-    hist_kwargs=(;color=:white,titlefontcolor=:white),
-    scatter_kwargs=(;color=:white);
-    percentiles_kwargs=(;color=:white),
-)
-```
-![](https://github.com/sefffal/PairPlots.jl/blob/master/images/themed.png)
-
-
-
-Enlarging one subplot with `lens`:
-```julia
-# Plot a 1D histogram
-corner(table, lens=:a)
-
-# Plot a 2D histogram
-corner(table, lens=(:b, :a))
-
-# Plot a 2D histogram with customization
-corner(
-    table,
-    lens=(:b, :a),
-    lens_kwargs=(
-        title="b - a heatmap",
-        plotscatter=false,
-        hist2d_kwargs=(;color=:plasma),
-        contour_kwargs=(;color=:white)
-    )
-)
-```
-![](https://github.com/sefffal/PairPlots.jl/blob/master/images/lens-gallery.png)
-
-
-Adding an extra unrelated subplot with `bonusplot`:
-```julia
-f(kw)=heatmap!(rand(10,10); kw...)
-corner((;a,b,c,d,e=a), title="Corner Plot", bonusplot=f)
-```
-The syntax for this is a little tricky due to API limitations. the `bonusplot` argument accepts a
-function that overplots your desired plot, and must accept a named tuple of keyword arguments to forward to the plotting function. This is necessary for the layout to work as expected.
-
-Minimal look:
-```julia
-a = randn(100000); b = randn(100000) .+ a; c = 4randn(100000) .+ a
-
-corner((;a,b,c), hist_kwargs=(;title=""), appearance=(;framestyle=:grid, ticks=[]), plotpercentiles=[])
-```
-![](https://github.com/sefffal/PairPlots.jl/blob/master/images/minimal.png)
-
-
-3D wireframe and line plots:
-```julia
-α=[randn(50000); 0.5randn(50000).+4]
-β=2randn(100000)
-
-corner(
-    (;α,β),
-    [raw"\alpha", raw"\beta"],
-    hist2d_kwargs=(;seriestype=:wireframe),
-    plotscatter=false,
-    dpi=200
-)
-```
-![](https://github.com/sefffal/PairPlots.jl/blob/master/images/3d-mesh-2.png)
-
-```julia
-theme(:solarized);
- corner(
-    (;a,b), filterscatter=false,
-    hist2d_kwargs=(;seriestype=:wireframe,color=:white,nbins=35),
-    hist_kwargs=(;color=:lightgrey,titlefontcolor=:white,seriestype=:line, linewidth=3),
-    scatter_kwargs=(;color=:grey);
-    percentiles_kwargs=(;color=:grey),
-)
-```
-![](https://github.com/sefffal/PairPlots.jl/blob/master/images/3d-mesh.png)
-
-
-
-
-### Full API
-```julia
-corner(table [, labels]; plotcontours, plotscatter, plotpercentiles, hist_kwargs, hist2d_kwargs, contour_kwargs, scatter_kwargs, percentiles_kwargs, appearance)
-```
-The `corner` function also accepts the following keyword arguments:
-* `plotcontours=true`: Overplot contours on each 2D histogram
-* `plotscatter=true`: Plot individual data points under the histogram to reveal outliers. Disable to improve performance on large datasets.
-* `plotpercentiles=[15,50,84]`: What percentiles should be used for the vertical lines in the 1D histogram. Pass an empty vector to hide.
-* `histfunc`: a function to override the calculation of the 1D and 2D histograms. See below.
-* `hist_kwargs=(;)`: plot keywords for the 1D histograms.
-* `hist2d_kwargs=(;)`: plot keywords for the 2D histograms.
-* `contour_kwargs=(;)`: plot keywords for the contours plotted over the 2D histograms.
-* `scatter_kwargs=(;)`: plot keywords for the data points scattered under the 2D histograms. 
-* `percentiles_kwargs=(;)`: plot keywords for the vertical percentile lines on the 1D histograms. 
-* `appearance=(;)`: General keywords for all subplots.
-* `titlefmt="\$%s = %.2f^{+%.2f}_{-%.2f}\$"`: Printf format string for titles along the 1D histograms
-
-Remaining keyword arguments are forwarded to the main plot that holds the all of the subplots. For example, passing `size=(1000,1000)` sets the size of the overall figure not each individual subplot.
-
-#### MCMCChains
-`MCMCChains.MCMCChain` values can be passed directly to `corner`. In this case, the fields :iteration and :chain are filtered out automatically and all chains are concatenated. 
-
-#### `histfunc`
-If you wish to calculate the histograms yourself, you can provide a callback function with two methods: one to calculate the 1D histograms along the diagonal, and another to calculate the 2D histograms.
-
-Example:
-```julia
-function myhist(a, nbins)
-    ...
-    return bin_centres, weights
-end
-function myhist(a,b,nbins)
-    ...
-    return bin_centres_x, bin_centres_y, weights
-end
-
-corner(data, histfunc=myhist)
-```
-
-The methods must return the bin **centres** rather than edges, followed by the histogram weights. You must override both the 1D and 2D cases, or neither. If you don't want to change the behaviour, you can simply forward the arguments to `PairPlots.prepare_hist`, the default value.
-
-```julia
-function myhist(a, nbins)
-    ...
-    return bin_centres, weights
-end
-myhist(a,b,nbins) = PairPlots.prepare_hist(a,b,nbins)
-corner(data, histfunc=myhist)
-```
+For related functionality, see also: [StatsPlots.cornerplot](https://github.com/JuliaPlots/StatsPlots.jl#corrplot-and-cornerplot), [GeoStats.cornerplot](https://juliaearth.github.io/GeoStats.jl/stable/plotting.html#cornerplot), and [CornerPlot.jl](https://github.com/kilianbreathnach/CornerPlot.jl) for the Gadfly plotting library.
 
 
 ## Credits
-This package is built on top of the great packages Plots, GR, RecipesBase, NamedTupleTools, and Tables. The overall inspiration and a few peices of code are taken directly from corner.py, whose authors IMO should be cited if you use this pacakge.
+This package is built on top of the great packages Plots, GR, RecipesBase, NamedTupleTools, and Tables. The overall inspiration and a few lines of code are taken  from corner.py and chainconsumer.py
 
 ## TODO:
-- Support for colouring individual chains separately when using MCMCChains
+- Support for MCMCChains
