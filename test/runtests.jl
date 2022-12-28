@@ -1,4 +1,4 @@
-using Tests
+using Test
 using Makie
 
 @testset "Basic functionality" begin
