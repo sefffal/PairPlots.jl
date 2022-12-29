@@ -33,7 +33,12 @@ Requires = "1"
 StaticArrays = "1.0.0"
 StatsBase = "0.32 - 0.33"
 Tables = "1.4.1"
-julia = "1.6.0"
+julia = "1.7.0"
+Distributions = "0.25"
+KernelDensity = "0.6"
+Makie = "0.19"
+OrderedCollections = "1.4"
+SnoopPrecompile = "1.0"
 
 [extra]
 MCMCChains = "c7f686f2-ff18-58e9-bc7b-31028e88f75d"
