@@ -539,7 +539,7 @@ function pairplot(
             ax.xticklabelspace = xspace
         end
         for ax in axes_by_col[1]
-            ax.yticklabelspace = yspace
+            ax.yticklabelspace = yspace + 10
         end
     end
 
