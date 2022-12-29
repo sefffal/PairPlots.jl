@@ -55,7 +55,7 @@ function Series(data::AbstractMatrix; label=nothing, kwargs...)
     column_labels = [Symbol(i) for i in axes(data,1)] 
     table = NamedTuple([
         collabel => col
-        for (collabel, col) in zip(column_labels, eachrow(data))
+        for (collabel, col) in zip(column_labels, eachcol(data))
     ])
     Series(label, table, kwargs)
 end

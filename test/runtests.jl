@@ -18,5 +18,6 @@ using PairPlots
     @test pairplot(
         table => (PairPlots.Hist(), PairPlots.MarginHist())
     ) isa Figure
+    @test pairplot(vcat(table.a, table.b)) isa Figure
 
 end
