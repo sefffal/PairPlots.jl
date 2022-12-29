@@ -25,13 +25,8 @@ If you're in a hurry, you can just pass a Matrix directly (or any subtype of Abs
 using CairoMakie
 using PairPlots
 
-# The simplest table format is just a named tuple of vectors.
-# You can also pass a DataFrame, or any other Tables.jl compatible object.
-table = (;
-    x = randn(10000),
-    y = randn(10000),
-)
-
+# As always in Julia, columns are treated as variables, and rows as samples.
+mat = randn(10000,6)
 pairplot(table)
 ```
 
