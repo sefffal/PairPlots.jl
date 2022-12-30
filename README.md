@@ -16,12 +16,12 @@ Pair plots are an excellent way to vizualize the results of MCMC simulations, bu
 
 Read the documentation here: (https://sefffal.github.io/PairPlots.jl/dev/)
 
-The default styles of this package roughly reproduces the style of the Python library [corner.py](https://corner.readthedocs.io/en/latest/index.html) for a single series, and [chainconsumer.py](https://samreay.github.io/ChainConsumer/usage.html) for multiple series.
+The default styles of this package roughly reproduce the output of the Python library [corner.py](https://corner.readthedocs.io/en/latest/index.html) for a single series, and [chainconsumer.py](https://samreay.github.io/ChainConsumer/usage.html) for multiple series.
 If these are not to your tastes, this package is highly configurable.
 
 The current version of PairPlots.jl requires the [Makie](https://makie.juliaplots.org/) plotting library. If instead you prefer to use Plots.jl, you can install the legacy version `0.6` of PairPlots (see [archived documentation here](https://github.com/sefffal/PairPlots.jl/blob/b632abd79c0dfbe7387d44393f4fb5b7f74ac5d8/README.md))
 
-For related functionality, see also: [StatsPlots.cornerplot](https://github.com/JuliaPlots/StatsPlots.jl#corrplot-and-cornerplot), [GeoStats.cornerplot](https://juliaearth.github.io/GeoStats.jl/stable/plotting.html#cornerplot), and [CornerPlot.jl](https://github.com/kilianbreathnach/CornerPlot.jl) for the Gadfly plotting library.
+For related functionality, see also: [StatsPlots.cornerplot](https://github.com/JuliaPlots/StatsPlots.jl#corrplot-and-cornerplot) and [CornerPlot.jl](https://github.com/kilianbreathnach/CornerPlot.jl) for the Gadfly plotting library.
 
 
 ## Credits
