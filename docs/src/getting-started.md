@@ -27,7 +27,7 @@ using PairPlots
 
 # As always in Julia, columns are treated as variables, and rows as samples.
 mat = randn(10000,6)
-pairplot(table)
+pairplot(mat)
 ```
 
 
