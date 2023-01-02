@@ -1,6 +1,4 @@
-<img src="//github.com/sefffal/PairPlots.jl/blob/master/docs/src/assets/logo.png" width=100>
-
-# PairPlots.jl
+# <img src="https://github.com/sefffal/PairPlots.jl/raw/master/docs/src/assets/logo.png" width=100> PairPlots.jl
 
 
 *Beautiful and flexible vizualizations of high dimensional data*
