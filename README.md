@@ -1,4 +1,5 @@
 <img src="https://github.com/sefffal/PairPlots.jl/raw/master/docs/src/assets/logo.png" width=100> 
+
 # PairPlots.jl
 
 
