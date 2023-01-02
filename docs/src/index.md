@@ -2,7 +2,11 @@
 *Beautiful and flexible vizualizations of high dimensional data*
 
 [![GitHub](https://img.shields.io/badge/Code-GitHub-black.svg)](https://github.com/sefffal/PairPlots.jl)
+![Build status](https://github.com/sefffal/PairPlots.jl/actions/workflows/ci.yml/badge.svg)
 [![Package Downloads](https://shields.io/endpoint?url=https://pkgs.genieframework.com/api/v1/badge/PairPlots)](https://pkgs.genieframework.com?packages=PairPlots)
+[![codecov](https://codecov.io/gh/sefffal/PairPlots.jl/branch/master/graph/badge.svg?token=1II9NYRIXT)](https://codecov.io/gh/sefffal/PairPlots.jl)
+[![License](https://img.shields.io/github/license/sefffal/PairPlots.jl)](LICENSE)
+[![PkgEval](https://juliaci.github.io/NanosoldierReports/pkgeval_badges/P/PairPlots.svg)](https://juliaci.github.io/NanosoldierReports/pkgeval_badges/report.html)
 
 
 This package produces pair plots, otherwise known as corner plots or scatter plot matrices: grids of 1D and 2D histograms that allow you to visualize high dimensional data.
