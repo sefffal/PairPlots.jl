@@ -318,6 +318,7 @@ pairplot(
         )
     ),
 )
+```
     
 For 6 or more tables, the defaults are approximately:
 ```julia
