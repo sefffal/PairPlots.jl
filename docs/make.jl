@@ -8,6 +8,7 @@ makedocs(
         "Home" => "index.md",
         "Getting Started" => "getting-started.md",
         "Guide" => "guide.md",
+        "MCMCChains" => "chains.md",
         "API" => "api.md",
     ],
     format = Documenter.HTML(
