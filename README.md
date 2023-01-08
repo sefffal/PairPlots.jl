@@ -30,6 +30,3 @@ For related functionality, see also: [StatsPlots.cornerplot](https://github.com/
 
 ## Credits
 This package is built on top of the great packages Makie, Contour, KernelDensity, and Tables. The overall inspiration and a few lines of code are taken  from corner.py and chainconsumer.py
-
-## TODO:
-- Support for MCMCChains

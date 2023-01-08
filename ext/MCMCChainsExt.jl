@@ -14,9 +14,10 @@ function PairPlots.Series(chains::MCMCChains.Chains; label=nothing, kwargs...)
     column_labels = keys(chains)
 
     table = NamedTuple([
-        collabel => vec(chains[prop].data)
+        collabel => vec(chains[collabel].data)
         for collabel in column_labels
     ])
-    Series(label, table, kwargs)
+    PairPlots.Series(label, table, kwargs)
+
 end
 end
