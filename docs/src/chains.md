@@ -37,11 +37,14 @@ pairplot(chn1[:,:,1], chn1[:,:,2], chn1[:,:,3])
 
 You can title the series indepdendently as well:
 ```@example 1
-colors = Makie.wong_colors(0.5)
+c1 = Makie.wong_colors(0.5)[1]
+c2 = Makie.wong_colors(0.5)[2]
+c3 = Makie.wong_colors(0.5)[3]
+
 pairplot(
-    PairPlots.Series(chn1[:,:,1], label="chain 1", color=colors[1]),
-    PairPlots.Series(chn1[:,:,2], label="chain 2", color=colors[2]),
-    PairPlots.Series(chn1[:,:,3], label="chain 3", color=colors[3]),
+    PairPlots.Series(chn1[:,:,1], label="chain 1", color=c1, strokecolor=c1),
+    PairPlots.Series(chn1[:,:,2], label="chain 2", color=c2, strokecolor=c2),
+    PairPlots.Series(chn1[:,:,3], label="chain 3", color=c3, strokecolor=c3),
 )
 ```
 
