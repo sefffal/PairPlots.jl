@@ -23,7 +23,7 @@ abstract type AbstractSeries end
 
 
 struct Series{T,K} <: AbstractSeries where {T,K}
-    label::Union{String,Nothing}
+    label::Union{Nothing,String,Makie.RichText,Makie.LaTeXString}
     table::T
     kwargs::K
 end
