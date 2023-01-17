@@ -4,6 +4,8 @@
 [![GitHub](https://img.shields.io/badge/Code-GitHub-black.svg)](https://github.com/sefffal/PairPlots.jl)
 ![Build status](https://github.com/sefffal/PairPlots.jl/actions/workflows/ci.yml/badge.svg)
 [![Package Downloads](https://shields.io/endpoint?url=https://pkgs.genieframework.com/api/v1/badge/PairPlots)](https://pkgs.genieframework.com?packages=PairPlots)
+![Stars](https://img.shields.io/github/stars/sefffal/PairPlots.jl)
+![Commit Activity](https://img.shields.io/github/commit-activity/y/sefffal/PairPlots.jl)
 [![codecov](https://codecov.io/gh/sefffal/PairPlots.jl/branch/master/graph/badge.svg?token=1II9NYRIXT)](https://codecov.io/gh/sefffal/PairPlots.jl)
 [![License](https://img.shields.io/github/license/sefffal/PairPlots.jl)](LICENSE)
 [![PkgEval](https://juliaci.github.io/NanosoldierReports/pkgeval_badges/P/PairPlots.svg)](https://juliaci.github.io/NanosoldierReports/pkgeval_badges/report.html)
