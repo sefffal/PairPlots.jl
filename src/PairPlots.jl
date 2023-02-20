@@ -229,9 +229,9 @@ struct MarginDensity <: VizTypeDiag
     MarginDensity(;kwargs...) = new(kwargs)
 end
 
-struct MarginLines2 <: VizTypeDiag
+struct MarginLines <: VizTypeDiag
     kwargs
-    MarginLines2(;kwargs...) = new(kwargs)
+    MarginLines(;kwargs...) = new(kwargs)
 end
 
 struct BodyLines <: VizTypeBody
@@ -413,7 +413,7 @@ function pairplot(
     )
 
     truths_default_viz = (
-        PairPlots.MarginLines2(),
+        PairPlots.MarginLines(),
         PairPlots.BodyLines(),
     )
 
@@ -680,7 +680,7 @@ function diagplot(ax::Makie.Axis, viz::MarginConfidenceLimits, series::AbstractS
     )
 end
 
-function diagplot(ax::Makie.Axis, viz::MarginLines2, series::AbstractSeries, colname)
+function diagplot(ax::Makie.Axis, viz::MarginLines, series::AbstractSeries, colname)
     cn = colnames(series)
     if colname ∉ cn
         return
