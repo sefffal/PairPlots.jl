@@ -262,15 +262,25 @@ function pairplot(
     kwargs...,
 )
 
-    # TODO: auto size figure based on the number of columns.
-    # We need to resolve all the inputs first, so this fix will 
-    # require inverting the pairplot method cascade to do inputs, 
-    # then the grid/gridpos/figure argument last.
-    fig = Makie.Figure(;
-        resolution=(800, 800),
-        figure...
+    # If we make the figure for the user, we can size it nicely
+    # for them.
+    # Pass in fixed sizes for each plot and then resize the figure
+    # afterwards.
+    fig = Makie.Figure(;figure...)
+                # Default size
+                
+    ax_defaults = (;
+        width=150,
+        height=150,
     )
-    pairplot(fig.layout, input...; kwargs...)
+    pairplot(
+        fig.layout,
+        input...;
+        bodyaxis=ax_defaults,
+        diagaxis=ax_defaults,
+        kwargs...
+    )
+    Makie.resize_to_layout!(fig)
     return fig
 end
 
