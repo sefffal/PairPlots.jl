@@ -21,6 +21,22 @@ Represents some kind of series in PairPlots.
 """
 abstract type AbstractSeries end
 
+"""
+    Truth(truths; labels=nothing, kwargs=...)
+
+Mark a set of "true" values given by `truths` which should
+be either a named tuple, Dict, etc that can be indexed by the
+column name and returns a value or values.
+"""
+struct Truth{T,K} <: AbstractSeries where {T,K}
+    label::Union{Nothing,String,Makie.RichText,Makie.LaTeXString}
+    table::T
+    kwargs::K
+end
+function Truth(truths;label=nothing, kwargs...)
+    return Truth(label, truths, kwargs)
+end
+
 
 struct Series{T,K} <: AbstractSeries where {T,K}
     label::Union{Nothing,String,Makie.RichText,Makie.LaTeXString}
@@ -213,8 +229,18 @@ struct MarginDensity <: VizTypeDiag
     MarginDensity(;kwargs...) = new(kwargs)
 end
 
+struct MarginLines2 <: VizTypeDiag
+    kwargs
+    MarginLines2(;kwargs...) = new(kwargs)
+end
+
+struct BodyLines <: VizTypeBody
+    kwargs
+    BodyLines(;kwargs...) = new(kwargs)
+end
 
 colnames(t::Series) = Tables.columnnames(t.table)
+colnames(t::Truth) = Tables.columnnames(t.table)
 
 
 GridPosTypes = Union{Makie.Figure, Makie.GridPosition, Makie.GridSubposition}
@@ -376,20 +402,28 @@ function pairplot(
         )
     )
 
+    truths_default_viz = (
+        PairPlots.MarginLines2(),
+        PairPlots.BodyLines(),
+    )
+
     if length(datapairs) == 1
 
         defaults1((data,vizlayers)::Pair) = Series(data; color=single_series_color) => vizlayers
         defaults1(series::Series) = series => single_series_default_viz
+        defaults1(truths::Truth) = truths => truths_default_viz
         defaults1(data::Any) = Series(data; color=single_series_color) => single_series_default_viz
         pairplot(grid, defaults1(first(datapairs)); kwargs...)
     elseif length(datapairs) <= 5
         defaults_upto5((data,vizlayers)::Pair) = SeriesDefaults(data) => vizlayers
         defaults_upto5(series::Series) = series => multi_series_default_viz
+        defaults_upto5(truths::Truth) = truths => truths_default_viz
         defaults_upto5(data::Any) = SeriesDefaults(data) => multi_series_default_viz
         pairplot(grid, map(defaults_upto5, datapairs)...; kwargs...)
     else # More than 5 series
         defaults_morethan5((data,vizlayers)::Pair) = SeriesDefaults(data) => vizlayers
         defaults_morethan5(series::Series) = series => many_series_default_viz
+        defaults_morethan5(truths::Truth) = truths => truths_default_viz
         defaults_morethan5(data::Any) = SeriesDefaults(data) => many_series_default_viz
         pairplot(grid, map(defaults_morethan5, datapairs)...; kwargs...)
     end
@@ -499,16 +533,13 @@ function pairplot(
         # For each slot, loop through all series and fill it in accordingly.
         # We have two slot types: bodyplot, like a 3D histogram, and diagplot, along the diagonal
         for (series, vizlayers) in pairs
-            cn = colnames(series)
-            if colname_row in cn && colname_col in cn
-                for vizlayer in vizlayers    
-                    if row_ind == col_ind && vizlayer isa VizTypeDiag
-                        diagplot(ax, vizlayer, series, colname_row)
-                    elseif row_ind != col_ind && vizlayer isa VizTypeBody
-                        bodyplot(ax, vizlayer, series, colname_row, colname_col)
-                    else
-                        # skip
-                    end
+            for vizlayer in vizlayers    
+                if row_ind == col_ind && vizlayer isa VizTypeDiag
+                    diagplot(ax, vizlayer, series, colname_row)
+                elseif row_ind != col_ind && vizlayer isa VizTypeBody
+                    bodyplot(ax, vizlayer, series, colname_row, colname_col)
+                else
+                    # skip
                 end
             end
         end
@@ -549,7 +580,13 @@ function pairplot(
 
         legend_strings = map(((ser,_),)->isnothing(ser.label) ? "" : ser.label, pairs)
         legend_entries = map(pairs) do (ser, _)
-            Makie.LineElement(;ser.kwargs...)
+            kwargs = ser.kwargs
+            if haskey(kwargs, :color) && kwargs[:color] isa Tuple
+                # Don't pass transparency into the legend
+                color = kwargs[:color][1]
+                kwargs = (;kwargs...,color)
+            end
+            Makie.LineElement(;kwargs...,strokwidth=2)
         end
         Makie.Legend(
             grid[N == 1 ? 1 : end-1, N <= 2 ? 2 : N ],
@@ -569,7 +606,11 @@ end
 
 # Note: stephist coming soon in a Makie PR
 
-function diagplot(ax::Makie.Axis, viz::MarginHist, series::Series, colname)
+function diagplot(ax::Makie.Axis, viz::MarginHist, series::AbstractSeries, colname)
+    cn = colnames(series)
+    if colname ∉ cn
+        return
+    end
     dat = getproperty(series.table, colname)
 
     bins = get(series.kwargs, :bins, 32)
@@ -590,10 +631,13 @@ function diagplot(ax::Makie.Axis, viz::MarginHist, series::Series, colname)
     Makie.ylims!(ax,low=0)
 end
 
-function diagplot(ax::Makie.Axis, viz::MarginDensity, series::Series, colname)
+function diagplot(ax::Makie.Axis, viz::MarginDensity, series::AbstractSeries, colname)
+    cn = colnames(series)
+    if colname ∉ cn
+        return
+    end
     dat = getproperty(series.table, colname)
-
-     Makie.density!(
+    Makie.density!(
         ax,
         dat;
         series.kwargs...,
@@ -603,8 +647,11 @@ function diagplot(ax::Makie.Axis, viz::MarginDensity, series::Series, colname)
 end
 
 
-function diagplot(ax::Makie.Axis, viz::MarginConfidenceLimits, series::Series, colname)
-
+function diagplot(ax::Makie.Axis, viz::MarginConfidenceLimits, series::AbstractSeries, colname)
+    cn = colnames(series)
+    if colname ∉ cn
+        return
+    end
     percentiles = quantile(vec(getproperty(series.table, colname)), (0.16, 0.5, 0.84))
     mid = percentiles[2]
     low = mid - percentiles[1]
@@ -623,7 +670,27 @@ function diagplot(ax::Makie.Axis, viz::MarginConfidenceLimits, series::Series, c
     )
 end
 
-function bodyplot(ax::Makie.Axis, viz::HexBin, series::Series, colname_row, colname_col)
+function diagplot(ax::Makie.Axis, viz::MarginLines2, series::AbstractSeries, colname)
+    cn = colnames(series)
+    if colname ∉ cn
+        return
+    end
+    dat = getproperty(series.table, colname)
+
+    Makie.vlines!(
+        ax,
+        dat;
+        series.kwargs...,
+        viz.kwargs...,
+    )
+end
+
+
+function bodyplot(ax::Makie.Axis, viz::HexBin, series::AbstractSeries, colname_row, colname_col)
+    cn = colnames(series)
+    if colname_row ∉ cn || colname_col ∉ cn
+        return
+    end
     Makie.hexbin!(
         ax,
         getproperty(series.table, colname_col),
@@ -635,8 +702,11 @@ function bodyplot(ax::Makie.Axis, viz::HexBin, series::Series, colname_row, coln
     )
 end
 
-function bodyplot(ax::Makie.Axis, viz::Hist, series::Series, colname_row, colname_col)
-
+function bodyplot(ax::Makie.Axis, viz::Hist, series::AbstractSeries, colname_row, colname_col)
+    cn = colnames(series)
+    if colname_row ∉ cn || colname_col ∉ cn
+        return
+    end
     xdat = getproperty(series.table, colname_col)
     ydat = getproperty(series.table, colname_row)
 
@@ -661,8 +731,11 @@ function bodyplot(ax::Makie.Axis, viz::Hist, series::Series, colname_row, colnam
     )
 end
 
-function prep_contours(series::Series, sigmas, colname_row, colname_col)
-
+function prep_contours(series::AbstractSeries, sigmas, colname_row, colname_col)
+    cn = colnames(series)
+    if colname_row ∉ cn || colname_col ∉ cn
+        return
+    end
     xdat = getproperty(series.table, colname_col)
     ydat = getproperty(series.table, colname_row)
     k  = KernelDensity.kde((xdat, ydat))
@@ -706,8 +779,11 @@ end
 
 
 function bodyplot(ax::Makie.Axis, viz::Contour, series, colname_row, colname_col)
-
-    c = prep_contours(series::Series, viz.sigmas, colname_row, colname_col)
+    cn = colnames(series)
+    if colname_row ∉ cn || colname_col ∉ cn
+        return
+    end
+    c = prep_contours(series::AbstractSeries, viz.sigmas, colname_row, colname_col)
    
     levels = ContourLib.levels(c)
     for (i,level) in enumerate(levels), poly in ContourLib.lines(level)
@@ -717,9 +793,12 @@ function bodyplot(ax::Makie.Axis, viz::Contour, series, colname_row, colname_col
     end
 end
 
-function bodyplot(ax::Makie.Axis, viz::Contourf, series::Series, colname_row, colname_col)
-
-    c = prep_contours(series::Series, viz.sigmas, colname_row, colname_col)
+function bodyplot(ax::Makie.Axis, viz::Contourf, series::AbstractSeries, colname_row, colname_col)
+    cn = colnames(series)
+    if colname_row ∉ cn || colname_col ∉ cn
+        return
+    end
+    c = prep_contours(series::AbstractSeries, viz.sigmas, colname_row, colname_col)
 
     levels = ContourLib.levels(c)
     for (i,level) in enumerate(levels), poly in ContourLib.lines(level)
@@ -729,8 +808,11 @@ function bodyplot(ax::Makie.Axis, viz::Contourf, series::Series, colname_row, co
 end
 
 
-function bodyplot(ax::Makie.Axis, viz::Scatter, series::Series, colname_row, colname_col)
-
+function bodyplot(ax::Makie.Axis, viz::Scatter, series::AbstractSeries, colname_row, colname_col)
+    cn = colnames(series)
+    if colname_row ∉ cn || colname_col ∉ cn
+        return
+    end
     xall = getproperty(series.table, colname_col)
     yall = getproperty(series.table, colname_row)
 
@@ -744,6 +826,18 @@ function bodyplot(ax::Makie.Axis, viz::Scatter, series::Series, colname_row, col
     xfilt, yfilt = scatter_filtering(xall, yall, first(levels))
     Makie.scatter!(ax, xfilt, yfilt; markersize=1f0, series.kwargs..., viz.kwargs...)
 
+end
+
+function bodyplot(ax::Makie.Axis, viz::BodyLines, series::AbstractSeries, colname_row, colname_col)
+    cn = colnames(series)
+    if colname_row ∈ cn
+        xall = getproperty(series.table, colname_row)
+        Makie.hlines!(ax,xall; series.kwargs..., viz.kwargs...)
+    end
+    if colname_col ∈ cn
+        yall = getproperty(series.table, colname_col)
+        Makie.vlines!(ax,yall; series.kwargs..., viz.kwargs...)
+    end
 end
 
 
