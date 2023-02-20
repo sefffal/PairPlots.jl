@@ -199,7 +199,7 @@ end
     MarginHist(;kwargs...)
     MarginHist(histprep_function; kwargs...)
 
-Plot a marginal histogram of a single variable along the diagonal of the grid.
+Plot a marginal filled histogram of a single variable along the diagonal of the grid.
 `kwargs` are forwarded to the plot function and can be used to control
 the number of bins and the appearance.
 
@@ -215,6 +215,28 @@ struct MarginHist{T} <: VizTypeDiag where T
     prepare_hist::T
     kwargs
     MarginHist(prepare_hist=prepare_hist;kwargs...) = new{typeof(prepare_hist)}(prepare_hist, kwargs)
+end
+
+"""
+    MarginStepHist(;kwargs...)
+    MarginStepHist(histprep_function; kwargs...)
+
+Plot a marginal histogram without filled columns of a single variable along the diagonal of the grid.
+`kwargs` are forwarded to the plot function and can be used to control
+the number of bins and the appearance.
+
+!!! tip
+    You can optionally pass a function to override how the histogram is calculated.
+    It should have the signature: `prepare_hist(xs, nbins)` and return
+    a vector of bin centers and a vector of weights.
+
+    !!! note
+        Your `prepare_hist` function it does not have to obey `nbins`
+"""
+struct MarginStepHist{T} <: VizTypeDiag where T
+    prepare_hist::T
+    kwargs
+    MarginStepHist(prepare_hist=prepare_hist;kwargs...) = new{typeof(prepare_hist)}(prepare_hist, kwargs)
 end
 
 """
@@ -617,6 +639,32 @@ end
 # Note: stephist coming soon in a Makie PR
 
 function diagplot(ax::Makie.Axis, viz::MarginHist, series::AbstractSeries, colname)
+    cn = colnames(series)
+    if colname ∉ cn
+        return
+    end
+    dat = getproperty(series.table, colname)
+
+    bins = get(series.kwargs, :bins, 32)
+    bins = get(viz.kwargs, :bins, bins)
+
+    # h = fit(Histogram, vec(dat); nbins=bins)
+    # x = range(first(h.edges[1])+step(h.edges[1])/2, step=step(h.edges[1]), length=size(h.weights,1))
+   
+    x, weights = viz.prepare_hist(dat,  bins)
+
+
+    Makie.barplot!(
+        ax, x, weights;
+        gap = 0,
+        series.kwargs...,
+        viz.kwargs...,
+    )
+    Makie.ylims!(ax,low=0)
+end
+
+
+function diagplot(ax::Makie.Axis, viz::MarginStepHist, series::AbstractSeries, colname)
     cn = colnames(series)
     if colname ∉ cn
         return
