@@ -281,6 +281,8 @@ fig = pairplot(table)
 function pairplot(
     @nospecialize input...;
     figure=(;),
+    bodyaxis=(;),
+    diagaxis=(;),
     kwargs...,
 )
 
@@ -298,8 +300,8 @@ function pairplot(
     pairplot(
         fig.layout,
         input...;
-        bodyaxis=ax_defaults,
-        diagaxis=ax_defaults,
+        bodyaxis=(;ax_defaults...,bodyaxis...),
+        diagaxis=(;ax_defaults...,diagaxis...),
         kwargs...
     )
     Makie.resize_to_layout!(fig)
@@ -716,7 +718,11 @@ function diagplot(ax::Makie.Axis, viz::MarginConfidenceLimits, series::AbstractS
     high = percentiles[3] - mid
 
     title = @eval (@sprintf($(viz.titlefmt), $mid, $high, $low))
-    ax.title = Makie.latexstring(ax.title[], title)
+    prev_title = ax.title[]
+    if length(string(prev_title)) > 0
+        prev_title = prev_title * "\n"
+    end
+    ax.title = Makie.latexstring(prev_title, title)
 
     Makie.vlines!(
         ax,
