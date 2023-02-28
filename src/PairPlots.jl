@@ -125,13 +125,16 @@ end
 
 
 """
-    Contour(;sigmas=1:2, kwargs...)
+    Contour(;sigmas=1:2, bandwidth=1.0, kwargs...)
 
 Plot two variables against eachother using a contour plot. The contours cover the area under a Gaussian
 given by `sigmas`, which must be `<: AbstractVector`. `kwargs` are forwarded to the plot function and can
 be used to control the appearance.
 
-KernelDensity.jl is used to produce smoother contours.
+KernelDensity.jl is used to produce smoother contours. The bandwidth of the KDE is chosen automatically
+by that package, but you can scale the bandwidth used up or down by a constant factor by passing `bandwidth`
+when creating the series. For example, `bandwidth=2.0` will double the KDE bandwidth and result in smoother 
+contours.
 
 !!! note
     Contours are calculated using Contour.jl and plotted as a Makie line series.
@@ -140,16 +143,22 @@ See also: Contourf
 """
 struct Contour <: VizTypeBody
     sigmas
+    bandwidth
     kwargs
-    Contour(;sigmas=1:2, kwargs...) = new(sigmas, kwargs)
+    Contour(;sigmas=1:2, bandwidth=1.0, kwargs...) = new(sigmas, bandwidth, kwargs)
 end
 
 """
-    Contourf(;sigmas=1:2, kwargs...)
+    Contourf(;sigmas=1:2, bandwidth=1.0, kwargs...)
 
 Plot two variables against eachother using a filled contour plot. The contours cover the area under a Gaussian
 given by `sigmas`, which must be `<: AbstractVector`. `kwargs` are forwarded to the plot function and can
 be used to control the appearance.
+
+KernelDensity.jl is used to produce smoother contours. The bandwidth of the KDE is chosen automatically
+by that package, but you can scale the bandwidth used up or down by a constant factor by passing `bandwidth`
+when creating the series. For example, `bandwidth=2.0` will double the KDE bandwidth and result in smoother 
+contours.
 
 KernelDensity.jl is used to produce smoother contours.
 
@@ -157,8 +166,9 @@ See also: Contour
 """
 struct Contourf <: VizTypeBody
     sigmas
+    bandwidth
     kwargs
-    Contourf(;sigmas=1:2, kwargs...) = new(sigmas, kwargs)
+    Contourf(;sigmas=1:2, bandwidth=1.0, kwargs...) = new(sigmas, bandwidth, kwargs)
 end
 
 """
@@ -795,14 +805,15 @@ function bodyplot(ax::Makie.Axis, viz::Hist, series::AbstractSeries, colname_row
     )
 end
 
-function prep_contours(series::AbstractSeries, sigmas, colname_row, colname_col)
+function prep_contours(series::AbstractSeries, sigmas, colname_row, colname_col; bandwidth=1.0)
     cn = colnames(series)
     if colname_row ∉ cn || colname_col ∉ cn
         return
     end
     xdat = getproperty(series.table, colname_col)
     ydat = getproperty(series.table, colname_row)
-    k  = KernelDensity.kde((xdat, ydat))
+    dat = (xdat, ydat)
+    k  = KernelDensity.kde(dat, bandwidth=KernelDensity.default_bandwidth(dat).*bandwidth)
     ik = KernelDensity.InterpKDE(k)
 
     exx = extrema(xdat)
@@ -847,7 +858,7 @@ function bodyplot(ax::Makie.Axis, viz::Contour, series, colname_row, colname_col
     if colname_row ∉ cn || colname_col ∉ cn
         return
     end
-    c = prep_contours(series::AbstractSeries, viz.sigmas, colname_row, colname_col)
+    c = prep_contours(series::AbstractSeries, viz.sigmas, colname_row, colname_col; viz.bandwidth)
    
     levels = ContourLib.levels(c)
     for (i,level) in enumerate(levels), poly in ContourLib.lines(level)
@@ -862,7 +873,7 @@ function bodyplot(ax::Makie.Axis, viz::Contourf, series::AbstractSeries, colname
     if colname_row ∉ cn || colname_col ∉ cn
         return
     end
-    c = prep_contours(series::AbstractSeries, viz.sigmas, colname_row, colname_col)
+    c = prep_contours(series::AbstractSeries, viz.sigmas, colname_row, colname_col; viz.bandwidth)
 
     levels = ContourLib.levels(c)
     for (i,level) in enumerate(levels), poly in ContourLib.lines(level)
