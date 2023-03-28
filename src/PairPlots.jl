@@ -257,8 +257,9 @@ function. `kwargs` are forwarded to the plot function and can be used to control
 the appearance.
 """
 struct MarginDensity <: VizTypeDiag
+    bandwidth::Float64
     kwargs
-    MarginDensity(;kwargs...) = new(kwargs)
+    MarginDensity(;bandwidth=1.0,kwargs...) = new(bandwidth,kwargs)
 end
 
 struct MarginLines <: VizTypeDiag
@@ -359,8 +360,8 @@ pairplot(
         PairPlots.Contour(),
         PairPlots.MarginDensity(
             color=:transparent,
-            strokecolor=:black,
-            strokewidth=1.5f0
+            color=:black,
+            linewidth=1.5f0
         ),
         PairPlots.MarginConfidenceLimits()
     )
@@ -375,16 +376,14 @@ pairplot(
         PairPlots.Scatter(filtersigma=2), 
         PairPlots.Contourf(),
         PairPlots.MarginDensity(
-            color=:transparent,
-            strokewidth=2.5f0
+            linewidth=2.5f0
         )
     ),
     PairPlots.Series(table2, color=Makie.wong_colors(0.5)[2]) => (
         PairPlots.Scatter(filtersigma=2), 
         PairPlots.Contourf(),
         PairPlots.MarginDensity(
-            color=:transparent,
-            strokewidth=2.5f0
+            linewidth=2.5f0
         )
     ),
 )
@@ -395,8 +394,7 @@ For 6 or more tables, the defaults are approximately:
 PairPlots.Series(table1, color=Makie.wong_colors(0.5)[series_i]) => (
     PairPlots.Contour(sigmas=[1]),
     PairPlots.MarginDensity(
-        color=:transparent,
-        strokewidth=2.5f0
+        linewidth=2.5f0
     )
 )
 ```
@@ -416,9 +414,8 @@ function pairplot(
         PairPlots.Scatter(filtersigma=2), 
         PairPlots.Contour(),
         PairPlots.MarginDensity(
-            color=:transparent,
-            strokecolor=:black,
-            strokewidth=1.5f0
+            color=:black,
+            linewidth=1.5f0
         ),
         PairPlots.MarginConfidenceLimits()
     )
@@ -434,15 +431,13 @@ function pairplot(
         PairPlots.Scatter(filtersigma=2), 
         PairPlots.Contourf(),
         PairPlots.MarginDensity(
-            color=:transparent,
-            strokewidth=2.5f0
+            linewidth=2.5f0
         )
     )
     many_series_default_viz = (
         PairPlots.Contour(sigmas=[1]),
         PairPlots.MarginDensity(
-            color=:transparent,
-            strokewidth=2.5f0
+            linewidth=2.5f0
         )
     )
 
@@ -632,8 +627,12 @@ function pairplot(
             end
             Makie.LineElement(;kwargs...,strokwidth=2)
         end
+        M = N
+        if !anydiag_viz
+            M -= 1
+        end
         Makie.Legend(
-            grid[N == 1 ? 1 : end-1, N <= 2 ? 2 : N ],
+            grid[M == 1 ? 1 : end-1, M <= 2 ? 2 : M ],
             collect(legend_entries),
             collect(legend_strings);
             tellwidth=false,
@@ -707,12 +706,21 @@ function diagplot(ax::Makie.Axis, viz::MarginDensity, series::AbstractSeries, co
         return
     end
     dat = getproperty(series.table, colname)
-    Makie.density!(
-        ax,
-        dat;
-        series.kwargs...,
-        viz.kwargs...,
-    )
+    # Makie.density!(
+    #     ax,
+    #     dat;
+    #     series.kwargs...,
+    #     viz.kwargs...,
+    # )
+
+    k  = KernelDensity.kde(dat, bandwidth=KernelDensity.default_bandwidth(dat).*viz.bandwidth)
+    ik = KernelDensity.InterpKDE(k)
+
+    exx = extrema(dat)
+    N = 100
+    x = range(first(exx), last(exx), length=N)
+    y = pdf.(Ref(ik), x)
+    Makie.lines!(ax, x, y; series.kwargs..., viz.kwargs...,)
     Makie.ylims!(ax,low=0)
 end
 
@@ -859,7 +867,6 @@ function bodyplot(ax::Makie.Axis, viz::Contour, series, colname_row, colname_col
         return
     end
     c = prep_contours(series::AbstractSeries, viz.sigmas, colname_row, colname_col; viz.bandwidth)
-   
     levels = ContourLib.levels(c)
     for (i,level) in enumerate(levels), poly in ContourLib.lines(level)
         xs, ys = ContourLib.coordinates(poly)
@@ -874,7 +881,6 @@ function bodyplot(ax::Makie.Axis, viz::Contourf, series::AbstractSeries, colname
         return
     end
     c = prep_contours(series::AbstractSeries, viz.sigmas, colname_row, colname_col; viz.bandwidth)
-
     levels = ContourLib.levels(c)
     for (i,level) in enumerate(levels), poly in ContourLib.lines(level)
         xs, ys = ContourLib.coordinates(poly)
