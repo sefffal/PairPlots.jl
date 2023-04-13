@@ -13,6 +13,7 @@ using StatsBase: fit, quantile, Histogram
 using Distributions: pdf
 using StaticArrays
 using PolygonOps
+using LinearAlgebra: normalize
 
 """
     AstractSeries
@@ -250,16 +251,16 @@ struct MarginStepHist{T} <: VizTypeDiag where T
 end
 
 """
-    MarginDensity(;kwargs...)
+    MarginDensity2(;kwargs...)
 
 Plot the smoothed marginal density of a variable along the diagonal of the grid, using Makie's `density` 
 function. `kwargs` are forwarded to the plot function and can be used to control
 the appearance.
 """
-struct MarginDensity <: VizTypeDiag
+struct MarginDensity2 <: VizTypeDiag
     bandwidth::Float64
     kwargs
-    MarginDensity(;bandwidth=1.0,kwargs...) = new(bandwidth,kwargs)
+    MarginDensity2(;bandwidth=1.0,kwargs...) = new(bandwidth,kwargs)
 end
 
 struct MarginLines <: VizTypeDiag
@@ -358,7 +359,7 @@ pairplot(
         PairPlots.HexBin(colormap=Makie.cgrad([:transparent, :black]),bins=32),
         PairPlots.Scatter(filtersigma=2), 
         PairPlots.Contour(),
-        PairPlots.MarginDensity(
+        PairPlots.MarginDensity2(
             color=:transparent,
             color=:black,
             linewidth=1.5f0
@@ -375,14 +376,14 @@ pairplot(
     PairPlots.Series(table1, color=Makie.wong_colors(0.5)[1]) => (
         PairPlots.Scatter(filtersigma=2), 
         PairPlots.Contourf(),
-        PairPlots.MarginDensity(
+        PairPlots.MarginDensity2(
             linewidth=2.5f0
         )
     ),
     PairPlots.Series(table2, color=Makie.wong_colors(0.5)[2]) => (
         PairPlots.Scatter(filtersigma=2), 
         PairPlots.Contourf(),
-        PairPlots.MarginDensity(
+        PairPlots.MarginDensity2(
             linewidth=2.5f0
         )
     ),
@@ -393,7 +394,7 @@ For 6 or more tables, the defaults are approximately:
 ```julia
 PairPlots.Series(table1, color=Makie.wong_colors(0.5)[series_i]) => (
     PairPlots.Contour(sigmas=[1]),
-    PairPlots.MarginDensity(
+    PairPlots.MarginDensity2(
         linewidth=2.5f0
     )
 )
@@ -413,7 +414,7 @@ function pairplot(
         PairPlots.HexBin(colormap=Makie.cgrad([:transparent, :black]),bins=32),
         PairPlots.Scatter(filtersigma=2), 
         PairPlots.Contour(),
-        PairPlots.MarginDensity(
+        PairPlots.MarginDensity2(
             color=:black,
             linewidth=1.5f0
         ),
@@ -430,13 +431,13 @@ function pairplot(
     multi_series_default_viz = (
         PairPlots.Scatter(filtersigma=2), 
         PairPlots.Contourf(),
-        PairPlots.MarginDensity(
+        PairPlots.MarginDensity2(
             linewidth=2.5f0
         )
     )
     many_series_default_viz = (
         PairPlots.Contour(sigmas=[1]),
-        PairPlots.MarginDensity(
+        PairPlots.MarginDensity2(
             linewidth=2.5f0
         )
     )
@@ -700,7 +701,7 @@ function diagplot(ax::Makie.Axis, viz::MarginStepHist, series::AbstractSeries, c
     Makie.ylims!(ax,low=0)
 end
 
-function diagplot(ax::Makie.Axis, viz::MarginDensity, series::AbstractSeries, colname)
+function diagplot(ax::Makie.Axis, viz::MarginDensity2, series::AbstractSeries, colname)
     cn = colnames(series)
     if colname ∉ cn
         return
@@ -931,6 +932,7 @@ Must return a tuple of bin centres, followed by bin weights (of the same length)
 """
 function prepare_hist(a, nbins)
     h = fit(Histogram, vec(a); nbins)
+    h = normalize(h, mode=:pdf)
     x = range(first(h.edges[1])+step(h.edges[1])/2, step=step(h.edges[1]), length=size(h.weights,1))
     return x, h.weights
 end
