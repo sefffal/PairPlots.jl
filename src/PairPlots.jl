@@ -485,14 +485,33 @@ Additional arguments:
 * labels: customize the axes labels with a Dict of column name (symbol) to string, Makie rich text, or LaTeX string.
 * diagaxis: customize the Makie.Axis of plots along the diagonal with a named tuple of keyword arguments.
 * bodyaxis: customize the Makie.Axis of plots under the diagonal with a named tuple of keyword arguments.
-* legend:  additional keyword arguments to the Legend constructor, used if one or more series are labelled.
+* axis: customize the horiztaonl axes by parameter using a Dict of column name (symbol) to named tuple of axis settings. `x` and `y` are automatically prepended based on the parameter and subplot.  For global properties, see `diagaxis` and `bodyaxis`.
+* legend:  additional keyword arguments to the Legend constructor, used if one or more series are labelled. You can of course also create your own Legend and inset it into the Figure for complete control. 
 
-You can of course also create your own Legend and inset it into the Figure for complete control. 
+## Examples
+
+Basic usage:
+```julia
+table = (;a=randn(1000), b=randn(1000), c=randn(1000))
+pairplot(table)
+```
+
+Customize labels:
+```julia
+pairplot(table, labels=Dict(:a=>L"\\sum{a^2}"))
+```
+
+
+Use a pseudo log scale for one variable:
+```julia
+pairplot(table, axis=(; a=(;scale=Makie.pseudolog10) ))
+```
 """
 function pairplot(
     grid::Makie.GridLayout,
     @nospecialize pairs::Pair{<:AbstractSeries}...;
     labels::AbstractDict{Symbol} = Dict{Symbol,Any}(),
+    axis::Union{AbstractDict{Symbol},NamedTuple} = Dict{Symbol,Any}(),
     diagaxis=(;),
     bodyaxis=(;),
     legend=(;),
@@ -504,11 +523,10 @@ function pairplot(
     # Map of column key to label text. 
     # By default, just latexify the column key but allow override.
     label_map = Dict(
-        name => Makie.latexstring("\\mathrm{", latexify(name, env=:raw), "}")
+        name => string(name)
         for name in columns
     )
     label_map = merge(label_map, Dict(labels))
-   
 
     # Rather than computing limits in this version, let's try to rely on 
     # Makie doing a good job of linking axes.
@@ -539,16 +557,37 @@ function pairplot(
         colname_row = columns[row_ind]
         colname_col = columns[col_ind]
 
+
+        xkw = get(axis, colname_col, (;))
+        xkw = map(keys(xkw), values(xkw)) do key, value
+            return Symbol('x',key) => value
+        end
         if row_ind == col_ind
             kw = diagaxis
+            # Don't apply axis paramters to vertical axis of diagonal plots (e.g. histogram scale)
+            ykw = (;)
         else
             kw = bodyaxis
+            ykw = get(axis, colname_row, (;))
+            ykw = map(keys(ykw), values(ykw)) do key, value
+                return Symbol('y',key) => value
+            end
         end
 
         # Hide first row if no diagonal viz layers
         row_ind_fig = row_ind
         if !anydiag_viz
             row_ind_fig = row_ind - 1
+        end
+
+        # Hide labels etc. as needed for a compact view
+        if row_ind < N
+            kw = (;xlabelvisible=false, xticklabelsvisible=false, xticksvisible=false, kw...)
+            # Makie.hidexdecorations!(ax, grid=false)
+        end
+        if col_ind > 1 || row_ind == 1
+            kw = (;ylabelvisible=false, yticklabelsvisible=false, yticksvisible=false, kw...)
+            # Makie.hideydecorations!(ax, grid=false)
         end
 
         ax = Makie.Axis(
@@ -562,6 +601,8 @@ function pairplot(
             xautolimitmargin=(0f0,0f0),
             yautolimitmargin= row_ind == col_ind ? (0f0, 0.05f0) : (0f0,0f0),
             # User options
+            xkw...,
+            ykw...,
             kw...,
         )
 
@@ -582,14 +623,6 @@ function pairplot(
                     # skip
                 end
             end
-        end
-
-        # Hide labels etc. as needed for a compact view
-        if row_ind < N
-            Makie.hidexdecorations!(ax, grid=false)
-        end
-        if col_ind > 1 || row_ind == 1
-            Makie.hideydecorations!(ax, grid=false)
         end
 
     end
