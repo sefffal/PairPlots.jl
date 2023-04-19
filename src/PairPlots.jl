@@ -559,19 +559,24 @@ function pairplot(
 
 
         xkw = get(axis, colname_col, (;))
-        xkw = map(keys(xkw), values(xkw)) do key, value
-            return Symbol('x',key) => value
-        end
+        xkw = (
+            Symbol('x',key) => value
+            for (key,value) in zip(keys(xkw), values(xkw)) if key != :lims
+        )
+        xlims = get(get(axis, colname_col, (;)), :lims, (;))
         if row_ind == col_ind
             kw = diagaxis
             # Don't apply axis paramters to vertical axis of diagonal plots (e.g. histogram scale)
             ykw = (;)
+            ylims = (;)
         else
             kw = bodyaxis
             ykw = get(axis, colname_row, (;))
-            ykw = map(keys(ykw), values(ykw)) do key, value
-                return Symbol('y',key) => value
-            end
+            ykw = (
+                Symbol('y',key) => value
+                for (key,value) in zip(keys(ykw), values(ykw)) if key != :lims
+            )
+            ylims = get(get(axis, colname_row, (;)), :lims, (;))
         end
 
         # Hide first row if no diagonal viz layers
@@ -605,6 +610,13 @@ function pairplot(
             ykw...,
             kw...,
         )
+
+        if xlims != (;)
+            Makie.xlims!(ax; xlims...)
+        end
+        if ylims != (;)
+            Makie.ylims!(ax; ylims...)
+        end
 
         axes_by_col[col_ind]= push!(get(axes_by_col, col_ind, Makie.Axis[]), ax)
         if row_ind != col_ind
