@@ -1,8 +1,8 @@
 
-using SnoopPrecompile
+using PrecompileTools
 
 
-@precompile_all_calls begin
+@compile_workload begin
     # Our "toy workload" that exercise the code you want to precompile
     table = (;
         # These are just from randn(100) but don't actually call into Random etc. here
