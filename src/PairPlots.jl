@@ -251,16 +251,16 @@ struct MarginStepHist{T} <: VizTypeDiag where T
 end
 
 """
-    MarginDensity2(;kwargs...)
+    MarginDensity(;kwargs...)
 
 Plot the smoothed marginal density of a variable along the diagonal of the grid, using Makie's `density` 
 function. `kwargs` are forwarded to the plot function and can be used to control
 the appearance.
 """
-struct MarginDensity2 <: VizTypeDiag
+struct MarginDensity <: VizTypeDiag
     bandwidth::Float64
     kwargs
-    MarginDensity2(;bandwidth=1.0,kwargs...) = new(bandwidth,kwargs)
+    MarginDensity(;bandwidth=1.0,kwargs...) = new(bandwidth,kwargs)
 end
 
 struct MarginLines <: VizTypeDiag
@@ -359,7 +359,7 @@ pairplot(
         PairPlots.HexBin(colormap=Makie.cgrad([:transparent, :black]),bins=32),
         PairPlots.Scatter(filtersigma=2), 
         PairPlots.Contour(),
-        PairPlots.MarginDensity2(
+        PairPlots.MarginDensity(
             color=:transparent,
             color=:black,
             linewidth=1.5f0
@@ -376,14 +376,14 @@ pairplot(
     PairPlots.Series(table1, color=Makie.wong_colors(0.5)[1]) => (
         PairPlots.Scatter(filtersigma=2), 
         PairPlots.Contourf(),
-        PairPlots.MarginDensity2(
+        PairPlots.MarginDensity(
             linewidth=2.5f0
         )
     ),
     PairPlots.Series(table2, color=Makie.wong_colors(0.5)[2]) => (
         PairPlots.Scatter(filtersigma=2), 
         PairPlots.Contourf(),
-        PairPlots.MarginDensity2(
+        PairPlots.MarginDensity(
             linewidth=2.5f0
         )
     ),
@@ -394,7 +394,7 @@ For 6 or more tables, the defaults are approximately:
 ```julia
 PairPlots.Series(table1, color=Makie.wong_colors(0.5)[series_i]) => (
     PairPlots.Contour(sigmas=[1]),
-    PairPlots.MarginDensity2(
+    PairPlots.MarginDensity(
         linewidth=2.5f0
     )
 )
@@ -414,7 +414,7 @@ function pairplot(
         PairPlots.HexBin(colormap=Makie.cgrad([:transparent, :black]),bins=32),
         PairPlots.Scatter(filtersigma=2), 
         PairPlots.Contour(),
-        PairPlots.MarginDensity2(
+        PairPlots.MarginDensity(
             color=:black,
             linewidth=1.5f0
         ),
@@ -431,13 +431,13 @@ function pairplot(
     multi_series_default_viz = (
         PairPlots.Scatter(filtersigma=2), 
         PairPlots.Contourf(),
-        PairPlots.MarginDensity2(
+        PairPlots.MarginDensity(
             linewidth=2.5f0
         )
     )
     many_series_default_viz = (
         PairPlots.Contour(sigmas=[1]),
-        PairPlots.MarginDensity2(
+        PairPlots.MarginDensity(
             linewidth=2.5f0
         )
     )
@@ -746,7 +746,7 @@ function diagplot(ax::Makie.Axis, viz::MarginStepHist, series::AbstractSeries, c
     Makie.ylims!(ax,low=0)
 end
 
-function diagplot(ax::Makie.Axis, viz::MarginDensity2, series::AbstractSeries, colname)
+function diagplot(ax::Makie.Axis, viz::MarginDensity, series::AbstractSeries, colname)
     cn = colnames(series)
     if colname ∉ cn
         return
