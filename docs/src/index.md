@@ -7,7 +7,7 @@
 ![Stars](https://img.shields.io/github/stars/sefffal/PairPlots.jl)
 ![Commit Activity](https://img.shields.io/github/commit-activity/y/sefffal/PairPlots.jl)
 [![codecov](https://codecov.io/gh/sefffal/PairPlots.jl/branch/master/graph/badge.svg?token=1II9NYRIXT)](https://codecov.io/gh/sefffal/PairPlots.jl)
-[![License](https://img.shields.io/github/license/sefffal/PairPlots.jl)](LICENSE)
+[![License](https://img.shields.io/github/license/sefffal/PairPlots.jl)](https://github.com/sefffal/PairPlots.jl/blob/master/LICENSE)
 [![PkgEval](https://juliaci.github.io/NanosoldierReports/pkgeval_badges/P/PairPlots.svg)](https://juliaci.github.io/NanosoldierReports/pkgeval_badges/report.html)
 
 

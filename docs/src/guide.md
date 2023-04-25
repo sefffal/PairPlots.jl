@@ -178,7 +178,7 @@ You can quickly add lines to mark particular values of each variable on all subp
 ```@example 1
 pairplot(
     df,
-    Truth(
+    PairPlots.Truth(
         (;
             α = [0, 6],
             β = 0,
@@ -194,7 +194,7 @@ pairplot(
 You can customize the axes of the subplots freely in two ways. For these examples,
 we'll create a variable that is log-normally distributed.
 ```@example 1
-dfln = DataFrame(;α, β, γ=10 .^ γ, δ)
+dfln = DataFrame(;α, β, γ=10 .^ γ, δ);
 ```
 
 First, you can pass axis parameters for all plots along the diagonal using the `diagaxis` keyword or all plots below the diagonal using the `bodyaxis` parameter.
