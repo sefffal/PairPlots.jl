@@ -143,6 +143,20 @@ pairplot(
 )
 ```
 
+Adjust margin density KDE bandwidth (note: this multiplies the default bandwidth. A value larger than 1 increases smoothing, less than 1 decreases smoothing).
+```@example 1
+pairplot(
+    df => (
+        PairPlots.HexBin(colormap=Makie.cgrad([:transparent, :black])),
+        PairPlots.Scatter(filtersigma=2, color=:black),
+        PairPlots.Contour(color=:black),
+
+        PairPlots.MarginDensity(bandwidth=0.5)
+    )
+)
+```
+
+
 
 ```@example 1
 pairplot(
