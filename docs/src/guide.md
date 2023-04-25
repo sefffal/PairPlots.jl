@@ -157,7 +157,7 @@ pairplot(
 ```
 
 
-
+Adding a histgoram instead of a smoothed kernel density estimate:
 ```@example 1
 pairplot(
     df => (
@@ -172,16 +172,20 @@ pairplot(
 )
 ```
 
+## Truth Lines
+You can quickly add lines to mark particular values of each variable on all subplots using `Truth`:
+
 ```@example 1
 pairplot(
-    df => (
-        PairPlots.HexBin(colormap=Makie.cgrad([:transparent, :black])),
-        PairPlots.Scatter(filtersigma=2, color=:black),
-        PairPlots.Contour(color=:black),
-
-        # New:
-        PairPlots.MarginDensity(),
-        PairPlots.MarginConfidenceLimits(),
+    df,
+    Truth(
+        (;
+            α = [0, 6,]
+            β = 0,
+            γ = 0,
+            δ = [-1, 0, +1],
+        ),
+        label="Mean Values"
     )
 )
 ```
