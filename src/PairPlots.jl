@@ -485,7 +485,7 @@ Additional arguments:
 * labels: customize the axes labels with a Dict of column name (symbol) to string, Makie rich text, or LaTeX string.
 * diagaxis: customize the Makie.Axis of plots along the diagonal with a named tuple of keyword arguments.
 * bodyaxis: customize the Makie.Axis of plots under the diagonal with a named tuple of keyword arguments.
-* axis: customize the horiztaonl axes by parameter using a Dict of column name (symbol) to named tuple of axis settings. `x` and `y` are automatically prepended based on the parameter and subplot.  For global properties, see `diagaxis` and `bodyaxis`.
+* axis: customize the axes by parameter using a Dict of column name (symbol) to named tuple of axis settings. `x` and `y` are automatically prepended based on the parameter and subplot.  For global properties, see `diagaxis` and `bodyaxis`.
 * legend:  additional keyword arguments to the Legend constructor, used if one or more series are labelled. You can of course also create your own Legend and inset it into the Figure for complete control. 
 
 ## Examples
