@@ -21,7 +21,7 @@ Let's create a basic table of data to vizualize.
 N = 100_000
 α = [2randn(N÷2) .+ 6; randn(N÷2)]
 β = [3randn(N÷2); 2randn(N÷2)]
-γ = 10 .^ randn(N)
+γ = randn(N)
 δ = β .+ 0.6randn(N)
 
 df = DataFrame(;α, β, γ, δ)
@@ -187,42 +187,57 @@ pairplot(
 ```
 
 ## Customize Axes
-You can customize the axes of the subplots freely in two ways. 
+You can customize the axes of the subplots freely in two ways. For these examples,
+we'll create a variable that is log-normally distributed.
+```@example 1
+dfln = DataFrame(;α, β, γ=10 .^ γ, δ)
+```
 
 First, you can pass axis parameters for all plots along the diagonal using the `diagaxis` keyword or all plots below the diagonal using the `bodyaxis` parameter.
 
 Turn on grid lines for the body axes:
 ```@example 1
-pairplot(df, bodyaxis=(;xgridvisible=true, ygridvisible=true))
+pairplot(dfln, bodyaxis=(;xgridvisible=true, ygridvisible=true))
 ```
 
 Apply a pseduo-log scale on the margin plots along the diagonal:
 ```@example 1
-pairplot(df, diagaxis=(;yscale=Makie.pseudolog10, ygridvisible=true))
+pairplot(dfln, diagaxis=(;yscale=Makie.pseudolog10, ygridvisible=true))
 ```
 
 The second way you can control the axes is by table column. This allows you to customize how an individual variable is presented across the pair plot.
 
 For example, we can apply a log scale to all axes that the `γ` variable is plotted against:
 ```@example 1
-pairplot(df, axis=(;
-    γ=(;
-        scale=log10
+pairplot(
+    dfln => (PairPlots.Scatter(), PairPlots.MarginStepHist()),
+    axis=(;
+        γ=(;
+            scale=log10
+        )
     )
-))
+)
 ```
-Note that we do not prefix the attribute with `x` or `y`. PairPlots.jl will add the correct prefix as needed.
+
+!!! note
+    We do not prefix the attribute with `x` or `y`. PairPlots.jl will add the correct prefix as needed.
+
+!!! warning
+    Log scale variables usually work best with Scatter series. Histogram and contour based series sometimes extend past zero, breaking the scale.
 
 There is also special support for setting the axis limits of each variable:
 ```@example 1
-pairplot(df, axis=(;
-    α=(;
-        lims=(;low=-10, high=+10)
-    ),
-    γ=(;
-        scale=log10
+pairplot(
+    dfln => (PairPlots.Scatter(), PairPlots.MarginStepHist()),
+    axis=(;
+        α=(;
+            lims=(;low=-10, high=+10)
+        ),
+        γ=(;
+            scale=log10
+        )
     )
-))
+)
 ```
 This applies the correct limits either to the vertical axis or horizontal axis as appropriate.
 Note that the parameters `low` and/or `high` must be passed as a named tuple.
