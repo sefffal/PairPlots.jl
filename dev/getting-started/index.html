@@ -9,12 +9,12 @@ table = (;
     y = randn(10000),
 )
 
-pairplot(table)</code></pre><img src="2443a181.png" alt="Example block output"/><p>The axis labels are taken from the column names by default, but you can customize them (see <a href="../guide/#Guide">Guide</a>).</p><p>If you&#39;re in a hurry, you can just pass a Matrix directly (or any subtype of AbstractMatrix).</p><pre><code class="language-julia hljs">using CairoMakie
+pairplot(table)</code></pre><img src="1f353223.png" alt="Example block output"/><p>The axis labels are taken from the column names by default, but you can customize them (see <a href="../guide/#Guide">Guide</a>).</p><p>If you&#39;re in a hurry, you can just pass a Matrix directly (or any subtype of AbstractMatrix).</p><pre><code class="language-julia hljs">using CairoMakie
 using PairPlots
 
 # As always in Julia, columns are treated as variables, and rows as samples.
 mat = randn(10000,6)
-pairplot(mat)</code></pre><img src="982afc3d.png" alt="Example block output"/><p>Multiple tables are also supported. They don&#39;t have to have the same column names.</p><pre><code class="language-julia hljs">using CairoMakie
+pairplot(mat)</code></pre><img src="c54665cc.png" alt="Example block output"/><p>Multiple tables are also supported. They don&#39;t have to have the same column names.</p><pre><code class="language-julia hljs">using CairoMakie
 using PairPlots
 
 # The simplest table format is just a named tuple of vectors.
@@ -30,4 +30,4 @@ table2 = (;
     z = randn(10000),
 )
 
-pairplot(table1, table2)</code></pre><img src="09be3c04.png" alt="Example block output"/></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../">« Home</a><a class="docs-footer-nextpage" href="../guide/">Guide »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="auto">Automatic (OS)</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.1.2 on <span class="colophon-date" title="Tuesday 31 October 2023 13:52">Tuesday 31 October 2023</span>. Using Julia version 1.11.0-DEV.777.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+pairplot(table1, table2)</code></pre><img src="1c6d1254.png" alt="Example block output"/></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../">« Home</a><a class="docs-footer-nextpage" href="../guide/">Guide »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="auto">Automatic (OS)</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.1.2 on <span class="colophon-date" title="Tuesday 31 October 2023 13:58">Tuesday 31 October 2023</span>. Using Julia version 1.11.0-DEV.777.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
