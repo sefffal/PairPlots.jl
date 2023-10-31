@@ -1,5 +1,7 @@
 using Documenter, CairoMakie, PairPlots
 
+CairoMakie.activate!(type = "png", px_per_unit=1.0)
+
 ENV["DATAFRAMES_ROWS"] = 5
 
 makedocs(
