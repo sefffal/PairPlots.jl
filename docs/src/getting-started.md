@@ -49,5 +49,14 @@ table2 = (;
     z = randn(10000),
 )
 
-pairplot(table1, table2)
+fig = pairplot(table1, table2)
 ```
+
+You can save your pairplot like so:
+```@example 1
+save("myfigure.png", fig)
+```
+Other formats like `.svg` and `.pdf` are also supported by CairoMakie.
+
+!!! tip "Resolution"
+    You can increase the resolution of the saved PNG image by passing the `px_per_unit` keyword argument to `save`, as in `save("plot.png", fig; px_per_unit=3)`. The higher the number, the higher the resolution (and larger the file).

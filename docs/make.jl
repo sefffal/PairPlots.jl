@@ -1,6 +1,6 @@
 using Documenter, CairoMakie, PairPlots
 
-CairoMakie.activate!(type = "png", px_per_unit=1.0)
+CairoMakie.activate!(type = "png", px_per_unit=130)
 
 ENV["DATAFRAMES_ROWS"] = 5
 
