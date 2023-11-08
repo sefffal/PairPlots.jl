@@ -48,6 +48,8 @@ Statistics = "1"
 StatsBase = "0.32 - 0.33, 0.34"
 Tables = "1.4.1"
 julia = "1.7.0"
+LinearAlgebra = "1"
+Printf = "1"
 
 [extras]
 MCMCChains = "c7f686f2-ff18-58e9-bc7b-31028e88f75d"
