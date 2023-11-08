@@ -447,13 +447,13 @@ function pairplot(
         PairPlots.BodyLines(),
     )
 
-    if length(datapairs) == 1
 
+    if length(datapairs) == 1
         defaults1((data,vizlayers)::Pair) = Series(data; color=single_series_color) => vizlayers
         defaults1(series::Series) = series => single_series_default_viz
         defaults1(truths::Truth) = truths => truths_default_viz
         defaults1(data::Any) = Series(data; color=single_series_color) => single_series_default_viz
-        pairplot(grid, defaults1(first(datapairs)); kwargs...)
+        pairplot(grid, defaults1(only(datapairs)); kwargs...)
     elseif length(datapairs) <= 5
         defaults_upto5((data,vizlayers)::Pair) = SeriesDefaults(data) => vizlayers
         defaults_upto5(series::Series) = series => multi_series_default_viz
