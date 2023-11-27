@@ -260,7 +260,7 @@ The `pairplot` function integrates easily within larger Makie Figures.
 
 Customizing the figure:
 ```@example 1
-fig = Figure(resolution=(400,400))
+fig = Figure(size=(400,400))
 pairplot(fig[1,1], df => (PairPlots.Contourf(),))
 fig
 ```
@@ -272,7 +272,7 @@ fig
 You can plot into one part of a larger figure:
 
 ```@example 1
-fig = Figure(resolution=(800,800))
+fig = Figure(size=(800,800))
 
 scatterlines(fig[1,1], randn(40))
 
@@ -291,7 +291,7 @@ fig
 Adjust the spacing between axes inside a pair plot:
 
 ```@example 1
-fig = Figure(resolution=(600,600))
+fig = Figure(size=(600,600))
 
 # Pair Plots must go into a Makie GridLayout. If you pass a GridPosition instead,
 # PairPlots will create one for you.
