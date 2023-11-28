@@ -8,7 +8,6 @@ using Printf
 using KernelDensity: KernelDensity
 using Contour: Contour as ContourLib
 using OrderedCollections: OrderedDict
-using Latexify: latexify
 using StatsBase: fit, quantile, Histogram
 using Distributions: pdf
 using StaticArrays
