@@ -274,9 +274,6 @@ struct BodyLines <: VizTypeBody
     BodyLines(;kwargs...) = new(kwargs)
 end
 
-colnames(t::Series) = Tables.columnnames(t.table)
-colnames(t::Truth) = Tables.columnnames(t.table)
-
 
 GridPosTypes = Union{Makie.Figure, Makie.GridPosition, Makie.GridSubposition}
 
@@ -476,6 +473,8 @@ function pairplot(
 
 end
 
+Tables.columnnames(series::PairPlots.AbstractSeries) = Tables.columnnames(series.table)
+
 # Create a pairplot by plotting into a grid position of a figure.
 
 """
@@ -541,15 +540,23 @@ function pairplot(
 
     # We support multiple series that may have disjoint columns
     # Get the ordered union of all table columns.
-    columns = unique(Iterators.flatten(Iterators.map(colnames∘first, pairs_no_missing)))
+    columns = unique(Iterators.flatten(Iterators.map(Tables.columnnames∘first, pairs_no_missing)))
 
-    # Map of column key to label text. 
-    # By default, just latexify the column key but allow override.
-    label_map = Dict(
-        name => string(name)
-        for name in columns
-    )
-    label_map = merge(label_map, Dict(labels))
+    # Merge label maps determined from each series. 
+    # Error if they are different! That would imply the user passed multiple tables
+    # with the same named columns but having eg. conflicting units.
+    label_map = Dict{Symbol,Union{String,Makie.RichText}}()
+    for (series, viz) in pairs_no_missing
+        for key in Tables.columnnames(series.table)
+            label = default_label_string(key, getproperty(series.table,  key))
+            if haskey(label_map, key) && label_map[key] != label
+                @warn "Conflicting labels found for column $key. Do the units match?" label1=label_map[key] label2=label
+            else
+                label_map[key] = label
+            end
+        end
+    end
+    label_map = merge(label_map, Dict(labels)) # user's passed labels Dict overrides all
 
     # Rather than computing limits in this version, let's try to rely on 
     # Makie doing a good job of linking axes.
@@ -754,14 +761,25 @@ function pairplot(
 
 end
 
+# These stubs exist to provide Unit support via extension packages.
+
+# Determine the default (not user-provided) label string for a column of this name 
+# and column type.
+function default_label_string(name::Symbol, coltype)
+    return string(name)
+end
+function ustrip(data)
+    return data
+end
+
 # Note: stephist coming soon in a Makie PR
 
 function diagplot(ax::Makie.Axis, viz::MarginHist, series::AbstractSeries, colname)
-    cn = colnames(series)
+    cn = Tables.columnnames(series)
     if colname ∉ cn
         return
     end
-    dat = getproperty(series.table, colname)
+    dat = ustrip(disallowmissing(getproperty(series.table, colname)))
 
     bins = get(series.kwargs, :bins, 32)
     bins = get(viz.kwargs, :bins, bins)
@@ -783,11 +801,11 @@ end
 
 
 function diagplot(ax::Makie.Axis, viz::MarginStepHist, series::AbstractSeries, colname)
-    cn = colnames(series)
+    cn = Tables.columnnames(series)
     if colname ∉ cn
         return
     end
-    dat = getproperty(series.table, colname)
+    dat = ustrip(disallowmissing(getproperty(series.table, colname)))
 
     bins = get(series.kwargs, :bins, 32)
     bins = get(viz.kwargs, :bins, bins)
@@ -808,13 +826,13 @@ function diagplot(ax::Makie.Axis, viz::MarginStepHist, series::AbstractSeries, c
 end
 
 function diagplot(ax::Makie.Axis, viz::MarginDensity, series::AbstractSeries, colname)
-    cn = colnames(series)
+    cn = Tables.columnnames(series)
     if colname ∉ cn
         return
     end
     # Note: missing already filtered out, this just informs kde() that no missings 
     # are present.
-    dat = disallowmissing(getproperty(series.table, colname))
+    dat = ustrip(disallowmissing(getproperty(series.table, colname)))
     # Makie.density!(
     #     ax,
     #     dat;
@@ -835,11 +853,12 @@ end
 
 
 function diagplot(ax::Makie.Axis, viz::MarginConfidenceLimits, series::AbstractSeries, colname)
-    cn = colnames(series)
+    cn = Tables.columnnames(series)
     if colname ∉ cn
         return
     end
-    percentiles = quantile(vec(getproperty(series.table, colname)), (0.16, 0.5, 0.84))
+    dat = ustrip(disallowmissing(vec(getproperty(series.table, colname))))
+    percentiles = quantile(dat, (0.16, 0.5, 0.84))
     mid = percentiles[2]
     low = mid - percentiles[1]
     high = percentiles[3] - mid
@@ -862,7 +881,7 @@ function diagplot(ax::Makie.Axis, viz::MarginConfidenceLimits, series::AbstractS
 end
 
 function diagplot(ax::Makie.Axis, viz::MarginLines, series::AbstractSeries, colname)
-    cn = colnames(series)
+    cn = Tables.columnnames(series)
     if colname ∉ cn
         return
     end
@@ -878,14 +897,14 @@ end
 
 
 function bodyplot(ax::Makie.Axis, viz::HexBin, series::AbstractSeries, colname_row, colname_col)
-    cn = colnames(series)
+    cn = Tables.columnnames(series)
     if colname_row ∉ cn || colname_col ∉ cn
         return
     end
     Makie.hexbin!(
         ax,
-        getproperty(series.table, colname_col),
-        getproperty(series.table, colname_row);
+        ustrip(disallowmissing(getproperty(series.table, colname_col))),
+        ustrip(disallowmissing(getproperty(series.table, colname_row)));
         bins=32,
         colormap=Makie.cgrad([:transparent, :black]),
         series.kwargs...,
@@ -894,7 +913,7 @@ function bodyplot(ax::Makie.Axis, viz::HexBin, series::AbstractSeries, colname_r
 end
 
 function bodyplot(ax::Makie.Axis, viz::Hist, series::AbstractSeries, colname_row, colname_col)
-    cn = colnames(series)
+    cn = Tables.columnnames(series)
     if colname_row ∉ cn || colname_col ∉ cn
         return
     end
@@ -923,12 +942,12 @@ function bodyplot(ax::Makie.Axis, viz::Hist, series::AbstractSeries, colname_row
 end
 
 function prep_contours(series::AbstractSeries, sigmas, colname_row, colname_col; bandwidth=1.0)
-    cn = colnames(series)
+    cn = Tables.columnnames(series)
     if colname_row ∉ cn || colname_col ∉ cn
         return
     end
-    xdat = disallowmissing(getproperty(series.table, colname_col))
-    ydat = disallowmissing(getproperty(series.table, colname_row))
+    xdat = ustrip(disallowmissing(getproperty(series.table, colname_col)))
+    ydat = ustrip(disallowmissing(getproperty(series.table, colname_row)))
     dat = (xdat, ydat)
     k  = KernelDensity.kde(dat, bandwidth=KernelDensity.default_bandwidth(dat).*bandwidth)
     ik = KernelDensity.InterpKDE(k)
@@ -971,7 +990,7 @@ end
 
 
 function bodyplot(ax::Makie.Axis, viz::Contour, series, colname_row, colname_col)
-    cn = colnames(series)
+    cn = Tables.columnnames(series)
     if colname_row ∉ cn || colname_col ∉ cn
         return
     end
@@ -985,7 +1004,7 @@ function bodyplot(ax::Makie.Axis, viz::Contour, series, colname_row, colname_col
 end
 
 function bodyplot(ax::Makie.Axis, viz::Contourf, series::AbstractSeries, colname_row, colname_col)
-    cn = colnames(series)
+    cn = Tables.columnnames(series)
     if colname_row ∉ cn || colname_col ∉ cn
         return
     end
@@ -999,12 +1018,12 @@ end
 
 
 function bodyplot(ax::Makie.Axis, viz::Scatter, series::AbstractSeries, colname_row, colname_col)
-    cn = colnames(series)
+    cn = Tables.columnnames(series)
     if colname_row ∉ cn || colname_col ∉ cn
         return
     end
-    xall = getproperty(series.table, colname_col)
-    yall = getproperty(series.table, colname_row)
+    xall = ustrip(disallowmissing(getproperty(series.table, colname_col)))
+    yall = ustrip(disallowmissing(getproperty(series.table, colname_row)))
 
     if isnothing(viz.filtersigma)
         Makie.scatter!(ax, xall, yall; markersize=1f0, series.kwargs..., viz.kwargs...)
@@ -1019,7 +1038,7 @@ function bodyplot(ax::Makie.Axis, viz::Scatter, series::AbstractSeries, colname_
 end
 
 function bodyplot(ax::Makie.Axis, viz::BodyLines, series::AbstractSeries, colname_row, colname_col)
-    cn = colnames(series)
+    cn = Tables.columnnames(series)
     if colname_row ∈ cn
         xall = getproperty(series.table, colname_row)
         Makie.hlines!(ax,xall; series.kwargs..., viz.kwargs...)
@@ -1039,7 +1058,7 @@ Use the StatsBase function to return a centered histogram from `vector` with `nb
 Must return a tuple of bin centres, followed by bin weights (of the same length).
 """
 function prepare_hist(a, nbins)
-    h = fit(Histogram, disallowmissing(vec(a)); nbins)
+    h = fit(Histogram, ustrip(disallowmissing(vec(a))); nbins)
     h = normalize(h, mode=:pdf)
     x = range(first(h.edges[1])+step(h.edges[1])/2, step=step(h.edges[1]), length=size(h.weights,1))
     return x, h.weights
@@ -1052,7 +1071,7 @@ Must return a tuple of bin centres along the horizontal, bin centres along the v
 and a matrix of bin weights (of matching dimensions).
 """
 function prepare_hist(a, b, nbins)
-    h = fit(Histogram, (disallowmissing(vec(a)),disallowmissing(vec(b))); nbins)
+    h = fit(Histogram, (ustrip(disallowmissing(vec(a))),ustrip(disallowmissing(vec(b)))); nbins)
     x = range(first(h.edges[1])+step(h.edges[1])/2, step=step(h.edges[1]), length=size(h.weights,1))
     y = range(first(h.edges[2])+step(h.edges[2])/2, step=step(h.edges[2]), length=size(h.weights,2))
     return x, y, h.weights
