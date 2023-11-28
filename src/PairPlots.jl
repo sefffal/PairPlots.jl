@@ -721,16 +721,25 @@ function pairplot(
     # Add a bottom annotation listing the count of rows skipped for missing data by series
     # We want each annotation on a separate line. But we can't use Base.join() for
     # Makie.rich text... Need to do it ourselves.
-    for (i,(missing_count, series)) in enumerate(zip(missing_counts, pairs_no_missing))
+    for (i,(missing_count, (series,viz))) in enumerate(zip(missing_counts, pairs_no_missing))
         # If there is only one series, we don't have mention it by name in the text annotation.
         if length(pairs_no_missing) == 1
             missing_text = Makie.rich("$missing_count rows with missing values are hidden.")
         else
-            label = series[1].label
+            label = series.label
             if isnothing(label)
                 label = "$i"
             end
-            missing_text = Makie.rich("$missing_count rows with missing values are hidden from series $label.")
+            kwargs = (;)
+            if haskey(series.kwargs, :color)
+                color = series.kwargs[:color]
+                if color isa Tuple
+                    # Don't pass transparency into the label
+                    color = color[1]
+                end
+                kwargs = (;color)
+            end
+            missing_text = Makie.rich("$missing_count rows with missing values are hidden from series $label."; kwargs...)
         end
         # Add an annotation to the bottom listing the counts of missin values that
         # were skipped.
