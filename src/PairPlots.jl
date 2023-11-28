@@ -4,6 +4,7 @@ export pairplot
 
 using Makie: Makie
 using Tables
+using TableOperations
 using Printf
 using KernelDensity: KernelDensity
 using Contour: Contour as ContourLib
@@ -521,28 +522,13 @@ function pairplot(
     # Keep track of how many we removed from each so that we can report
     # it to the user.
     missing_counts = Int[]
-    not_missing_ii = Vector{Int}[]
-    for (series, vizlayers) in pairs
-        rows = Tables.rows(series.table)
-        sch = Tables.schema(rows)
-        ii = findall(rows) do row
-            anymissing_in_row = false
-            Tables.eachcolumn(sch, row) do val, i, name
-                if ismissing(val)
-                    anymissing_in_row = true
-                end
-            end
-            return !anymissing_in_row
-        end
-        push!(missing_counts, length(rows) - length(ii))
-        push!(not_missing_ii, ii)
-    end
-    # Now create a view that skips over rows with any missing values
-    # Frustratingly, the column type for many Tables implementations remains Union{Nothing,T}
-    # which we can't pass to some series.
-    pairs_no_missing = map(pairs, not_missing_ii) do (series, vizlayers), ii
-        no_missings_table = Tables.subset(series.table, ii, viewhint=true)
-        return Series(series.label, no_missings_table, series.kwargs) => vizlayers
+    pairs_no_missing = map(pairs) do (series, vizlayers)
+        tbl =series.table
+        tbl_not_missing = Tables.columntable(TableOperations.dropmissing(tbl))
+        len_before = length(first(Tables.columns(tbl)))
+        len_after = length(first(Tables.columns(tbl_not_missing)))
+        push!(missing_counts,  len_before - len_after)
+        return Series(series.label, tbl_not_missing, series.kwargs) => vizlayers
     end
 
     # We support multiple series that may have disjoint columns
