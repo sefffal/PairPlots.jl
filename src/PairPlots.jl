@@ -4,6 +4,7 @@ export pairplot
 
 using Makie: Makie
 using Tables
+using TableOperations
 using Printf
 using KernelDensity: KernelDensity
 using Contour: Contour as ContourLib
@@ -14,6 +15,7 @@ using Distributions: pdf
 using StaticArrays
 using PolygonOps
 using LinearAlgebra: normalize
+using Missings
 
 """
     AstractSeries
@@ -447,28 +449,32 @@ function pairplot(
         PairPlots.BodyLines(),
     )
 
+    countser((data,vizlayers)::Pair) = countser(data)
+    countser(series::Series) = 1
+    countser(truths::Truth) = 0
+    countser(data::Any) = 1
+    len_datapairs_not_truth = sum(countser, datapairs)
 
-    if length(datapairs) == 1
+    if len_datapairs_not_truth == 1
         defaults1((data,vizlayers)::Pair) = Series(data; color=single_series_color) => vizlayers
         defaults1(series::Series) = series => single_series_default_viz
         defaults1(truths::Truth) = truths => truths_default_viz
         defaults1(data::Any) = Series(data; color=single_series_color) => single_series_default_viz
-        pairplot(grid, defaults1(only(datapairs)); kwargs...)
-    elseif length(datapairs) <= 5
+        return pairplot(grid, map(defaults1, datapairs)...; kwargs...)
+    elseif len_datapairs_not_truth <= 5
         defaults_upto5((data,vizlayers)::Pair) = SeriesDefaults(data) => vizlayers
         defaults_upto5(series::Series) = series => multi_series_default_viz
         defaults_upto5(truths::Truth) = truths => truths_default_viz
         defaults_upto5(data::Any) = SeriesDefaults(data) => multi_series_default_viz
-        pairplot(grid, map(defaults_upto5, datapairs)...; kwargs...)
+        return pairplot(grid, map(defaults_upto5, datapairs)...; kwargs...)
     else # More than 5 series
         defaults_morethan5((data,vizlayers)::Pair) = SeriesDefaults(data) => vizlayers
         defaults_morethan5(series::Series) = series => many_series_default_viz
         defaults_morethan5(truths::Truth) = truths => truths_default_viz
         defaults_morethan5(data::Any) = SeriesDefaults(data) => many_series_default_viz
-        pairplot(grid, map(defaults_morethan5, datapairs)...; kwargs...)
+        return pairplot(grid, map(defaults_morethan5, datapairs)...; kwargs...)
     end
 
-    return
 end
 
 # Create a pairplot by plotting into a grid position of a figure.
@@ -516,9 +522,27 @@ function pairplot(
     bodyaxis=(;),
     legend=(;),
 )
+
+    # Filter out rows with any missing values from each series
+    # Keep track of how many we removed from each so that we can report
+    # it to the user.
+    missing_counts = Int[]
+    pairs_no_missing = map(pairs) do (series, vizlayers)
+        if series isa Truth
+            push!(missing_counts,  0)
+            return series => vizlayers
+        end
+        tbl = series.table
+        tbl_not_missing = Tables.columntable(TableOperations.dropmissing(tbl))
+        len_before = length(first(Tables.columns(tbl)))
+        len_after = length(first(Tables.columns(tbl_not_missing)))
+        push!(missing_counts,  len_before - len_after)
+        return Series(series.label, tbl_not_missing, series.kwargs) => vizlayers
+    end
+
     # We support multiple series that may have disjoint columns
     # Get the ordered union of all table columns.
-    columns = unique(Iterators.flatten(Iterators.map(colnames∘first, pairs)))
+    columns = unique(Iterators.flatten(Iterators.map(colnames∘first, pairs_no_missing)))
 
     # Map of column key to label text. 
     # By default, just latexify the column key but allow override.
@@ -541,7 +565,7 @@ function pairplot(
     sizehint!(axes_by_row, N)
 
     # Check if there are any diagonal vizualization layers
-    anydiag_viz = mapreduce((|), pairs, init=false) do (series, vizlayers)
+    anydiag_viz = mapreduce((|), pairs_no_missing, init=false) do (series, vizlayers)
         any(v->isa(v, VizTypeDiag), vizlayers)
     end
     
@@ -625,7 +649,7 @@ function pairplot(
 
         # For each slot, loop through all series and fill it in accordingly.
         # We have two slot types: bodyplot, like a 3D histogram, and diagplot, along the diagonal
-        for (series, vizlayers) in pairs
+        for (series, vizlayers) in pairs_no_missing
             for vizlayer in vizlayers    
                 if row_ind == col_ind && vizlayer isa VizTypeDiag
                     diagplot(ax, vizlayer, series, colname_row)
@@ -661,10 +685,10 @@ function pairplot(
     end
 
     # Add legend if needed (any series has a non-nothing label)
-    if any(((ser,_),)->!isnothing(ser.label), pairs)
+    if any(((ser,_),)->!isnothing(ser.label), pairs_no_missing)
 
-        legend_strings = map(((ser,_),)->isnothing(ser.label) ? "" : ser.label, pairs)
-        legend_entries = map(pairs) do (ser, _)
+        legend_strings = map(((ser,_),)->isnothing(ser.label) ? "" : ser.label, pairs_no_missing)
+        legend_entries = map(pairs_no_missing) do (ser, _)
             kwargs = ser.kwargs
             if haskey(kwargs, :color) && kwargs[:color] isa Tuple
                 # Don't pass transparency into the legend
@@ -687,6 +711,44 @@ function pairplot(
             halign = :left,
             legend...
         )
+    end
+
+    # Add a bottom annotation listing the count of rows skipped for missing data by series
+    # We want each annotation on a separate line. But we can't use Base.join() for
+    # Makie.rich text... Need to do it ourselves.
+    for (i,(missing_count, (series,viz))) in enumerate(zip(missing_counts, pairs_no_missing))
+        if missing_count == 0
+            continue
+        end
+        # If there is only one series, we don't have mention it by name in the text annotation.
+        if length(pairs_no_missing) == 1
+            missing_text = Makie.rich("$missing_count rows with missing values are hidden.")
+        else
+            label = series.label
+            if isnothing(label)
+                label = "$i"
+            end
+            kwargs = (;)
+            if haskey(series.kwargs, :color)
+                color = series.kwargs[:color]
+                if color isa Tuple
+                    # Don't pass transparency into the label
+                    color = color[1]
+                end
+                kwargs = (;color)
+            end
+            missing_text = Makie.rich("$missing_count rows with missing values are hidden from series $label."; kwargs...)
+        end
+        # Add an annotation to the bottom listing the counts of missin values that
+        # were skipped.
+        Makie.Label(
+            grid[end+1,:],
+            missing_text,
+            halign=:left
+        )
+        if i > 1
+            Makie.rowgap!(grid, size(grid)[1]-1, Makie.Fixed(0))
+        end
     end
 
     return
@@ -751,7 +813,9 @@ function diagplot(ax::Makie.Axis, viz::MarginDensity, series::AbstractSeries, co
     if colname ∉ cn
         return
     end
-    dat = getproperty(series.table, colname)
+    # Note: missing already filtered out, this just informs kde() that no missings 
+    # are present.
+    dat = disallowmissing(getproperty(series.table, colname))
     # Makie.density!(
     #     ax,
     #     dat;
@@ -864,8 +928,8 @@ function prep_contours(series::AbstractSeries, sigmas, colname_row, colname_col;
     if colname_row ∉ cn || colname_col ∉ cn
         return
     end
-    xdat = getproperty(series.table, colname_col)
-    ydat = getproperty(series.table, colname_row)
+    xdat = disallowmissing(getproperty(series.table, colname_col))
+    ydat = disallowmissing(getproperty(series.table, colname_row))
     dat = (xdat, ydat)
     k  = KernelDensity.kde(dat, bandwidth=KernelDensity.default_bandwidth(dat).*bandwidth)
     ik = KernelDensity.InterpKDE(k)
@@ -976,7 +1040,7 @@ Use the StatsBase function to return a centered histogram from `vector` with `nb
 Must return a tuple of bin centres, followed by bin weights (of the same length).
 """
 function prepare_hist(a, nbins)
-    h = fit(Histogram, vec(a); nbins)
+    h = fit(Histogram, disallowmissing(vec(a)); nbins)
     h = normalize(h, mode=:pdf)
     x = range(first(h.edges[1])+step(h.edges[1])/2, step=step(h.edges[1]), length=size(h.weights,1))
     return x, h.weights
@@ -989,7 +1053,7 @@ Must return a tuple of bin centres along the horizontal, bin centres along the v
 and a matrix of bin weights (of matching dimensions).
 """
 function prepare_hist(a, b, nbins)
-    h = fit(Histogram, (vec(a),vec(b)); nbins)
+    h = fit(Histogram, (disallowmissing(vec(a)),disallowmissing(vec(b))); nbins)
     x = range(first(h.edges[1])+step(h.edges[1])/2, step=step(h.edges[1]), length=size(h.weights,1))
     y = range(first(h.edges[2])+step(h.edges[2])/2, step=step(h.edges[2]), length=size(h.weights,2))
     return x, y, h.weights
