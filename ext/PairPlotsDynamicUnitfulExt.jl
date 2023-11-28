@@ -15,7 +15,7 @@ function PairPlots.default_label_string(name::Symbol, col::AbstractArray{<:Unitf
             break
         end
     end
-    unit_str = "($u)"
+    unit_str = "[$u]"
     return Makie.rich(string(name), " ", Makie.rich(unit_str,color=:gray))
 end
 
