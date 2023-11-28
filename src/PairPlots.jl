@@ -449,14 +449,19 @@ function pairplot(
         PairPlots.BodyLines(),
     )
 
+    countser((data,vizlayers)::Pair) = countser(data)
+    countser(series::Series) = 1
+    countser(truths::Truth) = 0
+    countser(data::Any) = 1
+    len_datapairs_not_truth = sum(countser, datapairs)
 
-    if length(datapairs) == 1
+    if len_datapairs_not_truth == 1
         defaults1((data,vizlayers)::Pair) = Series(data; color=single_series_color) => vizlayers
         defaults1(series::Series) = series => single_series_default_viz
         defaults1(truths::Truth) = truths => truths_default_viz
         defaults1(data::Any) = Series(data; color=single_series_color) => single_series_default_viz
-        return pairplot(grid, defaults1(only(datapairs)); kwargs...)
-    elseif length(datapairs) <= 5
+        return pairplot(grid, map(defaults1, datapairs)...; kwargs...)
+    elseif len_datapairs_not_truth <= 5
         defaults_upto5((data,vizlayers)::Pair) = SeriesDefaults(data) => vizlayers
         defaults_upto5(series::Series) = series => multi_series_default_viz
         defaults_upto5(truths::Truth) = truths => truths_default_viz
@@ -523,7 +528,11 @@ function pairplot(
     # it to the user.
     missing_counts = Int[]
     pairs_no_missing = map(pairs) do (series, vizlayers)
-        tbl =series.table
+        if series isa Truth
+            push!(missing_counts,  0)
+            return series => vizlayers
+        end
+        tbl = series.table
         tbl_not_missing = Tables.columntable(TableOperations.dropmissing(tbl))
         len_before = length(first(Tables.columns(tbl)))
         len_after = length(first(Tables.columns(tbl_not_missing)))
@@ -708,6 +717,9 @@ function pairplot(
     # We want each annotation on a separate line. But we can't use Base.join() for
     # Makie.rich text... Need to do it ourselves.
     for (i,(missing_count, (series,viz))) in enumerate(zip(missing_counts, pairs_no_missing))
+        if missing_count == 0
+            continue
+        end
         # If there is only one series, we don't have mention it by name in the text annotation.
         if length(pairs_no_missing) == 1
             missing_text = Makie.rich("$missing_count rows with missing values are hidden.")
@@ -1073,7 +1085,7 @@ function scatter_filtering(x,y, level)
 
 end
 
-# include("precompile.jl")
+include("precompile.jl")
 
 end
 
