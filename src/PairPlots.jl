@@ -1103,6 +1103,9 @@ end
 
 # table utils
 
+columnnames(truth::Truth) = keys(truth.table)
+getcolumn(truth::Truth, name) = truth.table[name]
+
 columnnames(series::Series) = columnnames(series.table)
 getcolumn(series::Series, name) = getcolumn(series.table, name)
 
