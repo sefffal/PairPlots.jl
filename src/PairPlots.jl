@@ -473,8 +473,6 @@ function pairplot(
 
 end
 
-Tables.columnnames(series::PairPlots.AbstractSeries) = Tables.columnnames(series.table)
-
 # Create a pairplot by plotting into a grid position of a figure.
 
 """
@@ -532,23 +530,23 @@ function pairplot(
         end
         tbl = series.table
         tbl_not_missing = Tables.columntable(TableOperations.dropmissing(tbl))
-        len_before = length(first(Tables.columns(tbl)))
-        len_after = length(first(Tables.columns(tbl_not_missing)))
-        push!(missing_counts,  len_before - len_after)
+        len_before = nrows(tbl)
+        len_after = nrows(tbl_not_missing)
+        push!(missing_counts, len_before - len_after)
         return Series(series.label, tbl_not_missing, series.kwargs) => vizlayers
     end
 
     # We support multiple series that may have disjoint columns
     # Get the ordered union of all table columns.
-    columns = unique(Iterators.flatten(Iterators.map(Tables.columnnames∘first, pairs_no_missing)))
+    columns = unique(Iterators.flatten(Iterators.map(columnnames∘first, pairs_no_missing)))
 
     # Merge label maps determined from each series. 
     # Error if they are different! That would imply the user passed multiple tables
     # with the same named columns but having eg. conflicting units.
     label_map = Dict{Symbol,Union{String,Makie.RichText}}()
     for (series, viz) in pairs_no_missing
-        for key in Tables.columnnames(series.table)
-            label = default_label_string(key, getproperty(series.table,  key))
+        for key in columnnames(series)
+            label = default_label_string(key, getcolumn(series,  key))
             if haskey(label_map, key) && label_map[key] != label
                 @warn "Conflicting labels found for column $key. Do the units match?" label1=label_map[key] label2=label
             else
@@ -775,11 +773,11 @@ end
 # Note: stephist coming soon in a Makie PR
 
 function diagplot(ax::Makie.Axis, viz::MarginHist, series::AbstractSeries, colname)
-    cn = Tables.columnnames(series)
+    cn = columnnames(series)
     if colname ∉ cn
         return
     end
-    dat = ustrip(disallowmissing(getproperty(series.table, colname)))
+    dat = ustrip(disallowmissing(getcolumn(series, colname)))
 
     bins = get(series.kwargs, :bins, 32)
     bins = get(viz.kwargs, :bins, bins)
@@ -801,11 +799,11 @@ end
 
 
 function diagplot(ax::Makie.Axis, viz::MarginStepHist, series::AbstractSeries, colname)
-    cn = Tables.columnnames(series)
+    cn = columnnames(series)
     if colname ∉ cn
         return
     end
-    dat = ustrip(disallowmissing(getproperty(series.table, colname)))
+    dat = ustrip(disallowmissing(getcolumn(series, colname)))
 
     bins = get(series.kwargs, :bins, 32)
     bins = get(viz.kwargs, :bins, bins)
@@ -826,13 +824,13 @@ function diagplot(ax::Makie.Axis, viz::MarginStepHist, series::AbstractSeries, c
 end
 
 function diagplot(ax::Makie.Axis, viz::MarginDensity, series::AbstractSeries, colname)
-    cn = Tables.columnnames(series)
+    cn = columnnames(series)
     if colname ∉ cn
         return
     end
     # Note: missing already filtered out, this just informs kde() that no missings 
     # are present.
-    dat = ustrip(disallowmissing(getproperty(series.table, colname)))
+    dat = ustrip(disallowmissing(getcolumn(series, colname)))
     # Makie.density!(
     #     ax,
     #     dat;
@@ -853,11 +851,11 @@ end
 
 
 function diagplot(ax::Makie.Axis, viz::MarginConfidenceLimits, series::AbstractSeries, colname)
-    cn = Tables.columnnames(series)
+    cn = columnnames(series)
     if colname ∉ cn
         return
     end
-    dat = ustrip(disallowmissing(vec(getproperty(series.table, colname))))
+    dat = ustrip(disallowmissing(vec(getcolumn(series, colname))))
     percentiles = quantile(dat, (0.16, 0.5, 0.84))
     mid = percentiles[2]
     low = mid - percentiles[1]
@@ -881,11 +879,11 @@ function diagplot(ax::Makie.Axis, viz::MarginConfidenceLimits, series::AbstractS
 end
 
 function diagplot(ax::Makie.Axis, viz::MarginLines, series::AbstractSeries, colname)
-    cn = Tables.columnnames(series)
+    cn = columnnames(series)
     if colname ∉ cn
         return
     end
-    dat = getproperty(series.table, colname)
+    dat = getcolumn(series, colname)
 
     Makie.vlines!(
         ax,
@@ -897,14 +895,14 @@ end
 
 
 function bodyplot(ax::Makie.Axis, viz::HexBin, series::AbstractSeries, colname_row, colname_col)
-    cn = Tables.columnnames(series)
+    cn = columnnames(series)
     if colname_row ∉ cn || colname_col ∉ cn
         return
     end
     Makie.hexbin!(
         ax,
-        ustrip(disallowmissing(getproperty(series.table, colname_col))),
-        ustrip(disallowmissing(getproperty(series.table, colname_row)));
+        ustrip(disallowmissing(getcolumn(series, colname_col))),
+        ustrip(disallowmissing(getcolumn(series, colname_row)));
         bins=32,
         colormap=Makie.cgrad([:transparent, :black]),
         series.kwargs...,
@@ -913,12 +911,12 @@ function bodyplot(ax::Makie.Axis, viz::HexBin, series::AbstractSeries, colname_r
 end
 
 function bodyplot(ax::Makie.Axis, viz::Hist, series::AbstractSeries, colname_row, colname_col)
-    cn = Tables.columnnames(series)
+    cn = columnnames(series)
     if colname_row ∉ cn || colname_col ∉ cn
         return
     end
-    xdat = getproperty(series.table, colname_col)
-    ydat = getproperty(series.table, colname_row)
+    xdat = getcolumn(series, colname_col)
+    ydat = getcolumn(series, colname_row)
 
     
     bins = get(series.kwargs, :bins, 32)
@@ -942,12 +940,12 @@ function bodyplot(ax::Makie.Axis, viz::Hist, series::AbstractSeries, colname_row
 end
 
 function prep_contours(series::AbstractSeries, sigmas, colname_row, colname_col; bandwidth=1.0)
-    cn = Tables.columnnames(series)
+    cn = columnnames(series)
     if colname_row ∉ cn || colname_col ∉ cn
         return
     end
-    xdat = ustrip(disallowmissing(getproperty(series.table, colname_col)))
-    ydat = ustrip(disallowmissing(getproperty(series.table, colname_row)))
+    xdat = ustrip(disallowmissing(getcolumn(series, colname_col)))
+    ydat = ustrip(disallowmissing(getcolumn(series, colname_row)))
     dat = (xdat, ydat)
     k  = KernelDensity.kde(dat, bandwidth=KernelDensity.default_bandwidth(dat).*bandwidth)
     ik = KernelDensity.InterpKDE(k)
@@ -990,7 +988,7 @@ end
 
 
 function bodyplot(ax::Makie.Axis, viz::Contour, series, colname_row, colname_col)
-    cn = Tables.columnnames(series)
+    cn = columnnames(series)
     if colname_row ∉ cn || colname_col ∉ cn
         return
     end
@@ -1004,7 +1002,7 @@ function bodyplot(ax::Makie.Axis, viz::Contour, series, colname_row, colname_col
 end
 
 function bodyplot(ax::Makie.Axis, viz::Contourf, series::AbstractSeries, colname_row, colname_col)
-    cn = Tables.columnnames(series)
+    cn = columnnames(series)
     if colname_row ∉ cn || colname_col ∉ cn
         return
     end
@@ -1018,12 +1016,12 @@ end
 
 
 function bodyplot(ax::Makie.Axis, viz::Scatter, series::AbstractSeries, colname_row, colname_col)
-    cn = Tables.columnnames(series)
+    cn = columnnames(series)
     if colname_row ∉ cn || colname_col ∉ cn
         return
     end
-    xall = ustrip(disallowmissing(getproperty(series.table, colname_col)))
-    yall = ustrip(disallowmissing(getproperty(series.table, colname_row)))
+    xall = ustrip(disallowmissing(getcolumn(series, colname_col)))
+    yall = ustrip(disallowmissing(getcolumn(series, colname_row)))
 
     if isnothing(viz.filtersigma)
         Makie.scatter!(ax, xall, yall; markersize=1f0, series.kwargs..., viz.kwargs...)
@@ -1038,13 +1036,13 @@ function bodyplot(ax::Makie.Axis, viz::Scatter, series::AbstractSeries, colname_
 end
 
 function bodyplot(ax::Makie.Axis, viz::BodyLines, series::AbstractSeries, colname_row, colname_col)
-    cn = Tables.columnnames(series)
+    cn = columnnames(series)
     if colname_row ∈ cn
-        xall = getproperty(series.table, colname_row)
+        xall = getcolumn(series, colname_row)
         Makie.hlines!(ax,xall; series.kwargs..., viz.kwargs...)
     end
     if colname_col ∈ cn
-        yall = getproperty(series.table, colname_col)
+        yall = getcolumn(series, colname_col)
         Makie.vlines!(ax,yall; series.kwargs..., viz.kwargs...)
     end
 end
@@ -1101,6 +1099,31 @@ function scatter_filtering(x,y, level)
     end
     return view(x, outside), view(y, outside)
 
+end
+
+# table utils
+
+columnnames(truth::Truth) = keys(truth.table)
+getcolumn(truth::Truth, name) = truth.table[name]
+
+columnnames(series::Series) = columnnames(series.table)
+getcolumn(series::Series, name) = getcolumn(series.table, name)
+
+function nrows(table)
+    cols = Tables.columns(table)
+    names = Tables.columnnames(cols)
+    isempty(names) && return 0
+    length(Tables.getcolumn(cols, first(names)))
+end
+
+function columnnames(table)
+    cols = Tables.columns(table)
+    Tables.columnnames(cols)
+end
+
+function getcolumn(table, name)
+    cols = Tables.columns(table)
+    Tables.getcolumn(cols, name)
 end
 
 include("precompile.jl")

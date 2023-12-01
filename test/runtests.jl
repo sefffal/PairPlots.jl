@@ -1,6 +1,19 @@
 using Test
 using Makie
+using Tables
 using PairPlots
+
+struct CustomTable{T<:NamedTuple}
+    data::T
+end
+
+Tables.istable(::Type{<:CustomTable}) = true
+Tables.columnaccess(::Type{<:CustomTable}) = true
+Tables.columns(t::CustomTable) = t
+Tables.columnnames(t::CustomTable) = keys(t.data)
+Tables.getcolumn(t::CustomTable, i::Int) = t.data[i]
+Tables.getcolumn(t::CustomTable, nm::Symbol) = t.data[nm]
+Tables.schema(t::CustomTable) = Tables.schema(t.data)
 
 @testset "Basic functionality" begin
     
@@ -20,4 +33,12 @@ using PairPlots
     ) isa Figure
     @test pairplot(hcat(table.a, table.b)) isa Figure
 
+    ctable = CustomTable(table)
+    @test pairplot(ctable) isa Figure
+    @test pairplot(
+        ctable => (PairPlots.Hist(),)
+    ) isa Figure
+    @test pairplot(
+        ctable => (PairPlots.Hist(), PairPlots.MarginHist())
+    ) isa Figure
 end
