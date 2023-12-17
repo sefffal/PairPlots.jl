@@ -489,6 +489,7 @@ Additional arguments:
 * bodyaxis: customize the Makie.Axis of plots under the diagonal with a named tuple of keyword arguments.
 * axis: customize the axes by parameter using a Dict of column name (symbol) to named tuple of axis settings. `x` and `y` are automatically prepended based on the parameter and subplot.  For global properties, see `diagaxis` and `bodyaxis`.
 * legend:  additional keyword arguments to the Legend constructor, used if one or more series are labelled. You can of course also create your own Legend and inset it into the Figure for complete control. 
+* fullgrid: true or false (default). Show duplicate plots above the diagonal to make a full grid.
 
 ## Examples
 
@@ -517,6 +518,7 @@ function pairplot(
     diagaxis=(;),
     bodyaxis=(;),
     legend=(;),
+    fullgrid=false
 )
 
     # Filter out rows with any missing values from each series
@@ -578,7 +580,7 @@ function pairplot(
 
         # TODO: make this first condition optional to enable a full grid
         # Also skip diagonals if no diagonal viz layers
-        if row_ind < col_ind || (row_ind==col_ind && !anydiag_viz)
+        if (!fullgrid && row_ind < col_ind) || (row_ind==col_ind && !anydiag_viz)
             continue
         end
         
