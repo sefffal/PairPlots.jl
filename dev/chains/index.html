@@ -10,25 +10,25 @@ Summary Statistics
  <span class="sgr1"> parameters </span> <span class="sgr1">    mean </span> <span class="sgr1">     std </span> <span class="sgr1">    mcse </span> <span class="sgr1">   ess_bulk </span> <span class="sgr1">  ess_tail </span> <span class="sgr1">    rhat </span> ⋯
  <span class="sgr90">     Symbol </span> <span class="sgr90"> Float64 </span> <span class="sgr90"> Float64 </span> <span class="sgr90"> Float64 </span> <span class="sgr90">    Float64 </span> <span class="sgr90">   Float64 </span> <span class="sgr90"> Float64 </span> ⋯
 
-           a    0.0043    2.1531    0.0125   29550.7875   1208.2502    1.1322  ⋯
-           b   -0.0101    4.2826    0.0249   29586.1705   1286.6040    1.1226  ⋯
-           c    0.0295    6.4946    0.0385   28454.8904   1233.1812    1.1280  ⋯
-           d    0.0804    8.5783    0.0494   30242.1330   1221.9348    1.1255  ⋯
-           e   -0.0268   10.7756    0.0625   29744.9271   1301.6755    1.1239  ⋯
+           a    0.0009    2.1642    0.0128   28783.6110   1251.3252    1.1312  ⋯
+           b   -0.0256    4.3355    0.0257   28788.8354   1217.7955    1.1275  ⋯
+           c   -0.0087    6.5077    0.0370   30949.9798   1129.6201    1.1215  ⋯
+           d   -0.0676    8.6143    0.0494   30360.9156   1193.1666    1.1270  ⋯
+           e   -0.0455   10.8079    0.0624   29983.1477   1168.1480    1.1315  ⋯
 <span class="sgr36">                                                                1 column omitted</span>
 
 Quantiles
  <span class="sgr1"> parameters </span> <span class="sgr1">     2.5% </span> <span class="sgr1">   25.0% </span> <span class="sgr1">   50.0% </span> <span class="sgr1">   75.0% </span> <span class="sgr1">   97.5% </span>
  <span class="sgr90">     Symbol </span> <span class="sgr90">  Float64 </span> <span class="sgr90"> Float64 </span> <span class="sgr90"> Float64 </span> <span class="sgr90"> Float64 </span> <span class="sgr90"> Float64 </span>
 
-           a    -4.5481   -1.1607    0.0074    1.1660    4.5881
-           b    -9.0943   -2.3255   -0.0114    2.3283    9.0090
-           c   -13.6051   -3.5136    0.0160    3.4791   13.9290
-           d   -18.1835   -4.5789    0.0602    4.6961   18.2168
-           e   -23.0803   -5.8993   -0.0269    5.8061   22.7915
+           a    -4.5383   -1.1645    0.0017    1.1651    4.5965
+           b    -9.0697   -2.3689   -0.0302    2.3138    9.0737
+           c   -13.7896   -3.5144   -0.0251    3.5050   13.7669
+           d   -18.3734   -4.7164   -0.0252    4.6465   18.1755
+           e   -22.7410   -5.8752   -0.0642    5.8209   23.0932
 </code></pre><p>You can plot the results from all chains in the Chains object:</p><pre><code class="language-julia hljs">using CairoMakie, PairPlots
 
-pairplot(chn1)</code></pre><img src="7d726ce1.png" alt="Example block output"/><p>The labels are taken from the column names of the chains. You can modify them by passing in a dictionary mapping column names to strings, LaTeX strings, or Makie rich text objects.</p><h2 id="Plotting-individual-chains-separately"><a class="docs-heading-anchor" href="#Plotting-individual-chains-separately">Plotting individual chains separately</a><a id="Plotting-individual-chains-separately-1"></a><a class="docs-heading-anchor-permalink" href="#Plotting-individual-chains-separately" title="Permalink"></a></h2><p>If you have multiple parallel chains and want to plot them in different colors, you can pass each one to <code>pairplot</code>:</p><pre><code class="language-julia hljs">pairplot(chn1[:,:,1], chn1[:,:,2], chn1[:,:,3])</code></pre><img src="911d9c07.png" alt="Example block output"/><p>You can title the series indepdendently as well:</p><pre><code class="language-julia hljs">c1 = Makie.wong_colors(0.5)[1]
+pairplot(chn1)</code></pre><img src="ef8ecd8f.png" alt="Example block output"/><p>The labels are taken from the column names of the chains. You can modify them by passing in a dictionary mapping column names to strings, LaTeX strings, or Makie rich text objects.</p><h2 id="Plotting-individual-chains-separately"><a class="docs-heading-anchor" href="#Plotting-individual-chains-separately">Plotting individual chains separately</a><a id="Plotting-individual-chains-separately-1"></a><a class="docs-heading-anchor-permalink" href="#Plotting-individual-chains-separately" title="Permalink"></a></h2><p>If you have multiple parallel chains and want to plot them in different colors, you can pass each one to <code>pairplot</code>:</p><pre><code class="language-julia hljs">pairplot(chn1[:,:,1], chn1[:,:,2], chn1[:,:,3])</code></pre><img src="456372a7.png" alt="Example block output"/><p>You can title the series indepdendently as well:</p><pre><code class="language-julia hljs">c1 = Makie.wong_colors(0.5)[1]
 c2 = Makie.wong_colors(0.5)[2]
 c3 = Makie.wong_colors(0.5)[3]
 
@@ -36,7 +36,7 @@ pairplot(
     PairPlots.Series(chn1[:,:,1], label=&quot;chain 1&quot;, color=c1, strokecolor=c1),
     PairPlots.Series(chn1[:,:,2], label=&quot;chain 2&quot;, color=c2, strokecolor=c2),
     PairPlots.Series(chn1[:,:,3], label=&quot;chain 3&quot;, color=c3, strokecolor=c3),
-)</code></pre><img src="341c93d4.png" alt="Example block output"/><p>If your chains are well converged, then the different series should look the same.</p><h2 id="Comparing-the-results-of-two-simulations"><a class="docs-heading-anchor" href="#Comparing-the-results-of-two-simulations">Comparing the results of two simulations</a><a id="Comparing-the-results-of-two-simulations-1"></a><a class="docs-heading-anchor-permalink" href="#Comparing-the-results-of-two-simulations" title="Permalink"></a></h2><p>You may want to compare the results of two simulations. Consider the following chains:</p><pre><code class="language-julia hljs">chn2 = Chains(randn(10000, 5, 1) .* [1 2 3 4 5], [:a, :b, :c, :d, :e])
+)</code></pre><img src="08afbed5.png" alt="Example block output"/><p>If your chains are well converged, then the different series should look the same.</p><h2 id="Comparing-the-results-of-two-simulations"><a class="docs-heading-anchor" href="#Comparing-the-results-of-two-simulations">Comparing the results of two simulations</a><a id="Comparing-the-results-of-two-simulations-1"></a><a class="docs-heading-anchor-permalink" href="#Comparing-the-results-of-two-simulations" title="Permalink"></a></h2><p>You may want to compare the results of two simulations. Consider the following chains:</p><pre><code class="language-julia hljs">chn2 = Chains(randn(10000, 5, 1) .* [1 2 3 4 5], [:a, :b, :c, :d, :e])
 chn3 = Chains(randn(10000, 4, 1) .* [5 4 2 1], [:a, :b, :d, :e]);</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">Chains MCMC chain (10000×4×1 Array{Float64, 3}):
 
 Iterations        = 1:1:10000
@@ -45,21 +45,21 @@ Samples per chain = 10000
 parameters        = a, b, d, e
 
 Summary Statistics
- <span class="sgr1"> parameters </span> <span class="sgr1">    mean </span> <span class="sgr1">     std </span> <span class="sgr1">    mcse </span> <span class="sgr1">   ess_bulk </span> <span class="sgr1">   ess_tail </span> <span class="sgr1">    rhat</span> ⋯
- <span class="sgr90">     Symbol </span> <span class="sgr90"> Float64 </span> <span class="sgr90"> Float64 </span> <span class="sgr90"> Float64 </span> <span class="sgr90">    Float64 </span> <span class="sgr90">    Float64 </span> <span class="sgr90"> Float64</span> ⋯
+ <span class="sgr1"> parameters </span> <span class="sgr1">    mean </span> <span class="sgr1">     std </span> <span class="sgr1">    mcse </span> <span class="sgr1">   ess_bulk </span> <span class="sgr1">  ess_tail </span> <span class="sgr1">    rhat </span> ⋯
+ <span class="sgr90">     Symbol </span> <span class="sgr90"> Float64 </span> <span class="sgr90"> Float64 </span> <span class="sgr90"> Float64 </span> <span class="sgr90">    Float64 </span> <span class="sgr90">   Float64 </span> <span class="sgr90"> Float64 </span> ⋯
 
-           a    0.0349    4.9962    0.0503    9855.1061   10004.1962    1.0000 ⋯
-           b    0.0918    4.0185    0.0407    9712.4930    9464.4058    0.9999 ⋯
-           d   -0.0086    2.0229    0.0200   10248.0100    9590.9378    1.0001 ⋯
-           e    0.0005    1.0036    0.0103    9561.1911    9717.5356    1.0000 ⋯
+           a    0.0517    4.9627    0.0500    9856.5378   9722.3835    1.0001  ⋯
+           b   -0.0328    3.9416    0.0399    9773.0289   9766.8547    1.0000  ⋯
+           d   -0.0074    1.9947    0.0200    9854.3907   9588.9764    0.9999  ⋯
+           e   -0.0160    1.0024    0.0099   10181.0430   9681.4521    1.0002  ⋯
 <span class="sgr36">                                                                1 column omitted</span>
 
 Quantiles
  <span class="sgr1"> parameters </span> <span class="sgr1">    2.5% </span> <span class="sgr1">   25.0% </span> <span class="sgr1">   50.0% </span> <span class="sgr1">   75.0% </span> <span class="sgr1">   97.5% </span>
  <span class="sgr90">     Symbol </span> <span class="sgr90"> Float64 </span> <span class="sgr90"> Float64 </span> <span class="sgr90"> Float64 </span> <span class="sgr90"> Float64 </span> <span class="sgr90"> Float64 </span>
 
-           a   -9.7727   -3.3430    0.1216    3.3540   10.0076
-           b   -7.7217   -2.6732    0.1085    2.9130    7.9032
-           d   -3.9749   -1.3598    0.0006    1.3415    3.9466
-           e   -1.9746   -0.6730    0.0079    0.6892    1.9618
-</code></pre><p>Just pass them all to <code>pairplot</code>:</p><pre><code class="language-julia hljs">pairplot(chn2, chn3)</code></pre><img src="4880cd12.png" alt="Example block output"/><p>Note how the parameters of the chains do not have to match exactly. Here, <code>chn2</code> has an additional variable not present in <code>chn3</code>.</p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../guide/">« Guide</a><a class="docs-footer-nextpage" href="../api/">API »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="auto">Automatic (OS)</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.2.0 on <span class="colophon-date" title="Friday 1 December 2023 19:54">Friday 1 December 2023</span>. Using Julia version 1.11.0-DEV.1004.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+           a   -9.5917   -3.2772    0.0610    3.3205    9.7813
+           b   -7.7665   -2.6542   -0.0283    2.6213    7.6259
+           d   -3.9547   -1.3208    0.0003    1.3307    3.8532
+           e   -1.9397   -0.6965   -0.0212    0.6499    1.9829
+</code></pre><p>Just pass them all to <code>pairplot</code>:</p><pre><code class="language-julia hljs">pairplot(chn2, chn3)</code></pre><img src="5f359ca8.png" alt="Example block output"/><p>Note how the parameters of the chains do not have to match exactly. Here, <code>chn2</code> has an additional variable not present in <code>chn3</code>.</p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../guide/">« Guide</a><a class="docs-footer-nextpage" href="../api/">API »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="auto">Automatic (OS)</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.2.1 on <span class="colophon-date" title="Sunday 17 December 2023 23:12">Sunday 17 December 2023</span>. Using Julia version 1.11.0-DEV.1109.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
