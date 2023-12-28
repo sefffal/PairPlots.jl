@@ -185,6 +185,16 @@ struct Scatter <: VizTypeBody
     Scatter(;filtersigma=nothing, kwargs...) = new(kwargs, filtersigma)
 end
 
+"""
+    TrendLine(;kwargs...)
+
+Fit and plot a trend-line between two variables. Currently only a linear trend-line is supported.
+"""
+struct TrendLine <: VizTypeBody
+    kwargs
+    TrendLine(; kwargs...) = new(merge((;color=:red), kwargs))
+end
+
 
 ## Diagonals
 """"
@@ -1036,6 +1046,28 @@ function bodyplot(ax::Makie.Axis, viz::Scatter, series::AbstractSeries, colname_
     Makie.scatter!(ax, xfilt, yfilt; markersize=1f0, series.kwargs..., viz.kwargs...)
 
 end
+
+function bodyplot(ax::Makie.Axis, viz::TrendLine, series::AbstractSeries, colname_row, colname_col)
+    cn = columnnames(series)
+    if colname_row ∉ cn || colname_col ∉ cn
+        return
+    end
+    xall = ustrip(disallowmissing(getcolumn(series, colname_col)))
+    yall = ustrip(disallowmissing(getcolumn(series, colname_row)))
+
+    if length(xall) == 0
+        return
+    end
+
+    # Perform a simple linear fit.
+    A = [xall ones(length(xall))]
+    m, b = A \ yall
+    x_fit = collect(extrema(xall))
+    y_fit = m .* x_fit .+ b
+    Makie.lines!(ax, x_fit, y_fit; series.kwargs..., viz.kwargs...)
+    return
+end
+
 
 function bodyplot(ax::Makie.Axis, viz::BodyLines, series::AbstractSeries, colname_row, colname_col)
     cn = columnnames(series)

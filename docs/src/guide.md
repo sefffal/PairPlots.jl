@@ -34,6 +34,12 @@ We can plot this data directly using `pairplot`, and add customizations iterativ
 pairplot(df)
 ```
 
+
+We can display a full grid of plots if we want:
+```@example 1
+pairplot(df, fullgrid=true)
+```
+
 Override the axis labels:
 ```@example 1
 pairplot(
@@ -187,6 +193,21 @@ pairplot(
         ),
         label="Mean Values"
     )
+)
+```
+
+## Trend Lines
+You can quickly add a linear trend line to each pair of variables by passing 
+a trend-line series:
+
+```@example 1
+pairplot(
+    df => (
+        PairPlots.Scatter(),
+        PairPlots.MarginHist(),
+        PairPlots.TrendLine(color=:red), # default is red
+    ),
+    fullgrid=true
 )
 ```
 

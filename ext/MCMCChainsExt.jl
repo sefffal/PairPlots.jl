@@ -11,11 +11,7 @@ The columns are named accordingly to the axes of the Matrix (usually :1 though N
 """
 function PairPlots.Series(chains::MCMCChains.Chains; label=nothing, kwargs...)
 
-    # To dig out only the `parameters` section without using any
-    # non-public we have to do some convoluted steps
-    sects = sections(chains)
-    i = findfirst(==(:parameters), sects)
-    chains_parameters = MCMCChains.get_sections(chains)[i]
+    chains_parameters = MCMCChains.get_sections(chains, :parameters)
     column_labels = keys(chains_parameters)
 
     table = NamedTuple([
