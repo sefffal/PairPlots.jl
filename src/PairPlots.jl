@@ -1062,9 +1062,7 @@ function bodyplot(ax::Makie.Axis, viz::TrendLine, series::AbstractSeries, colnam
     # Perform a simple linear fit.
     A = [xall ones(length(xall))]
     m, b = A \ yall
-    x_fit = collect(extrema(xall))
-    y_fit = m .* x_fit .+ b
-    Makie.lines!(ax, x_fit, y_fit; series.kwargs..., viz.kwargs...)
+    Makie.ablines!(ax, b, m; series.kwargs..., viz.kwargs...)
     return
 end
 
