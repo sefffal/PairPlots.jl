@@ -13,6 +13,7 @@ using StatsBase: fit, quantile, Histogram
 using Distributions: pdf
 using StaticArrays
 using PolygonOps
+using LinearAlgebra: LinearAlgebra
 using LinearAlgebra: normalize
 using Missings
 
@@ -1061,7 +1062,17 @@ function bodyplot(ax::Makie.Axis, viz::TrendLine, series::AbstractSeries, colnam
 
     # Perform a simple linear fit.
     A = [xall ones(length(xall))]
-    m, b = A \ yall
+    try
+        m, b = A \ yall
+    catch err
+        if err isa LinearAlgebra.LAPACKException ||
+            err isa LinearAlgebra.SingularException
+            @error "Could not fit trend line" exception=(err,catch_backtrace())
+            return
+        else
+            rethrow(err)
+        end
+    end
     Makie.ablines!(ax, b, m; series.kwargs..., viz.kwargs...)
     return
 end
