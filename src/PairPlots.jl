@@ -1062,6 +1062,7 @@ function bodyplot(ax::Makie.Axis, viz::TrendLine, series::AbstractSeries, colnam
 
     # Perform a simple linear fit.
     A = [xall ones(length(xall))]
+    local m, b
     try
         m, b = A \ yall
     catch err
