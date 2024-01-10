@@ -912,15 +912,23 @@ function bodyplot(ax::Makie.Axis, viz::HexBin, series::AbstractSeries, colname_r
     if colname_row ∉ cn || colname_col ∉ cn
         return
     end
-    Makie.hexbin!(
-        ax,
-        ustrip(disallowmissing(getcolumn(series, colname_col))),
-        ustrip(disallowmissing(getcolumn(series, colname_row)));
-        bins=32,
-        colormap=Makie.cgrad([:transparent, :black]),
-        series.kwargs...,
-        viz.kwargs...,
-    )
+    try
+        Makie.hexbin!(
+            ax,
+            ustrip(disallowmissing(getcolumn(series, colname_col))),
+            ustrip(disallowmissing(getcolumn(series, colname_row)));
+            bins=32,
+            colormap=Makie.cgrad([:transparent, :black]),
+            series.kwargs...,
+            viz.kwargs...,
+        )
+    catch err
+        if err isa InexactError
+            @warn "InexactError encountered in `hexbin`" colname_row colname_col
+        else
+            rethrow(err)
+        end
+    end
 end
 
 function bodyplot(ax::Makie.Axis, viz::Hist, series::AbstractSeries, colname_row, colname_col)
