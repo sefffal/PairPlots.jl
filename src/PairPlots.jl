@@ -227,15 +227,15 @@ function margin_confidence_default_formatter(low,mid,high)
             if round(low, digits=digits_after_dot) == round(high, digits=digits_after_dot)
                 title = @sprintf(
                     "\$%.*f \\pm %.*f\$",
-                    $digits_after_dot, $mid,
-                    $digits_after_dot, $high,
+                    digits_after_dot, mid,
+                    digits_after_dot, high,
                 )
             else
                 title = @sprintf(
                     "\$%.*f^{+%.*f}_{-%.*f}\$",
-                    $digits_after_dot, $mid,
-                    $digits_after_dot, $high,
-                    $digits_after_dot, $low
+                    digits_after_dot, mid,
+                    digits_after_dot, high,
+                    digits_after_dot, low
                 )
             end
         else
