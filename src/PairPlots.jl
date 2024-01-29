@@ -207,14 +207,53 @@ for the plots along the diagonal.
 abstract type VizTypeDiag <: VizType end
 
 
+function margin_confidence_default_formatter(low,mid,high)
+    largest_error = max(abs(high), abs(low))
+    digits_after_dot = max(0, 1 - round(Int, log10(largest_error)))
+
+    use_scientific = digits_after_dot > 4
+
+    if use_scientific
+        title = @sprintf(
+            "\$(%.1f^{+%.1f}_{-%.1f})\\times 10^{-%d}\$",
+            mid*10^(digits_after_dot-1),
+            high*10^(digits_after_dot-1),
+            low*10^(digits_after_dot-1),
+            (digits_after_dot-1)
+        )
+    else
+        title = @sprintf(
+            "\$%.*f^{+%.*f}_{-%.*f}\$",
+            digits_after_dot, mid,
+            digits_after_dot, high,
+            digits_after_dot, low
+        )
+    end
+
+    return title 
+end
+
+function _apply_user_format_string(format)
+    return function(low,mid,high)
+        title = @eval @sprintf($format, $mid, $high, $low)
+        return title 
+    end
+end
+
 """
-    MarginConfidenceLimits(;titlefmt="\$\\mathrm{%.2f^{+%.2f}_{-%.2f}}\$", kwargs...)
+    MarginConfidenceLimits(format_string::AbstractString; kwargs...)
+    MarginConfidenceLimits(formatter::Base.Callable=margin_confidence_default_formatter; kwargs...)
+
 """
 struct MarginConfidenceLimits <: VizTypeDiag
-    titlefmt::String
+    formatter::Base.Callable
+    quantiles::NTuple{3,Number}
     kwargs
-    function MarginConfidenceLimits(titlefmt="\$\\mathrm{%.2f^{+%.2f}_{-%.2f}}\$"; kwargs...)
-        return new(titlefmt, kwargs)
+    function MarginConfidenceLimits(format::AbstractString, quantiles=(0.16, 0.5, 0.84); kwargs...)
+        return new(_apply_user_format_string(format),  quantiles, kwargs)
+    end
+    function MarginConfidenceLimits(formatter::Base.Callable=margin_confidence_default_formatter, quantiles=(0.16, 0.5, 0.84); kwargs...)
+        return new(formatter, quantiles, kwargs)
     end
 end
 
@@ -869,12 +908,13 @@ function diagplot(ax::Makie.Axis, viz::MarginConfidenceLimits, series::AbstractS
         return
     end
     dat = ustrip(disallowmissing(vec(getcolumn(series, colname))))
-    percentiles = quantile(dat, (0.16, 0.5, 0.84))
-    mid = percentiles[2]
-    low = mid - percentiles[1]
-    high = percentiles[3] - mid
 
-    title = @eval (@sprintf($(viz.titlefmt), $mid, $high, $low))
+    quantiles = quantile(dat, viz.quantiles)
+    mid = quantiles[2]
+    low = mid - quantiles[1]
+    high = quantiles[3] - mid
+
+    title = viz.formatter(low,mid,high)
     prev_title = ax.title[]
     if length(string(prev_title)) > 0
         prev_title = prev_title * "\n"
