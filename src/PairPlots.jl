@@ -224,24 +224,35 @@ function margin_confidence_default_formatter(low,mid,high)
     else
         # '*' format specifier only supported in Julia 1.10+
         @static if VERSION >= v"1.10"
-            # When support for pre-1.10 versions of Julia is dropped,
-            # remove the '@eval' macro. 
-            # We need it here to prevent parse time errors when the @sprintf
-            # macro is expanded in earlier versions, which can't be guarded
-            # against using an `if` statement.
-            title = @eval @sprintf(
-                "\$%.*f^{+%.*f}_{-%.*f}\$",
-                $digits_after_dot, $mid,
-                $digits_after_dot, $high,
-                $digits_after_dot, $low
-            )
+            if round(low, digits=digits_after_dot) == round(high, digits=digits_after_dot)
+                title = @sprintf(
+                    "\$%.*f \\pm %.*f\$",
+                    $digits_after_dot, $mid,
+                    $digits_after_dot, $high,
+                )
+            else
+                title = @sprintf(
+                    "\$%.*f^{+%.*f}_{-%.*f}\$",
+                    $digits_after_dot, $mid,
+                    $digits_after_dot, $high,
+                    $digits_after_dot, $low
+                )
+            end
         else
-            title = @eval @sprintf(
-                "\$%.$(digits_after_dot)f^{+%.$(digits_after_dot)f}_{-%.$(digits_after_dot)f}\$",
-                $mid,
-                $high,
-                $low
-            )
+            if round(low, digits=digits_after_dot) == round(high, digits=digits_after_dot)
+                title = @eval @sprintf(
+                    $("\$%.$(digits_after_dot)f \\pm %.$(digits_after_dot)f\$"),
+                    $mid,
+                    $high,
+                )
+            else
+                title = @eval @sprintf(
+                    $("\$%.$(digits_after_dot)f^{+%.$(digits_after_dot)f}_{-%.$(digits_after_dot)f}\$"),
+                    $mid,
+                    $high,
+                    $low
+                )
+            end
         end
     end
 
