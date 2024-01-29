@@ -214,13 +214,22 @@ function margin_confidence_default_formatter(low,mid,high)
     use_scientific = digits_after_dot > 4
 
     if use_scientific
-        title = @sprintf(
-            "\$(%.1f^{+%.1f}_{-%.1f})\\times 10^{-%d}\$",
-            mid*10^(digits_after_dot-1),
-            high*10^(digits_after_dot-1),
-            low*10^(digits_after_dot-1),
-            (digits_after_dot-1)
-        )
+        if round(low, digits=digits_after_dot) == round(high, digits=digits_after_dot)
+            title = @sprintf(
+                "\$(%.1f \\pm %.1f)\\times 10^{-%d}\$",
+                mid*10^(digits_after_dot-1),
+                high*10^(digits_after_dot-1),
+                (digits_after_dot-1)
+            )
+        else
+            title = @sprintf(
+                "\$(%.1f^{+%.1f}_{-%.1f})\\times 10^{-%d}\$",
+                mid*10^(digits_after_dot-1),
+                high*10^(digits_after_dot-1),
+                low*10^(digits_after_dot-1),
+                (digits_after_dot-1)
+            )
+        end
     else
         # '*' format specifier only supported in Julia 1.10+
         @static if VERSION >= v"1.10"
