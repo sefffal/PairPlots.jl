@@ -952,7 +952,7 @@ function diagplot(ax::Makie.Axis, viz::MarginConfidenceLimits, series::AbstractS
     title = viz.formatter(low,mid,high)
     prev_title = ax.title[]
     if length(string(prev_title)) > 0
-        prev_title = prev_title * "\n"
+        prev_title = prev_title * " "
     end
     ax.title = Makie.latexstring(prev_title, title)
 
