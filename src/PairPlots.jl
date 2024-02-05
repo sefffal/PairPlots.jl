@@ -497,6 +497,8 @@ function pairplot(
         PairPlots.HexBin(colormap=Makie.cgrad([:transparent, "#333"])),
         PairPlots.Scatter(filtersigma=2), 
         PairPlots.Contour(linewidth=1.5),
+        PairPlots.MarginHist(color=Makie.RGBA(0.4,0.4,0.4,0.15)),
+        PairPlots.MarginStepHist(color=Makie.RGBA(0.4,0.4,0.4,0.8)),
         PairPlots.MarginDensity(
             color=:black,
             linewidth=1.5f0
@@ -906,7 +908,7 @@ function diagplot(ax::Makie.Axis, viz::MarginStepHist, series::AbstractSeries, c
    
     x, weights = viz.prepare_hist(dat,  bins)
 
-
+    
     Makie.stairs!(
         ax, x .+ step(x)./2, weights;
         gap = 0,
