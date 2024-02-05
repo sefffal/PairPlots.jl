@@ -868,7 +868,8 @@ function diagplot(ax::Makie.Axis, viz::MarginHist, series::AbstractSeries, colna
 
     # Determine the number of bins to use, and allow series or
     # vizualization layer to override.
-    bins = max(7, ceil(Int, log2(length(dat))) + 1)
+    bins = max(7, ceil(Int, 1.8log2(length(dat))) + 1)
+    bins = get(series.kwargs, :bins, bins)
     bins = get(viz.kwargs, :bins, bins)
 
     # h = fit(Histogram, vec(dat); nbins=bins)
@@ -896,7 +897,8 @@ function diagplot(ax::Makie.Axis, viz::MarginStepHist, series::AbstractSeries, c
 
     # Determine the number of bins to use, and allow series or
     # vizualization layer to override.
-    bins = max(7, ceil(Int, log2(length(dat))) + 1)
+    bins = max(7, ceil(Int, 1.8log2(length(dat))) + 1)
+    bins = get(series.kwargs, :bins, bins)
     bins = get(viz.kwargs, :bins, bins)
 
     # h = fit(Histogram, vec(dat); nbins=bins)
@@ -996,7 +998,7 @@ function bodyplot(ax::Makie.Axis, viz::HexBin, series::AbstractSeries, colname_r
         Y = ustrip(disallowmissing(getcolumn(series, colname_row)))
         # Determine the number of bins to use, and allow series or
         # vizualization layer to override.
-        bins = max(7, ceil(Int, log2(length(X))) + 1)
+        bins = max(7, ceil(Int, 1.8log2(length(X))) + 1)
         bins = get(series.kwargs, :bins, bins)
         bins = get(viz.kwargs, :bins, bins)
         Makie.hexbin!(
@@ -1025,10 +1027,10 @@ function bodyplot(ax::Makie.Axis, viz::Hist, series::AbstractSeries, colname_row
     xdat = getcolumn(series, colname_col)
     ydat = getcolumn(series, colname_row)
 
-    
     # Determine the number of bins to use, and allow series or
     # vizualization layer to override.
-    bins = max(7, ceil(Int, log2(length(dat))) + 1)
+    bins = max(7, ceil(Int, 1.8log2(length(xdat))) + 1)
+    bins = get(series.kwargs, :bins, bins)
     bins = get(viz.kwargs, :bins, bins)
 
     # h = fit(Histogram, (vec(xdat),vec(ydat)); nbins=bins)
@@ -1133,14 +1135,14 @@ function bodyplot(ax::Makie.Axis, viz::Scatter, series::AbstractSeries, colname_
     yall = ustrip(disallowmissing(getcolumn(series, colname_row)))
 
     if isnothing(viz.filtersigma)
-        Makie.scatter!(ax, xall, yall; markersize=1f0, series.kwargs..., viz.kwargs...)
+        Makie.scatter!(ax, xall, yall; markersize=1.0, series.kwargs..., viz.kwargs...)
         return
     end
 
     c = prep_contours(series, [viz.filtersigma], colname_row, colname_col)
     levels = ContourLib.levels(c)
     xfilt, yfilt = scatter_filtering(xall, yall, first(levels))
-    Makie.scatter!(ax, xfilt, yfilt; markersize=1f0, series.kwargs..., viz.kwargs...)
+    Makie.scatter!(ax, xfilt, yfilt; markersize=1.0, series.kwargs..., viz.kwargs...)
 
 end
 
