@@ -439,7 +439,7 @@ Here are the defaults applied for a single data table:
 pairplot(fig[1,1], table) == # approximately the following:
 pairplot(
     PairPlots.Series(table, color=Makie.RGBA(0., 0., 0., 0.5)) => (
-        PairPlots.HexBin(colormap=Makie.cgrad([:transparent, :black]),bins=32),
+        PairPlots.HexBin(colormap=Makie.cgrad([:transparent, :black]),),
         PairPlots.Scatter(filtersigma=2), 
         PairPlots.Contour(),
         PairPlots.MarginDensity(
@@ -494,9 +494,9 @@ function pairplot(
 
     single_series_color = Makie.RGBA(0., 0., 0., 0.5)
     single_series_default_viz = (
-        PairPlots.HexBin(colormap=Makie.cgrad([:transparent, :black]),bins=32),
+        PairPlots.HexBin(colormap=Makie.cgrad([:transparent, "#333"])),
         PairPlots.Scatter(filtersigma=2), 
-        PairPlots.Contour(),
+        PairPlots.Contour(linewidth=1.5),
         PairPlots.MarginDensity(
             color=:black,
             linewidth=1.5f0
@@ -866,7 +866,9 @@ function diagplot(ax::Makie.Axis, viz::MarginHist, series::AbstractSeries, colna
     end
     dat = ustrip(disallowmissing(getcolumn(series, colname)))
 
-    bins = get(series.kwargs, :bins, 32)
+    # Determine the number of bins to use, and allow series or
+    # vizualization layer to override.
+    bins = max(7, ceil(Int, log2(length(dat))) + 1)
     bins = get(viz.kwargs, :bins, bins)
 
     # h = fit(Histogram, vec(dat); nbins=bins)
@@ -892,7 +894,9 @@ function diagplot(ax::Makie.Axis, viz::MarginStepHist, series::AbstractSeries, c
     end
     dat = ustrip(disallowmissing(getcolumn(series, colname)))
 
-    bins = get(series.kwargs, :bins, 32)
+    # Determine the number of bins to use, and allow series or
+    # vizualization layer to override.
+    bins = max(7, ceil(Int, log2(length(dat))) + 1)
     bins = get(viz.kwargs, :bins, bins)
 
     # h = fit(Histogram, vec(dat); nbins=bins)
@@ -988,12 +992,19 @@ function bodyplot(ax::Makie.Axis, viz::HexBin, series::AbstractSeries, colname_r
         return
     end
     try
+        X = ustrip(disallowmissing(getcolumn(series, colname_col)))
+        Y = ustrip(disallowmissing(getcolumn(series, colname_row)))
+        # Determine the number of bins to use, and allow series or
+        # vizualization layer to override.
+        bins = max(7, ceil(Int, log2(length(X))) + 1)
+        bins = get(series.kwargs, :bins, bins)
+        bins = get(viz.kwargs, :bins, bins)
         Makie.hexbin!(
             ax,
-            ustrip(disallowmissing(getcolumn(series, colname_col))),
-            ustrip(disallowmissing(getcolumn(series, colname_row)));
-            bins=32,
+            X,
+            Y;
             colormap=Makie.cgrad([:transparent, :black]),
+            bins,
             series.kwargs...,
             viz.kwargs...,
         )
@@ -1015,7 +1026,9 @@ function bodyplot(ax::Makie.Axis, viz::Hist, series::AbstractSeries, colname_row
     ydat = getcolumn(series, colname_row)
 
     
-    bins = get(series.kwargs, :bins, 32)
+    # Determine the number of bins to use, and allow series or
+    # vizualization layer to override.
+    bins = max(7, ceil(Int, log2(length(dat))) + 1)
     bins = get(viz.kwargs, :bins, bins)
 
     # h = fit(Histogram, (vec(xdat),vec(ydat)); nbins=bins)
