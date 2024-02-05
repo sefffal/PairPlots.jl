@@ -908,7 +908,7 @@ function diagplot(ax::Makie.Axis, viz::MarginStepHist, series::AbstractSeries, c
 
 
     Makie.stairs!(
-        ax, x, weights;
+        ax, x .+ step(x)./2, weights;
         gap = 0,
         series.kwargs...,
         viz.kwargs...,
