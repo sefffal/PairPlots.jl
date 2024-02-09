@@ -712,6 +712,21 @@ function pairplot(
             # Makie.hideydecorations!(ax, grid=false)
         end
 
+        # # Detect if we have too many digits per tick label, and if so,
+        # # slightly rotate them to fit without crowding.
+        if row_ind == N
+            kw = (;
+                xticklabelrotation = (pi/4),
+                kw...,
+            )
+        end
+        if col_ind == 1
+            kw = (;
+                yticklabelrotation = (pi/4),
+                kw...,
+            )
+        end
+
         ax = Makie.Axis(
             grid[row_ind_fig, col_ind];
             ylabel=label_map[colname_row],
@@ -770,11 +785,12 @@ function pairplot(
         yspace = maximum(Makie.tight_yticklabel_spacing!, axes_by_row[N])
         xspace = maximum(Makie.tight_xticklabel_spacing!, axes_by_col[1])
         for ax in axes_by_row[N]
-            ax.xticklabelspace = xspace
+            ax.xticklabelspace = xspace + 10
         end
         for ax in axes_by_col[1]
-            ax.yticklabelspace = yspace + 10
+            ax.yticklabelspace = yspace
         end
+
     end
 
     # Add legend if needed (any series has a non-nothing label)
