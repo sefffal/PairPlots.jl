@@ -662,6 +662,7 @@ function pairplot(
         any(v->isa(v, VizTypeDiag), vizlayers)
     end
     
+    last_diag_axis = nothing
     # Build grid of nxn plots
     for row_ind in 1:N, col_ind in 1:N
 
@@ -753,6 +754,8 @@ function pairplot(
         axes_by_col[col_ind]= push!(get(axes_by_col, col_ind, Makie.Axis[]), ax)
         if row_ind != col_ind
             axes_by_row[row_ind]= push!(get(axes_by_row, row_ind, Makie.Axis[]), ax)
+        elseif row_ind == N
+            last_diag_axis = ax
         end
 
         # For each slot, loop through all series and fill it in accordingly.
@@ -782,9 +785,13 @@ function pairplot(
 
     # Ensure labels are spaced nicely
     if N > 1
-        yspace = maximum(Makie.tight_yticklabel_spacing!, axes_by_row[N])
+        last_row = axes_by_row[N]
+        if !isnothing(last_diag_axis)
+            push!(axes_by_row[N], last_diag_axis)
+        end
+        yspace = maximum(Makie.tight_yticklabel_spacing!, last_row)
         xspace = maximum(Makie.tight_xticklabel_spacing!, axes_by_col[1])
-        for ax in axes_by_row[N]
+        for ax in last_row
             ax.xticklabelspace = xspace + 10
         end
         for ax in axes_by_col[1]
