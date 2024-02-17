@@ -25,7 +25,7 @@ If you're in a hurry, you can just pass a Matrix directly (or any subtype of Abs
 using CairoMakie
 using PairPlots
 
-# As always in Julia, columns are treated as variables, and rows as samples.
+# Columns are treated as variables, and rows as samples.
 mat = randn(10000,6)
 pairplot(mat)
 ```
