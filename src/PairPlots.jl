@@ -9,7 +9,7 @@ using Printf
 using KernelDensity: KernelDensity
 using Contour: Contour as ContourLib
 using OrderedCollections: OrderedDict
-using StatsBase: fit, quantile, Histogram
+using StatsBase: fit, quantile, Histogram, cor
 using Distributions: pdf
 using StaticArrays
 using PolygonOps
@@ -347,6 +347,37 @@ struct MarginDensity <: VizTypeDiag
     bandwidth::Float64
     kwargs
     MarginDensity(;bandwidth=1.0,kwargs...) = new(bandwidth,kwargs)
+end
+
+"""
+    Calculation(function; digits=3, position=Makie.Point2f(0.01, 1.0), kwargs...)
+
+Apply a function to a pair of variables and add the result as a text label in the appropriate
+body subplot. Control the position of the label by passing a different value for `position`.
+Change the number of digits to round the result by passing `digits=N`. The first and only
+positional argument is the function to use to calculate the correlation.
+"""
+struct Calculation{F} <: PairPlots.VizTypeBody
+    f::F
+    label::Symbol
+    position::Makie.Point2f
+    digits::Int
+    kwargs::Any
+end
+function Calculation(f::Base.Callable; position=Makie.Point2f(0.01, 1.0), digits=3, kwargs...)
+    return Calculation(f, nameof(f), position, digits, kwargs)
+end
+
+"""
+    Correlation(;digits=3, position=Makie.Point2f(0.01, 1.0), kwargs...)
+
+Calculate the correlation between two variabels and add it as a text label to the plot.
+This is an alias for `Calculation(StatsBase.cor)`. 
+You can adjust the number of digits, the location of the text, etc. See `Calculation`
+for more details.
+"""
+function Correlation(;kwargs...)
+    return Calculation(cor; kwargs...)
 end
 
 struct MarginLines <: VizTypeDiag
@@ -1175,6 +1206,7 @@ function PairPlots.bodyplot(ax::Makie.Axis, viz::Calculation, series::AbstractSe
     colname_row, colname_col)
     cn = columnnames(series)
     if colname_row ∉ cn || colname_col ∉ cn
+        return
     end
     X = ustrip(disallowmissing(getcolumn(series, colname_col)))
     Y = ustrip(disallowmissing(getcolumn(series, colname_row)))
