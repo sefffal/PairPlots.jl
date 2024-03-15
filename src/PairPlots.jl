@@ -492,19 +492,6 @@ function pairplot(
     # Otherwise fall back to cycling the colours ourselves.
     # The Makie color cycle functionality isn't quite flexible enough (but almost!).
 
-    single_series_color = Makie.RGBA(0., 0., 0., 0.5)
-    single_series_default_viz = (
-        PairPlots.HexBin(colormap=Makie.cgrad([:transparent, "#333"])),
-        PairPlots.Scatter(filtersigma=2), 
-        PairPlots.Contour(linewidth=1.5),
-        PairPlots.MarginHist(color=Makie.RGBA(0.4,0.4,0.4,0.15)),
-        PairPlots.MarginStepHist(color=Makie.RGBA(0.4,0.4,0.4,0.8)),
-        PairPlots.MarginDensity(
-            color=:black,
-            linewidth=1.5f0
-        ),
-        PairPlots.MarginConfidenceLimits()
-    )
 
     series_i = 0
     function SeriesDefaults(dat)
@@ -513,24 +500,6 @@ function pairplot(
         color = wc[mod1(series_i, length(wc))]
         return Series(dat; color, strokecolor=color)
     end
-    multi_series_default_viz = (
-        PairPlots.Scatter(filtersigma=2), 
-        PairPlots.Contourf(),
-        PairPlots.MarginDensity(
-            linewidth=2.5f0
-        )
-    )
-    many_series_default_viz = (
-        PairPlots.Contour(sigmas=[1]),
-        PairPlots.MarginDensity(
-            linewidth=2.5f0
-        )
-    )
-
-    truths_default_viz = (
-        PairPlots.MarginLines(),
-        PairPlots.BodyLines(),
-    )
 
     countser((data,vizlayers)::Pair) = countser(data)
     countser(series::Series) = 1
@@ -1202,6 +1171,33 @@ function bodyplot(ax::Makie.Axis, viz::TrendLine, series::AbstractSeries, colnam
 end
 
 
+function PairPlots.bodyplot(ax::Makie.Axis, viz::Calculation, series::AbstractSeries,
+    colname_row, colname_col)
+    cn = columnnames(series)
+    if colname_row ∉ cn || colname_col ∉ cn
+    end
+    X = ustrip(disallowmissing(getcolumn(series, colname_col)))
+    Y = ustrip(disallowmissing(getcolumn(series, colname_row)))
+    c = viz.f(X, Y)
+    @static if VERSION >= v"1.10"
+        text = @sprintf("%s = %0.*f", viz.label, viz.digits, c)
+    else
+        text = @eval @sprintf(
+            $("%s = \$%.$(viz.digits)f"),
+            viz.label, c
+        )
+    end
+    Makie.text!(
+        ax,
+        [viz.position];
+        text,
+        space=:relative, fontsize=10,
+        align=(:left, :top),
+        viz.kwargs...
+    )
+    return
+end
+
 function bodyplot(ax::Makie.Axis, viz::BodyLines, series::AbstractSeries, colname_row, colname_col)
     cn = columnnames(series)
     if colname_row ∈ cn
@@ -1293,6 +1289,7 @@ function getcolumn(table, name)
     Tables.getcolumn(cols, name)
 end
 
+include("defaults.jl")
 include("precompile.jl")
 
 end
