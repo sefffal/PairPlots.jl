@@ -11,6 +11,8 @@ PairPlots.VizTypeBody
 PairPlots.VizTypeDiag
 PairPlots.HexBin
 PairPlots.Hist
+PairPlots.Calculation
+PairPlots.Correlation
 PairPlots.Contour
 PairPlots.Contourf
 PairPlots.Scatter

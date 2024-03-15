@@ -211,6 +211,38 @@ pairplot(
 )
 ```
 
+## Correlation
+You can add a calculated correlation value between every pair of variables
+by passing `PairPlots.Correlation()`.
+You can customize the number of digits and the position of the text.
+
+```@example 1
+pairplot(
+    df => (
+        PairPlots.Scatter(),
+        PairPlots.MarginHist(),
+        PairPlots.TrendLine(), # default is red
+        PairPlots.Correlation()
+    ),
+)
+```
+
+`PairPlots.Correlation()` is an alias for `PairPlots.Calculation(StatsBase.cov)`. Feel free to pass any function that accepts two AbstractVectors and calculates a number:
+```@example 1
+pairplot(
+    df => (
+        PairPlots.Scatter(),
+        PairPlots.MarginHist(),
+        PairPlots.TrendLine(),
+        PairPlots.Calculation(
+            corkendall,
+            color=:blue,
+            position=Makie.Point2f(0.2, 0.1)
+        )
+    ),
+)
+```
+
 ## Customize Axes
 You can customize the axes of the subplots freely in two ways. For these examples,
 we'll create a variable that is log-normally distributed.
