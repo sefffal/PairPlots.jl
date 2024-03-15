@@ -229,6 +229,7 @@ pairplot(
 
 `PairPlots.Correlation()` is an alias for `PairPlots.Calculation(StatsBase.cov)`. Feel free to pass any function that accepts two AbstractVectors and calculates a number:
 ```@example 1
+using StatsBase
 pairplot(
     df => (
         PairPlots.Scatter(),
