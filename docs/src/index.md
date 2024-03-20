@@ -12,7 +12,7 @@ hero:
   actions:
     - theme: brand
       text: Getting Started
-      link: /getting_started
+      link: /getting-started
     - theme: alt
       text: Full Guide
       link: /guide
@@ -23,8 +23,8 @@ hero:
 features:
   - icon: <img width="64" height="64" src="https://dataframes.juliadata.org/stable/assets/logo.png" alt="tables"/>
     title: Tables
-    details: Compatible with any Julia table or dataframe
-    link: /markdown-examples
+    details: Compatible with DataFrames or any Julia table
+    link: https://dataframes.juliadata.org/stable/
   - icon: <img width="64" height="64" src="https://avatars.githubusercontent.com/u/26261527?s=200&v=4" />
     title: MCMC
     details: Turing.jl and MCMCChains.jl compatible
