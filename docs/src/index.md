@@ -1,15 +1,33 @@
-# PairPlots.jl
-*Beautiful and flexible vizualizations of high dimensional data*
+```@raw html
+---
+# https://vitepress.dev/reference/default-theme-home-page
+layout: home
 
-[![GitHub](https://img.shields.io/badge/Code-GitHub-black.svg)](https://github.com/sefffal/PairPlots.jl)
-![Build status](https://github.com/sefffal/PairPlots.jl/actions/workflows/ci.yml/badge.svg)
-[![Package Downloads](https://shields.io/endpoint?url=https://pkgs.genieframework.com/api/v1/badge/PairPlots)](https://pkgs.genieframework.com?packages=PairPlots)
-![Stars](https://img.shields.io/github/stars/sefffal/PairPlots.jl)
-![Commit Activity](https://img.shields.io/github/commit-activity/y/sefffal/PairPlots.jl)
-[![codecov](https://codecov.io/gh/sefffal/PairPlots.jl/branch/master/graph/badge.svg?token=1II9NYRIXT)](https://codecov.io/gh/sefffal/PairPlots.jl)
-[![License](https://img.shields.io/github/license/sefffal/PairPlots.jl)](https://github.com/sefffal/PairPlots.jl/blob/master/LICENSE)
-[![PkgEval](https://juliaci.github.io/NanosoldierReports/pkgeval_badges/P/PairPlots.svg)](https://juliaci.github.io/NanosoldierReports/pkgeval_badges/report.html)
+hero:
+  name: "PairPlots.jl"
+  tagline: Beautiful and flexible visualizations of high dimensional data
+  image:
+    src: /logo.png
+    alt: DocumenterVitepress
+  actions:
+    - theme: brand
+      text: Getting Started
+      link: /getting_started
+    - theme: alt
+      text: Guide
+      link: /guide
+    - theme: alt
+      text: View on Github
+      link: https://github.com/sefffal/PairPlots.jl
+---
+```
 
+
+<p style="margin-bottom:2cm"></p>
+
+<div class="vp-doc" style="width:80%; margin:auto">
+
+<h1> What is DocumenterVitepress.jl? </h1>
 
 This package produces pair plots, otherwise known as corner plots or scatter plot matrices: grids of 1D and 2D histograms that allow you to visualize high dimensional data.
 
@@ -21,3 +39,7 @@ If these are not to your tastes, the package aims to be highly configurable.
 The current version of PairPlots.jl requires the [Makie](https://makie.juliaplots.org/) plotting library. If instead you prefer to use Plots.jl, you can install the legacy version `0.6` of PairPlots (see [archived documentation here](https://github.com/sefffal/PairPlots.jl/blob/b632abd79c0dfbe7387d44393f4fb5b7f74ac5d8/README.md))
 
 For related functionality, see also [StatsPlots.cornerplot](https://github.com/JuliaPlots/StatsPlots.jl#corrplot-and-cornerplot).
+
+</div>
+
+

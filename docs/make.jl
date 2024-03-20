@@ -1,4 +1,4 @@
-using Documenter, CairoMakie, PairPlots
+using Documenter, DocumenterVitepress, CairoMakie, PairPlots
 
 CairoMakie.activate!(type = "png", px_per_unit=3)
 
@@ -6,6 +6,7 @@ ENV["DATAFRAMES_ROWS"] = 5
 
 makedocs(
     sitename="PairPlots.jl",
+    repo="http://github.com/sefffal/PairPlots.jl",
     pages=[
         "Home" => "index.md",
         "Getting Started" => "getting-started.md",
@@ -13,9 +14,10 @@ makedocs(
         "MCMCChains" => "chains.md",
         "API" => "api.md",
     ],
-    format = Documenter.HTML(
-        prettyurls = get(ENV, "CI", nothing) == "true",
-        assets = ["assets/theme.css"],
+    format=DocumenterVitepress.MarkdownVitepress(
+        repo = "https://github.com/YourGithubUsername/YourPackage.jl",
+        devurl = "dev",
+        deploy_url = "yourgithubusername.github.io/YourPackage.jl",
     ),
 )
 

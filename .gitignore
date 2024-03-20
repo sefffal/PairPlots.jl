@@ -3,3 +3,4 @@
 *.jl.mem
 .vscode
 Manifest.toml
+node_modules
