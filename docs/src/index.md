@@ -14,7 +14,7 @@ hero:
       text: Getting Started
       link: /getting_started
     - theme: alt
-      text: Guide
+      text: Full Guide
       link: /guide
     - theme: alt
       text: View on Github
