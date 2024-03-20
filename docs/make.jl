@@ -17,7 +17,7 @@ makedocs(
     format=DocumenterVitepress.MarkdownVitepress(
         repo="http://github.com/sefffal/PairPlots.jl",
         devurl = "dev",
-        deploy_url = "sefffal.github.io/PairPlots.jl",
+        deploy_url = "//sefffal.github.io/PairPlots.jl",
     ),
 )
 
