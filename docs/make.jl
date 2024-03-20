@@ -15,9 +15,9 @@ makedocs(
         "API" => "api.md",
     ],
     format=DocumenterVitepress.MarkdownVitepress(
-        repo = "https://github.com/YourGithubUsername/YourPackage.jl",
+        repo="http://github.com/sefffal/PairPlots.jl",
         devurl = "dev",
-        deploy_url = "yourgithubusername.github.io/YourPackage.jl",
+        deploy_url = "sefffal.github.io/PairPlots.jl",
     ),
 )
 
