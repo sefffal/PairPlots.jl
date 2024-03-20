@@ -43,7 +43,7 @@ features:
 
 This package produces pair plots, otherwise known as corner plots or scatter plot matrices: grids of 1D and 2D histograms that allow you to visualize high dimensional data.
 
-Pair plots are an excellent way to vizualize the results of MCMC simulations, but are also a useful way to vizualize correlations in general data tables.
+Pair plots are an excellent way to visualize the results of MCMC simulations, but are also a useful way to visualize correlations in general data tables.
 
 PairPlots.jl is inspired by the excellent [corner.py](https://corner.readthedocs.io/en/latest/index.html) and [chainconsumer.py](https://samreay.github.io/ChainConsumer/usage.html) packages.
 
