@@ -4,6 +4,10 @@
 This guide demonstrates the usage of PairPlots and shows several ways you can customize it to your liking.
 
 Set up:
+
+::: tabs
+
+== julia
 ```@example 1
 using CairoMakie
 using PairPlots
@@ -13,10 +17,22 @@ CairoMakie is great for making high quality static figures. Try GLMakie or WGLMa
 
 We will use DataFrames here to wrap our tables and provide pleasant table listings. You can use any Tables.jl compatible source, including simple named tuples of vectors for each column.
 
+== python
+```python
+import numpy as np
+import pandas as pd
+import pairplots
+```
+:::
+
+
 ## Single Series
 
 Let's create a basic table of data to vizualize.
 
+::: tabs
+
+== julia
 ```@example 1
 N = 100_000
 α = [2randn(N÷2) .+ 6; randn(N÷2)]
@@ -28,31 +44,125 @@ df = DataFrame(;α, β, γ, δ)
 df[1:8,:] # hide
 ```
 
+== python
+```python
+N = 100000
+alpha = np.append([2*np.random.randn(N//2) + 6], [np.random.randn(N//2)])
+beta = np.append([3*np.random.randn(N//2)], [2*np.random.randn(N//2)])
+gamma = np.random.randn(N)
+delta = beta + 0.6*np.random.randn(N)
+
+df = pd.DataFrame({
+    'α': alpha,
+    'β': beta,
+    'γ': gamma,
+    'δ': delta
+})
+```
+
+:::
+
+
+```@example 1
+N = 100_000 # hide
+α = [2randn(N÷2) .+ 6; randn(N÷2)] # hide
+β = [3randn(N÷2); 2randn(N÷2)] # hide
+γ = randn(N) # hide
+δ = β .+ 0.6randn(N) # hide
+df = DataFrame(;α, β, γ, δ) # hide
+display(df[1:8,:]) # hide
+```
+
 
 We can plot this data directly using `pairplot`, and add customizations iteratively.
-```@example 1
+
+::: tabs
+
+== julia
+
+```julia
 pairplot(df)
 ```
 
+== python
+
+```python
+pairplots.pairplot(df)
+```
+
+:::
+
+```@example 1
+pairplot(df) # hide
+```
 
 We can display a full grid of plots if we want:
-```@example 1
+
+::: tabs
+
+== julia
+
+```julia
 pairplot(df, fullgrid=true)
 ```
 
-Override the axis labels:
+== python
+
+```python
+pairplots.pairplot(df, fullgrid=True)
+```
+
+:::
+
 ```@example 1
-pairplot(
-    df,
-    labels = Dict(
-        # basic string
-        :α => "parameter 1",
-        # Makie rich text
-        :β => rich("parameter 2", font=:bold, color=:blue),
-        # LaTeX String
-        :γ => L"\frac{a}{b}",
-    )
-)
+pairplot(df, fullgrid=true) # hide
+```
+
+
+Override the axis labels:
+
+::: tabs
+
+== julia
+
+```julia
+pairplot(df, labels = Dict(
+    # basic string
+    :α => "parameter 1",
+    # Makie rich text
+    :β => rich("parameter 2", font=:bold, color=:blue),
+    # LaTeX String
+    :γ => L"\frac{a}{b}",
+))
+```
+
+== python
+
+```python
+pairplots.pairplot(df,  labels = {
+    # basic string
+    'α': "parameter 1",
+    # Makie rich text
+    'β': pairplots.rich("parameter 2", font='bold', color='blue'),
+    # LaTeX String
+    'γ': pairplots.latex(r"\frac{a}{b}"),
+})
+```
+
+:::
+
+```@example 1
+pairplot( # hide
+    df, # hide
+    labels = Dict( # hide
+        # basic string # hide
+        :α => "parameter 1", # hide
+        # Makie rich text # hide
+        :β => rich("parameter 2", font=:bold, color=:blue), # hide
+        # LaTeX String # hide
+        :γ => L"\frac{a}{b}", # hide
+    ) # hide
+) # hide
 ```
 
 Let's move onto more complex examples. The full syntax of the `pairplot` function is:

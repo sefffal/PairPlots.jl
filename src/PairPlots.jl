@@ -818,7 +818,7 @@ function pairplot(
             M -= 1
         end
         Makie.Legend(
-            grid[M == 1 ? 1 : end-1, M <= 2 ? 2 : M ],
+            fullgrid ? grid[begin,end+1] : grid[M == 1 ? 1 : end-1, M <= 2 ? 2 : M ],
             collect(legend_entries),
             collect(legend_strings);
             tellwidth=false,
