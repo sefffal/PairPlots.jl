@@ -62,15 +62,19 @@ df = pd.DataFrame({
 
 :::
 
-
-```@example 1
-N = 100_000 # hide
-α = [2randn(N÷2) .+ 6; randn(N÷2)] # hide
-β = [3randn(N÷2); 2randn(N÷2)] # hide
-γ = randn(N) # hide
-δ = β .+ 0.6randn(N) # hide
-df = DataFrame(;α, β, γ, δ) # hide
-display(df[1:8,:]) # hide
+```
+8×4 DataFrame
+ Row │ α        β          γ          δ          
+     │ Float64  Float64    Float64    Float64    
+─────┼───────────────────────────────────────────
+   1 │ 5.86784   0.676737   0.814249   0.6119
+   2 │ 5.20739  -2.95597   -1.70925   -3.11213
+   3 │ 5.58472   3.68555    1.82031    3.60586
+   4 │ 4.47898  -0.493841  -0.565474  -0.0699526
+   5 │ 8.39713  -2.13249   -1.55868   -1.81314
+   6 │ 5.30462  -4.24237    1.34437   -5.15687
+   7 │ 8.3575   -0.979077   2.84214   -1.66862
+   8 │ 6.20314   2.20745   -0.621868   2.07445
 ```
 
 
@@ -125,7 +129,7 @@ Override the axis labels:
 
 == julia
 
-```julia
+```@example 1
 pairplot(df, labels = Dict(
     # basic string
     :α => "parameter 1",
@@ -134,6 +138,8 @@ pairplot(df, labels = Dict(
     # LaTeX String
     :γ => L"\frac{a}{b}",
 ))
+save("ex3.png", ans) # hide
+nothing # hide
 ```
 
 == python
@@ -151,72 +157,191 @@ pairplots.pairplot(df,  labels = {
 
 :::
 
-```@example 1
-pairplot( # hide
-    df, # hide
-    labels = Dict( # hide
-        # basic string # hide
-        :α => "parameter 1", # hide
-        # Makie rich text # hide
-        :β => rich("parameter 2", font=:bold, color=:blue), # hide
-        # LaTeX String # hide
-        :γ => L"\frac{a}{b}", # hide
-    ) # hide
-) # hide
-```
+![](ex3.png)
+
 
 Let's move onto more complex examples. The full syntax of the `pairplot` function is:
+
+
+::: tabs
+
+== julia
+
 ```julia
 pairplot(
-    PairPlots.Series(source) => (::PairPlots.VizType...),
+    PairPlots.Series(data) => (::PairPlots.VizType...),
 )
 ```
-That is, it accepts a list of pairs of `PairPlots.Series` `=>` a tuple of "vizualiation layers". As we'll see later on, you can pass keyword arguments with a series, or a specific vizualization layer to customize their behaviour and appearance.
+
+== python
+
+```python
+pairplots.pairplot(
+    pairplots.series(data) => (pairplots.viztype1, pairplots.viztype2, ...),
+)
+```
+
+:::
+
+That is, it accepts a list of pairs of "series objects" and a tuple of "vizualiation layers". As we'll see later on, you can pass keyword arguments with a series, or a specific vizualization layer to customize their behaviour and appearance. 
 If you don't need to adjust any parameters for a whole series, you can just pass in a data source and PairPlots will wrap it for you:
+
+::: tabs
+
+== julia
+
 ```julia
 pairplot(
-    source => (::PairPlots.VizType...),
+    data => (::PairPlots.VizType...),
 )
 ```
+
+== python
+
+```python
+pairplots.pairplot(
+    data => (pairplots.viztype1, pairplots.viztype2, ...),
+)
+```
+
+:::
 
 Let's see how this works by iteratively building up the default vizualiation.
 First, create a basic histogram plot:
+
+::: tabs
+
+== julia
+
 ```@example 1
 pairplot(
     df => (PairPlots.Hist(),) # note the comma
 )
+save("ex4.png", ans) # hide
+nothing # hide
 ```
+
+== python
+
+```python
+pairplots.pairplot(
+    (df, (pairplots.Hist(),)) # note the comma
+)
+```
+
+:::
+
+![](ex4.png)
+
 
 !!! note
     A tuple or list of vizualization types is required, even if you just want one. Make sure to include the comma in these examples.
 
 Or, a histogram with hexagonal binning:
+
+::: tabs
+
+== julia
+
 ```@example 1
 pairplot(
     df => (PairPlots.HexBin(),)
 )
+save("ex5.png", ans) # hide
+nothing # hide
 ```
 
+== python
+
+```python
+pairplots.pairplot(
+    (df, (pairplots.HexBin(),))
+)
+```
+
+:::
+
+![](ex5.png)
+
 Scatter plots:
+
+
+::: tabs
+
+== julia
+
 ```@example 1
 pairplot(
     df => (PairPlots.Scatter(),)
 )
+save("ex6.png", ans) # hide
+nothing # hide
 ```
 
+== python
+
+```python
+pairplots.pairplot(
+    (df, (pairplots.Scatter(),))
+)
+```
+
+:::
+
+![](ex6.png)
+
+
 Filled contour plots:
+
+::: tabs
+
+== julia
+
 ```@example 1
 pairplot(
     df => (PairPlots.Contourf(),)
 )
+save("ex7.png", ans) # hide
+nothing # hide
 ```
 
+== python
+
+```python
+pairplots.pairplot(
+    (df, (pairplots.Contourf(),))
+)
+```
+
+:::
+
+![](ex7.png)
+
 Outlined contour plots:
+
+::: tabs
+
+== julia
+
 ```@example 1
 pairplot(
     df => (PairPlots.Contour(),)
 )
+save("ex8.png", ans) # hide
+nothing # hide
 ```
+
+== python
+
+```python
+pairplots.pairplot(
+    (df, (pairplots.Contour(),))
+)
+```
+
+:::
+
+![](ex8.png)
 
 Now let's combine a few plot types. 
 Scatter and contours:
@@ -226,14 +351,66 @@ pairplot(
 )
 ```
 
+
+::: tabs
+
+== julia
+
+```@example 1
+pairplot(
+    df => (PairPlots.Scatter(), PairPlots.Contour())
+)
+save("ex9.png", ans) # hide
+nothing # hide
+```
+
+== python
+
+```python
+pairplots.pairplot(
+    (df, (pairplots.Scatter(), pairPlots.Contour()))
+)
+```
+
+:::
+
+![](ex9.png)
+
+
 Scatter and contours, but hiding points above $2\sigma$:
+
+::: tabs
+
+== julia
+
 ```@example 1
 pairplot(
     df => (PairPlots.Scatter(filtersigma=2), PairPlots.Contour())
 )
+save("ex10.png", ans) # hide
+nothing # hide
 ```
 
+== python
+
+```python
+pairplots.pairplot(
+    (df, (pairplots.Scatter(filtersigma=2), pairPlots.Contour()))
+)
+```
+
+:::
+
+![](ex10.png)
+
+
+
 Placing a HexBin series underneath:
+
+::: tabs
+
+== julia
+
 ```@example 1
 pairplot(
     df => (
@@ -242,54 +419,199 @@ pairplot(
         PairPlots.Contour(color=:black)
     )
 )
+save("ex11.png", ans) # hide
+nothing # hide
 ```
+
+== python
+
+```python
+pairplots.pairplot(
+    (df, (
+        pairplots.HexBin(colormap=pairplots.Makie.cgrad(['transparent', 'black'])),
+        pairplots.Scatter(filtersigma=2, color='black'),
+        pairplots.Contour(color='black')
+
+    ))
+)
+```
+
+:::
+
+![](ex11.png)
+
 
 ### Margin plots
 We can add additional vizualization layers to the diagonals of the plots using the same syntax.
+
+::: tabs
+
+== julia
+
 ```@example 1
 pairplot(
     df => (
         PairPlots.HexBin(colormap=Makie.cgrad([:transparent, :black])),
         PairPlots.Scatter(filtersigma=2, color=:black),
         PairPlots.Contour(color=:black),
-
         # New:
         PairPlots.MarginDensity()
     )
 )
+save("ex12.png", ans) # hide
+nothing # hide
 ```
 
-Adjust margin density KDE bandwidth (note: this multiplies the default bandwidth. A value larger than 1 increases smoothing, less than 1 decreases smoothing).
-```@example 1
-pairplot(
-    df => (
-        PairPlots.HexBin(colormap=Makie.cgrad([:transparent, :black])),
-        PairPlots.Scatter(filtersigma=2, color=:black),
-        PairPlots.Contour(color=:black),
+== python
 
-        PairPlots.MarginDensity(bandwidth=0.5)
-    )
+```python
+pairplots.pairplot(
+    (df, (
+        pairplots.HexBin(colormap=pairplots.Makie.cgrad(['transparent', 'black'])),
+        pairplots.Scatter(filtersigma=2, color='black'),
+        pairplots.Contour(color='black'),
+        # New:
+        pairplots.MarginDensity()
+
+    ))
 )
 ```
 
+:::
 
-Adding a histgoram instead of a smoothed kernel density estimate:
+![](ex12.png)
+
+Adjust margin density KDE bandwidth (note: this multiplies the default bandwidth. A value larger than 1 increases smoothing, less than 1 decreases smoothing).
+
+::: tabs
+
+== julia
+
 ```@example 1
 pairplot(
     df => (
         PairPlots.HexBin(colormap=Makie.cgrad([:transparent, :black])),
         PairPlots.Scatter(filtersigma=2, color=:black),
         PairPlots.Contour(color=:black),
+        # New:
+        PairPlots.MarginDensity(bandwidth=0.1)
+    )
+)
+save("ex13.png", ans) # hide
+nothing # hide
+```
 
+== python
+
+```python
+pairplots.pairplot(
+    (df, (
+        pairplots.HexBin(colormap=pairplots.Makie.cgrad(['transparent', 'black'])),
+        pairplots.Scatter(filtersigma=2, color='black'),
+        pairplots.Contour(color='black'),
+        # New:
+        pairplots.MarginDensity(bandwidth=0.1)
+
+    ))
+)
+```
+
+:::
+
+![](ex13.png)
+
+
+Adding a histgoram instead of a smoothed kernel density estimate:
+
+
+::: tabs
+
+== julia
+
+```@example 1
+pairplot(
+    df => (
+        PairPlots.HexBin(colormap=Makie.cgrad([:transparent, :black])),
+        PairPlots.Scatter(filtersigma=2, color=:black),
+        PairPlots.Contour(color=:black),
+        # New:
+        PairPlots.MarginHist()
+    )
+)
+save("ex14.png", ans) # hide
+nothing # hide
+```
+
+== python
+
+```python
+pairplots.pairplot(
+    (df, (
+        pairplots.HexBin(colormap=pairplots.Makie.cgrad(['transparent', 'black'])),
+        pairplots.Scatter(filtersigma=2, color='black'),
+        pairplots.Contour(color='black'),
+        # New:
+        pairplots.MarginHist()
+
+    ))
+)
+```
+
+:::
+
+![](ex14.png)
+
+
+Add credible/confidence limits (see the documentation for MarginConfidenceLimits to see how to change the quantiles):
+
+
+
+::: tabs
+
+== julia
+
+```@example 1
+pairplot(
+    df => (
+        PairPlots.HexBin(colormap=Makie.cgrad([:transparent, :black])),
+        PairPlots.Scatter(filtersigma=2, color=:black),
+        PairPlots.Contour(color=:black),
         # New:
         PairPlots.MarginHist(),
         PairPlots.MarginConfidenceLimits(),
     )
 )
+save("ex15.png", ans) # hide
+nothing # hide
 ```
+
+== python
+
+```python
+pairplots.pairplot(
+    (df, (
+        pairplots.HexBin(colormap=pairplots.Makie.cgrad(['transparent', 'black'])),
+        pairplots.Scatter(filtersigma=2, color='black'),
+        pairplots.Contour(color='black'),
+        # New:
+        pairplots.MarginHist(),
+        pairplots.MarginConfidenceLimits(),
+    ))
+)
+```
+
+:::
+
+![](ex15.png)
+
+
 
 ## Truth Lines
 You can quickly add lines to mark particular values of each variable on all subplots using `Truth`:
+
+::: tabs
+
+== julia
 
 ```@example 1
 pairplot(
@@ -304,11 +626,40 @@ pairplot(
         label="Mean Values"
     )
 )
+save("ex16.png", ans); # hide
+nothing # hide
+
 ```
+
+== python
+
+```python
+pairplots.pairplot(
+    df,
+    pairplots.Truth(
+        {
+            'α': [0, 6],
+            'β': 0,
+            'γ': 0,
+            'δ': [-1, 0, +1],
+        },
+        label="Mean Values"
+    )
+)
+```
+:::
+
+![](ex16.png)
 
 ## Trend Lines
 You can quickly add a linear trend line to each pair of variables by passing 
 a trend-line series:
+
+
+
+::: tabs
+
+== julia
 
 ```@example 1
 pairplot(
@@ -319,23 +670,66 @@ pairplot(
     ),
     fullgrid=true
 )
+save("ex17.png", ans); # hide
+nothing # hide
 ```
+
+== python
+
+```python
+pairplots.pairplot(
+    (df, (
+        pairplots.Scatter(),
+        pairplots.MarginHist(),
+        pairplots.TrendLine(color='red'), # default is red
+    )),
+    fullgrid=True
+)
+```
+:::
+
+![](ex17.png)
 
 ## Correlation
 You can add a calculated correlation value between every pair of variables
 by passing `PairPlots.Correlation()`.
 You can customize the number of digits and the position of the text.
 
+
+::: tabs
+
+== julia
+
 ```@example 1
 pairplot(
     df => (
         PairPlots.Scatter(),
         PairPlots.MarginHist(),
-        PairPlots.TrendLine(), # default is red
+        PairPlots.TrendLine(color=:red), # default is red
         PairPlots.Correlation()
     ),
+    fullgrid=true
+)
+save("ex18.png", ans) # hide
+nothing # hide
+```
+
+== python
+
+```python
+pairplots.pairplot(
+    (df, (
+        pairplots.Scatter(),
+        pairplots.MarginHist(),
+        pairplots.TrendLine(color='red'), # default is red
+        pairplots.Correlation()
+    )),
+    fullgrid=True
 )
 ```
+:::
+
+![](ex18.png)
 
 `PairPlots.Correlation()` is an alias for `PairPlots.Calculation(StatsBase.cov)`. Feel free to pass any function that accepts two AbstractVectors and calculates a number:
 ```@example 1
@@ -357,26 +751,84 @@ pairplot(
 ## Customize Axes
 You can customize the axes of the subplots freely in two ways. For these examples,
 we'll create a variable that is log-normally distributed.
+
+::: tabs
+
+== julia
+
 ```@example 1
 dfln = DataFrame(;α, β, γ=10 .^ γ, δ)
 nothing # hide
 ```
 
+== python
+
+```python
+dfln = pd.DataFrame({
+    'α': alpha,
+    'β': beta,
+    'γ': 10**gamma,
+    'δ': delta
+})
+```
+
+:::
+
 First, you can pass axis parameters for all plots along the diagonal using the `diagaxis` keyword or all plots below the diagonal using the `bodyaxis` parameter.
 
 Turn on grid lines for the body axes:
+
+::: tabs
+
+== julia
+
 ```@example 1
 pairplot(dfln, bodyaxis=(;xgridvisible=true, ygridvisible=true))
+save("ex20.png", ans) # hide
+nothing # hide
 ```
 
+== python
+
+```python
+pairplots.pairplot(dfln, bodyaxis={'xgridvisible':True, 'ygridvisible':True})
+```
+
+:::
+
+![](ex20.png)
+
 Apply a pseduo-log scale on the margin plots along the diagonal:
+
+::: tabs
+
+== julia
+
 ```@example 1
 pairplot(dfln, diagaxis=(;yscale=Makie.pseudolog10, ygridvisible=true))
+save("ex21.png", ans) # hide
+nothing # hide
 ```
+
+== python
+
+```python
+pairplots.pairplot(dfln, diagaxis={'yscale':pairplots.Makie.pseudolog10, 'ygridvisible':True})
+```
+
+:::
+
+![](ex21.png)
+
 
 The second way you can control the axes is by table column. This allows you to customize how an individual variable is presented across the pair plot.
 
 For example, we can apply a log scale to all axes that the `γ` variable is plotted against:
+
+::: tabs
+
+== julia
+
 ```@example 1
 pairplot(
     dfln => (PairPlots.Scatter(), PairPlots.MarginStepHist()),
@@ -386,15 +838,43 @@ pairplot(
         )
     )
 )
+save("ex22.png", ans) # hide
+nothing # hide
 ```
 
+== python
+
+```python
+pairplots.pairplot(
+    (dfln, (pairplots.Scatter(), pairplots.MarginStepHist())),
+    axis={
+        'γ':{
+            'scale':pairplots.Makie.log10
+        }
+    }
+)
+```
+
+:::
+
+![](ex22.png)
+
+
+
 !!! note
-    We do not prefix the attribute with `x` or `y`. PairPlots.jl will add the correct prefix as needed.
+    Do not prefix the attribute with `x` or `y`. PairPlots.jl will add the correct prefix as needed.
 
 !!! warning
     Log scale variables usually work best with Scatter series. Histogram and contour based series sometimes extend past zero, breaking the scale.
 
-There is also special support for setting the axis limits of each variable:
+There is also special support for setting the axis limits of each variable.
+The following applies the correct limits either to the vertical axis or horizontal axis as appropriate.
+Note that the parameters `low` and/or `high` must be passed as a named tuple.
+
+::: tabs 
+
+== julia
+
 ```@example 1
 pairplot(
     dfln => (PairPlots.Scatter(), PairPlots.MarginStepHist()),
@@ -407,20 +887,65 @@ pairplot(
         )
     )
 )
+save("ex23.png", ans) # hide
+nothing # hide
 ```
-This applies the correct limits either to the vertical axis or horizontal axis as appropriate.
-Note that the parameters `low` and/or `high` must be passed as a named tuple.
+
+==python
+
+```python
+ pairplots.pairplot_interactive(
+    (dfln, (pairplots.Scatter(), pairplots.MarginStepHist())),
+    axis={
+        'α':{
+            pairplots.jl.Symbol('lims'):{pairplots.jl.Symbol('low'):-10, pairplots.jl.Symbol('high'):+10}
+        },
+        'γ':{
+            'scale':pairplots.Makie.log10
+        }
+    }
+)
+```
+
+:::
+
+![](ex23.png)
 
 ## Adding a title
+
+::: tabs
+
+== julia
 
 ```@example 1
 fig = pairplot(df)
 Label(fig[0,:], "This is the title!")
+save("ex24.png", fig) # hide
+fig
+nothing # hide
+```
+
+==python
+
+```python
+fig = pairplots.pairplot(df)
+pairplots.Makie.Label(
+    # Row 0 of figure, column 1
+    fig[0,1],
+    "This is the title!"
+)
 fig
 ```
 
+:::
+
+![](ex24.png)
+
 ## Layouts
 The `pairplot` function integrates easily within larger Makie Figures.
+
+!!! note
+    This functionality is not directly exposed to Python, but is available through the `pairplots.Makie` submodule.
 
 Customizing the figure:
 ```@example 1
@@ -475,6 +1000,11 @@ fig
 
 You can plot multiple series by simply passing more than one table to `pairplot`
 They don't have to have all the same column names.
+
+::: tabs
+
+== julia
+
 ```@example 1
 # The simplest table format is just a named tuple of vectors.
 # You can also pass a DataFrame, or any other Tables.jl compatible object.
@@ -490,24 +1020,94 @@ table2 = (;
 )
 
 pairplot(table1, table2)
+save("ex25.png", ans) # hide
+nothing # hide
 ```
 
+== python
+
+```python
+table1 = pd.DataFrame({
+    'x': np.random.randn(10000),
+    'y': np.random.randn(10000),
+})
+
+table2 = pd.DataFrame({
+    'x': 1 + np.random.randn(10000),
+    'y': 2 + np.random.randn(10000),
+    'z': np.random.randn(10000),
+})
+
+pairplots.pairplot(table1, table2)
+```
+
+:::
+
+![](ex25.png)
+
 You may want to add a legend:
+
+::: tabs
+
+== julia
+
 ```@example 1
-
-c1 = Makie.wong_colors(0.5)[1]
-c2 = Makie.wong_colors(0.5)[2]
-
+c1 = Makie.wong_colors(0.5)[3]
+c2 = Makie.wong_colors(0.5)[4]
 pairplot(
     PairPlots.Series(table1, label="table 1", color=c1, strokecolor=c1),
     PairPlots.Series(table2, label="table 2", color=c2, strokecolor=c2),
 )
+save("ex26.png", ans) # hide
+nothing # hide
 ```
 
+== python
+
+```python
+c1 = pairplots.Makie.wong_colors(0.5)[2]
+c2 = pairplots.Makie.wong_colors(0.5)[3]
+pairplots.pairplot(
+    pairplots.series(table1, label="table 1", color=c1, strokecolor=c1),
+    pairplots.series(table2, label="table 2", color=c2, strokecolor=c2),
+)
+```
+
+:::
+
+![](ex26.png)
+
+
 You can customize each series independently if you wish.
+
+::: tabs
+
+== julia
+
 ```@example 1
 pairplot(
     table2 => (PairPlots.HexBin(colormap=:magma), PairPlots.MarginDensity(color=:orange),  PairPlots.MarginConfidenceLimits(color=:black)),
     table1 => (PairPlots.Contour(color=:cyan, strokewidth=5),),
 )
+save("ex27.png", ans) # hide
+nothing # hide
 ```
+
+== python
+
+```python
+pairplots.pairplot(
+    (table2, (
+        pairplots.HexBin(colormap='magma'),
+        pairplots.MarginDensity(color='orange'),
+        pairplots.MarginConfidenceLimits(color='black')
+    )),
+    (table1, (
+        pairplots.Contour(color='cyan', strokewidth=5),)
+    ),
+)
+```
+
+:::
+
+![](ex27.png)
