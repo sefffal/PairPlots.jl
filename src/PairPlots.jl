@@ -37,6 +37,12 @@ struct Truth{T,K} <: AbstractSeries where {T,K}
     kwargs::K
 end
 function Truth(truths;label=nothing, kwargs...)
+    if !(keytype(truths) isa Symbol)
+        truths = NamedTuple([
+            Symbol(k) => v
+            for (k,v) in pairs(truths)
+        ])
+    end
     return Truth(label, truths, kwargs)
 end
 
@@ -877,6 +883,9 @@ end
 # and column type.
 function default_label_string(name::Symbol, coltype)
     return string(name)
+end
+function default_label_string(name::String, coltype)
+    return name
 end
 function ustrip(data)
     return data
