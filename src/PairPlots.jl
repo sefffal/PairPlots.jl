@@ -134,7 +134,7 @@ end
 
 
 """
-    Contour(;sigmas=1:2, bandwidth=1.0, kwargs...)
+    Contour(;sigmas=0.5:0.5:2, bandwidth=1.0, kwargs...)
 
 Plot two variables against eachother using a contour plot. The contours cover the area under a Gaussian
 given by `sigmas`, which must be `<: AbstractVector`. `kwargs` are forwarded to the plot function and can
@@ -154,11 +154,11 @@ struct Contour <: VizTypeBody
     sigmas
     bandwidth
     kwargs
-    Contour(;sigmas=1:2, bandwidth=1.0, kwargs...) = new(sigmas, bandwidth, kwargs)
+    Contour(;sigmas=0.5:0.5:2, bandwidth=1.0, kwargs...) = new(sigmas, bandwidth, kwargs)
 end
 
 """
-    Contourf(;sigmas=1:2, bandwidth=1.0, kwargs...)
+    Contourf(;sigmas=0.5:0.5:2, bandwidth=1.0, kwargs...)
 
 Plot two variables against eachother using a filled contour plot. The contours cover the area under a Gaussian
 given by `sigmas`, which must be `<: AbstractVector`. `kwargs` are forwarded to the plot function and can
@@ -177,7 +177,7 @@ struct Contourf <: VizTypeBody
     sigmas
     bandwidth
     kwargs
-    Contourf(;sigmas=1:2, bandwidth=1.0, kwargs...) = new(sigmas, bandwidth, kwargs)
+    Contourf(;sigmas=0.5:0.5:2, bandwidth=1.0, kwargs...) = new(sigmas, bandwidth, kwargs)
 end
 
 """
@@ -685,7 +685,7 @@ function pairplot(
         xkw = get(axis, colname_col, (;))
         xkw = (
             Symbol('x',key) => value
-            for (key,value) in zip(keys(xkw), values(xkw)) if key != :lims
+            for (key,value) in zip(keys(xkw), values(xkw)) if Symbol(key) != :lims
         )
         xlims = get(get(axis, colname_col, (;)), :lims, (;))
         if row_ind == col_ind
