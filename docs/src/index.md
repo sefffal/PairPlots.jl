@@ -4,7 +4,7 @@
 layout: home
 
 hero:
-  name: "PairPlots.jl"
+  name: "PairPlots"
   tagline: Beautiful and flexible visualizations of high dimensional data
   image:
     src: /logo.png
@@ -41,13 +41,13 @@ features:
 
 <div class="vp-doc" style="width:80%; margin:auto">
 
-This package produces pair plots, otherwise known as corner plots or scatter plot matrices: grids of 1D and 2D histograms that allow you to visualize high dimensional data.
+This package produces pair plots, otherwise known as corner plots or scatter plot matrices: grids of 1D and 2D histograms that allow you to visualize high dimensional data. Both Julia and Python are supported (PairPlots.jl and pairplots.py).
 
 Pair plots are an excellent way to vizualize the results of MCMC simulations, but are also a useful way to vizualize correlations in general data tables.
 
-PairPlots.jl is inspired by the excellent [corner.py](https://corner.readthedocs.io/en/latest/index.html) and [chainconsumer.py](https://samreay.github.io/ChainConsumer/usage.html) packages.
+PairPlots is inspired by the excellent [corner.py](https://corner.readthedocs.io/en/latest/index.html) and [chainconsumer.py](https://samreay.github.io/ChainConsumer/usage.html) packages.
 
-The current version of PairPlots.jl requires the [Makie](https://docs.makie.org/stable/) plotting library. If instead you prefer to use Plots.jl, you can install the legacy version `0.6` of PairPlots (see [archived documentation here](https://github.com/sefffal/PairPlots.jl/blob/b632abd79c0dfbe7387d44393f4fb5b7f74ac5d8/README.md))
+The current version of PairPlots uses the [Makie](https://docs.makie.org/stable/) plotting library. If instead you prefer to use Plots.jl, you can install the legacy version `0.6` of PairPlots (see [archived documentation here](https://github.com/sefffal/PairPlots.jl/blob/b632abd79c0dfbe7387d44393f4fb5b7f74ac5d8/README.md))
 
 
 </div>
