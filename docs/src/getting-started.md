@@ -1,5 +1,25 @@
 # Getting Started
 
+
+You can install PairPlots from the Julia registry or from the python package index via `pip`:
+
+::: tabs
+
+== julia
+```julia
+using PairPlots
+```
+Hit enter at the prompt to accept the installation.
+
+== python
+
+```bash
+pip install -U pairplots
+```
+:::
+
+
+
 If you don't need any customization, the easiest way to get started is to call `pairplot` with one or more tables or matrices.
 
 
