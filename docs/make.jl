@@ -1,6 +1,6 @@
 using Documenter, DocumenterVitepress, CairoMakie, PairPlots
 
-CairoMakie.activate!(type = "svg")
+CairoMakie.activate!(type = "png", px_per_unit = 3)
 
 ENV["DATAFRAMES_ROWS"] = 5
 
