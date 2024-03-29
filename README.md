@@ -12,6 +12,7 @@
 [![License](https://img.shields.io/github/license/sefffal/PairPlots.jl)](LICENSE)
 [![PkgEval](https://juliaci.github.io/NanosoldierReports/pkgeval_badges/P/PairPlots.svg)](https://juliaci.github.io/NanosoldierReports/pkgeval_badges/report.html)
 
+**See the Python version [here](https://github.com/sefffal/pairplots/)**
 
 
 This package produces pair plots, otherwise known as corner plots or scatter plot matrices: grids of 1D and 2D histograms that allow you to visualize high dimensional data.

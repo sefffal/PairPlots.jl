@@ -37,6 +37,12 @@ struct Truth{T,K} <: AbstractSeries where {T,K}
     kwargs::K
 end
 function Truth(truths;label=nothing, kwargs...)
+    if !(keytype(truths) isa Symbol)
+        truths = NamedTuple([
+            Symbol(k) => v
+            for (k,v) in pairs(truths)
+        ])
+    end
     return Truth(label, truths, kwargs)
 end
 
@@ -128,7 +134,7 @@ end
 
 
 """
-    Contour(;sigmas=1:2, bandwidth=1.0, kwargs...)
+    Contour(;sigmas=0.5:0.5:2, bandwidth=1.0, kwargs...)
 
 Plot two variables against eachother using a contour plot. The contours cover the area under a Gaussian
 given by `sigmas`, which must be `<: AbstractVector`. `kwargs` are forwarded to the plot function and can
@@ -148,11 +154,11 @@ struct Contour <: VizTypeBody
     sigmas
     bandwidth
     kwargs
-    Contour(;sigmas=1:2, bandwidth=1.0, kwargs...) = new(sigmas, bandwidth, kwargs)
+    Contour(;sigmas=0.5:0.5:2, bandwidth=1.0, kwargs...) = new(sigmas, bandwidth, kwargs)
 end
 
 """
-    Contourf(;sigmas=1:2, bandwidth=1.0, kwargs...)
+    Contourf(;sigmas=0.5:0.5:2, bandwidth=1.0, kwargs...)
 
 Plot two variables against eachother using a filled contour plot. The contours cover the area under a Gaussian
 given by `sigmas`, which must be `<: AbstractVector`. `kwargs` are forwarded to the plot function and can
@@ -171,7 +177,7 @@ struct Contourf <: VizTypeBody
     sigmas
     bandwidth
     kwargs
-    Contourf(;sigmas=1:2, bandwidth=1.0, kwargs...) = new(sigmas, bandwidth, kwargs)
+    Contourf(;sigmas=0.5:0.5:2, bandwidth=1.0, kwargs...) = new(sigmas, bandwidth, kwargs)
 end
 
 """
@@ -679,7 +685,7 @@ function pairplot(
         xkw = get(axis, colname_col, (;))
         xkw = (
             Symbol('x',key) => value
-            for (key,value) in zip(keys(xkw), values(xkw)) if key != :lims
+            for (key,value) in zip(keys(xkw), values(xkw)) if Symbol(key) != :lims
         )
         xlims = get(get(axis, colname_col, (;)), :lims, (;))
         if row_ind == col_ind
@@ -818,7 +824,7 @@ function pairplot(
             M -= 1
         end
         Makie.Legend(
-            grid[M == 1 ? 1 : end-1, M <= 2 ? 2 : M ],
+            fullgrid ? grid[begin,end+1] : grid[M == 1 ? 1 : end-1, M <= 2 ? 2 : M ],
             collect(legend_entries),
             collect(legend_strings);
             tellwidth=false,
@@ -877,6 +883,9 @@ end
 # and column type.
 function default_label_string(name::Symbol, coltype)
     return string(name)
+end
+function default_label_string(name::String, coltype)
+    return name
 end
 function ustrip(data)
     return data
