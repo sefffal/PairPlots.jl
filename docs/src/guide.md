@@ -28,7 +28,7 @@ import pairplots
 
 ## Single Series
 
-Let's create a basic table of data to vizualize.
+Let's create a basic table of data to visualize.
 
 ::: tabs
 
@@ -181,9 +181,7 @@ pairplots.pairplot(
 )
 ```
 
-:::
-
-That is, it accepts a list of pairs of "series objects" and a tuple of "vizualiation layers". As we'll see later on, you can pass keyword arguments with a series, or a specific vizualization layer to customize their behaviour and appearance. 
+That is, it accepts a list of pairs of "series objects" and a tuple of "visualization layers". As we'll see later on, you can pass keyword arguments with a series, or a specific visualization layer to customize their behaviour and appearance.
 If you don't need to adjust any parameters for a whole series, you can just pass in a data source and PairPlots will wrap it for you:
 
 ::: tabs
@@ -204,9 +202,8 @@ pairplots.pairplot(
 )
 ```
 
-:::
+Let's see how this works by iteratively building up the default visualization.
 
-Let's see how this works by iteratively building up the default vizualiation.
 First, create a basic histogram plot:
 
 ::: tabs
@@ -235,7 +232,7 @@ pairplots.pairplot(
 
 
 !!! note
-    A tuple or list of vizualization types is required, even if you just want one. Make sure to include the comma in these examples.
+    A tuple or list of visualization types is required, even if you just want one. Make sure to include the comma in these examples.
 
 Or, a histogram with hexagonal binning:
 
@@ -442,7 +439,8 @@ pairplots.pairplot(
 
 
 ### Margin plots
-We can add additional vizualization layers to the diagonals of the plots using the same syntax.
+
+We can add additional visualization layers to the diagonals of the plots using the same syntax.
 
 ::: tabs
 

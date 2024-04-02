@@ -12,7 +12,7 @@ using MCMCChains
 
 ## Plotting chains
 
-For this example, we'll use the following code to generate a `Chain`. In a real code, you would likey receive a chain as a result of sampling from a model.
+For this example, we'll use the following code to generate a `Chain`. In a real code, you would likely receive a chain as a result of sampling from a model.
 
 ```@example 1
 chn1 = Chains(randn(10000, 5, 3) .* [1 2 3 4 5] .* [1;;;2;;;3], [:a, :b, :c, :d, :e])

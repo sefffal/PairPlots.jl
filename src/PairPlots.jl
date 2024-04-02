@@ -86,12 +86,12 @@ function Series(data::AbstractMatrix; label=nothing, kwargs...)
 end
 
 """"
-A type of PairPlots vizualization.
+A type of PairPlots visualization.
 """
 abstract type VizType end
 
 """"
-A type of PairPlots vizualization that compares two variables.
+A type of PairPlots visualization that compares two variables.
 """
 abstract type VizTypeBody <: VizType end
 
@@ -207,7 +207,7 @@ end
 """"
     VizTypeBody
 
-A type of PairPlots vizualization that only shows one variable. Used 
+A type of PairPlots visualization that only shows one variable. Used 
 for the plots along the diagonal.
 """
 abstract type VizTypeDiag <: VizType end
@@ -377,7 +377,7 @@ end
 """
     Correlation(;digits=3, position=Makie.Point2f(0.01, 1.0), kwargs...)
 
-Calculate the correlation between two variabels and add it as a text label to the plot.
+Calculate the correlation between two variables and add it as a text label to the plot.
 This is an alias for `Calculation(StatsBase.cor)`. 
 You can adjust the number of digits, the location of the text, etc. See `Calculation`
 for more details.
@@ -663,7 +663,7 @@ function pairplot(
     sizehint!(axes_by_col, N)
     sizehint!(axes_by_row, N)
 
-    # Check if there are any diagonal vizualization layers
+    # Check if there are any diagonal visualization layers
     anydiag_viz = mapreduce((|), pairs_no_missing, init=false) do (series, vizlayers)
         any(v->isa(v, VizTypeDiag), vizlayers)
     end
@@ -901,7 +901,7 @@ function diagplot(ax::Makie.Axis, viz::MarginHist, series::AbstractSeries, colna
     dat = ustrip(disallowmissing(getcolumn(series, colname)))
 
     # Determine the number of bins to use, and allow series or
-    # vizualization layer to override.
+    # visualization layer to override.
     bins = max(7, ceil(Int, 1.8log2(length(dat))) + 1)
     bins = get(series.kwargs, :bins, bins)
     bins = get(viz.kwargs, :bins, bins)
@@ -930,7 +930,7 @@ function diagplot(ax::Makie.Axis, viz::MarginStepHist, series::AbstractSeries, c
     dat = ustrip(disallowmissing(getcolumn(series, colname)))
 
     # Determine the number of bins to use, and allow series or
-    # vizualization layer to override.
+    # visualization layer to override.
     bins = max(7, ceil(Int, 1.8log2(length(dat))) + 1)
     bins = get(series.kwargs, :bins, bins)
     bins = get(viz.kwargs, :bins, bins)
@@ -1031,7 +1031,7 @@ function bodyplot(ax::Makie.Axis, viz::HexBin, series::AbstractSeries, colname_r
         X = ustrip(disallowmissing(getcolumn(series, colname_col)))
         Y = ustrip(disallowmissing(getcolumn(series, colname_row)))
         # Determine the number of bins to use, and allow series or
-        # vizualization layer to override.
+        # visualization layer to override.
         bins = max(7, ceil(Int, 1.8log2(length(X))) + 1)
         bins = get(series.kwargs, :bins, bins)
         bins = get(viz.kwargs, :bins, bins)
@@ -1062,7 +1062,7 @@ function bodyplot(ax::Makie.Axis, viz::Hist, series::AbstractSeries, colname_row
     ydat = getcolumn(series, colname_row)
 
     # Determine the number of bins to use, and allow series or
-    # vizualization layer to override.
+    # visualization layer to override.
     bins = max(7, ceil(Int, 1.8log2(length(xdat))) + 1)
     bins = get(series.kwargs, :bins, bins)
     bins = get(viz.kwargs, :bins, bins)

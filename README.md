@@ -3,7 +3,7 @@
 # PairPlots.jl
 
 
-*Beautiful and flexible vizualizations of high dimensional data*
+*Beautiful and flexible visualizations of high dimensional data*
 
 [![](https://img.shields.io/badge/docs-dev-blue.svg)](https://sefffal.github.io/PairPlots.jl/dev/)
 ![Build status](https://github.com/sefffal/PairPlots.jl/actions/workflows/ci.yml/badge.svg)
@@ -17,7 +17,7 @@
 
 This package produces pair plots, otherwise known as corner plots or scatter plot matrices: grids of 1D and 2D histograms that allow you to visualize high dimensional data.
 
-Pair plots are an excellent way to vizualize the results of MCMC simulations, but are also a useful way to vizualize correlations in general data tables.
+Pair plots are an excellent way to visualize the results of MCMC simulations, but are also a useful way to visualize correlations in general data tables.
 
 Read the documentation here: (https://sefffal.github.io/PairPlots.jl/dev/)
 
