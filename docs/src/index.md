@@ -32,7 +32,7 @@ features:
   - icon: <img width="64" height="64" src="https://avatars.githubusercontent.com/u/98041931?s=200&v=4"/>
     title: Flexible
     details: Highly configurable and themeable using the Makie plotting package.
-    link: https://vuejs.org/guide/essentials/component-basics
+    link: https://docs.makie.org/stable
 ---
 ```
 
