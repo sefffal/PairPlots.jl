@@ -45,6 +45,9 @@ function Truth(truths;label=nothing, kwargs...)
     end
     return Truth(label, truths, kwargs)
 end
+# Can be removed once we only support Julia 1.10+
+Truth(truths::NamedTuple;label=nothing, kwargs...) = Truth(label, truths, kwargs)
+
 
 
 struct Series{T,K} <: AbstractSeries where {T,K}
