@@ -88,12 +88,12 @@ function Series(data::AbstractMatrix; label=nothing, kwargs...)
     Series(label, table, kwargs)
 end
 
-""""
+"""
 A type of PairPlots visualization.
 """
 abstract type VizType end
 
-""""
+"""
 A type of PairPlots visualization that compares two variables.
 """
 abstract type VizTypeBody <: VizType end
@@ -207,8 +207,8 @@ end
 
 
 ## Diagonals
-""""
-    VizTypeBody
+"""
+    VizTypeDiag
 
 A type of PairPlots visualization that only shows one variable. Used 
 for the plots along the diagonal.
