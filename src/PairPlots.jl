@@ -94,6 +94,8 @@ A type of PairPlots visualization.
 abstract type VizType end
 
 """
+    VizTypeBody <: VizType
+
 A type of PairPlots visualization that compares two variables.
 """
 abstract type VizTypeBody <: VizType end
@@ -208,7 +210,7 @@ end
 
 ## Diagonals
 """
-    VizTypeDiag
+    VizTypeDiag <: VizType
 
 A type of PairPlots visualization that only shows one variable. Used 
 for the plots along the diagonal.
