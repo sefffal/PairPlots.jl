@@ -16,6 +16,7 @@ using PolygonOps
 using LinearAlgebra: LinearAlgebra
 using LinearAlgebra: normalize
 using Missings
+using NamedTupleTools
 
 """
     AstractSeries
@@ -1065,8 +1066,8 @@ function bodyplot(ax::Makie.Axis, viz::HexBin, series::AbstractSeries, colname_r
             Y;
             colormap=Makie.cgrad([:transparent, :black]),
             bins,
-            series.kwargs...,
-            viz.kwargs...,
+            delete(namedtuple(series.kwargs), :color)...,
+            delete(namedtuple(viz.kwargs), :color)...,
         )
     catch err
         if err isa InexactError
@@ -1166,7 +1167,7 @@ function bodyplot(ax::Makie.Axis, viz::Contour, series, colname_row, colname_col
     for (i,level) in enumerate(levels), poly in ContourLib.lines(level)
         xs, ys = ContourLib.coordinates(poly)
         # Makie.poly!(ax, Makie.Point2f.(zip(xs,ys)); strokewidth=2, series.kwargs...,  viz.kwargs..., color=:transparent, strokecolor=color)#(color, i/length(levels)))
-        Makie.lines!(ax, xs, ys; strokewidth=1.5, series.kwargs...,  viz.kwargs...)
+        Makie.lines!(ax, xs, ys; series.kwargs...,  viz.kwargs...)
     end
 end
 
