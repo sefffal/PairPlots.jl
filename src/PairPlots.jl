@@ -220,8 +220,28 @@ abstract type VizTypeDiag <: VizType end
 
 function margin_confidence_default_formatter(low,mid,high)
     largest_error = max(abs(high), abs(low))
-    digits_after_dot = max(0, 1 - round(Int, log10(largest_error)))
+    # Fallback for series with no variance
+    if largest_error == 0
+        if mid == 0
+            digits_after_dot = 0
+        else
+            digits_after_dot = max(0, 1 - round(Int, log10(abs(mid))))
+        end
+        @static if VERSION >= v"1.10"
+            title = @sprintf(
+                "\$%.*f",
+                digits_after_dot, mid,
+            )
+        else
+            title = @eval @sprintf(
+                $("\$%.$(digits_after_dot)f\$"),
+                $mid,
+            )
+        end
+        return title
+    end
 
+    digits_after_dot = max(0, 1 - round(Int, log10(largest_error)))
     use_scientific = digits_after_dot > 4
 
     if use_scientific
