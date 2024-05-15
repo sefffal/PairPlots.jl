@@ -997,7 +997,10 @@ function diagplot(ax::Makie.Axis, viz::MarginDensity, series::AbstractSeries, co
     N = 100
     x = range(first(exx), last(exx), length=N)
     y = pdf.(Ref(ik), x)
-    Makie.lines!(ax, x, y; series.kwargs..., viz.kwargs...,)
+    Makie.lines!(ax, x, y;
+        delete(NamedTuple(series.kwargs), invalid_attrs_lines)...,
+        delete(NamedTuple(viz.kwargs), invalid_attrs_lines)...,
+    )
     Makie.ylims!(ax,low=0)
 end
 
@@ -1026,8 +1029,8 @@ function diagplot(ax::Makie.Axis, viz::MarginConfidenceLimits, series::AbstractS
         [mid-low, mid, mid+high];
         linestyle=:dash,
         depth_shift=-10f0,
-        series.kwargs...,
-        viz.kwargs...,
+        delete(NamedTuple(series.kwargs), invalid_attrs_lines)...,
+        delete(NamedTuple(viz.kwargs), invalid_attrs_lines)...,
     )
 end
 
@@ -1041,8 +1044,8 @@ function diagplot(ax::Makie.Axis, viz::MarginLines, series::AbstractSeries, coln
     Makie.vlines!(
         ax,
         dat;
-        series.kwargs...,
-        viz.kwargs...,
+        delete(NamedTuple(series.kwargs), invalid_attrs_lines)...,
+        delete(NamedTuple(viz.kwargs), invalid_attrs_lines)...,
     )
 end
 
@@ -1066,8 +1069,8 @@ function bodyplot(ax::Makie.Axis, viz::HexBin, series::AbstractSeries, colname_r
             Y;
             colormap=Makie.cgrad([:transparent, :black]),
             bins,
-            delete(namedtuple(series.kwargs), :color)...,
-            delete(namedtuple(viz.kwargs), :color)...,
+            delete(NamedTuple(series.kwargs), :color)...,
+            delete(NamedTuple(viz.kwargs), :color)...,
         )
     catch err
         if err isa InexactError
@@ -1104,8 +1107,8 @@ function bodyplot(ax::Makie.Axis, viz::Hist, series::AbstractSeries, colname_row
         y,
         weights;
         colormap=Makie.cgrad([:transparent, :black]),
-        delete(namedtuple(series.kwargs), :color)...,
-        delete(namedtuple(viz.kwargs), :color)...,
+        delete(NamedTuple(series.kwargs), :color)...,
+        delete(NamedTuple(viz.kwargs), :color)...,
     )
 end
 
@@ -1157,6 +1160,8 @@ function prep_contours(series::AbstractSeries, sigmas, colname_row, colname_col;
 end
 
 
+const invalid_attrs_lines = (:strokewidth, :strokecolor)
+
 function bodyplot(ax::Makie.Axis, viz::Contour, series, colname_row, colname_col)
     cn = columnnames(series)
     if colname_row ∉ cn || colname_col ∉ cn
@@ -1167,7 +1172,11 @@ function bodyplot(ax::Makie.Axis, viz::Contour, series, colname_row, colname_col
     for (i,level) in enumerate(levels), poly in ContourLib.lines(level)
         xs, ys = ContourLib.coordinates(poly)
         # Makie.poly!(ax, Makie.Point2f.(zip(xs,ys)); strokewidth=2, series.kwargs...,  viz.kwargs..., color=:transparent, strokecolor=color)#(color, i/length(levels)))
-        Makie.lines!(ax, xs, ys; series.kwargs...,  viz.kwargs...)
+        Makie.lines!(
+            ax, xs, ys;
+            delete(NamedTuple(series.kwargs), invalid_attrs_lines)...,
+            delete(NamedTuple(viz.kwargs), invalid_attrs_lines)...,
+        )
     end
 end
 
@@ -1231,7 +1240,11 @@ function bodyplot(ax::Makie.Axis, viz::TrendLine, series::AbstractSeries, colnam
             rethrow(err)
         end
     end
-    Makie.ablines!(ax, b, m; series.kwargs..., viz.kwargs...)
+    Makie.ablines!(
+        ax, b, m;
+        delete(NamedTuple(series.kwargs), invalid_attrs_lines)...,
+        delete(NamedTuple(viz.kwargs), invalid_attrs_lines)...,
+    )
     return
 end
 
@@ -1268,11 +1281,19 @@ function bodyplot(ax::Makie.Axis, viz::BodyLines, series::AbstractSeries, colnam
     cn = columnnames(series)
     if colname_row ∈ cn
         xall = getcolumn(series, colname_row)
-        Makie.hlines!(ax,xall; series.kwargs..., viz.kwargs...)
+        Makie.hlines!(
+            ax,xall;
+            delete(NamedTuple(series.kwargs), invalid_attrs_lines)...,
+            delete(NamedTuple(viz.kwargs), invalid_attrs_lines)...,
+        )
     end
     if colname_col ∈ cn
         yall = getcolumn(series, colname_col)
-        Makie.vlines!(ax,yall; series.kwargs..., viz.kwargs...)
+        Makie.vlines!(
+            ax,yall;
+            delete(NamedTuple(series.kwargs), invalid_attrs_lines)...,
+            delete(NamedTuple(viz.kwargs), invalid_attrs_lines)...,
+        )
     end
 end
 
