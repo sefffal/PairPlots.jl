@@ -1104,8 +1104,8 @@ function bodyplot(ax::Makie.Axis, viz::Hist, series::AbstractSeries, colname_row
         y,
         weights;
         colormap=Makie.cgrad([:transparent, :black]),
-        series.kwargs...,
-        viz.kwargs...,
+        delete(namedtuple(series.kwargs), :color)...,
+        delete(namedtuple(viz.kwargs), :color)...,
     )
 end
 
