@@ -19,7 +19,7 @@ using Missings
 using NamedTupleTools
 
 """
-    AstractSeries
+    AbstractSeries
 
 Represents some kind of series in PairPlots.
 """
