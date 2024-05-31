@@ -90,7 +90,7 @@ function Series(data::AbstractMatrix; label=nothing, kwargs...)
 end
 
 """
-A type of PairPlots visualization.
+A type of PairPlots visualization. `VizType` is the supertype for all PairPlots visualization types.
 """
 abstract type VizType end
 
