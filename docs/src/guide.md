@@ -340,7 +340,7 @@ pairplots.pairplot(
 
 ![](ex8.png)
 
-Now let's combine a few plot types. 
+Now let's combine a few plot types.
 Scatter and contours:
 ```@example 1
 pairplot(
@@ -650,7 +650,7 @@ pairplots.pairplot(
 ![](ex16.png)
 
 ## Trend Lines
-You can quickly add a linear trend line to each pair of variables by passing 
+You can quickly add a linear trend line to each pair of variables by passing
 a trend-line series:
 
 
@@ -869,7 +869,7 @@ There is also special support for setting the axis limits of each variable.
 The following applies the correct limits either to the vertical axis or horizontal axis as appropriate.
 Note that the parameters `low` and/or `high` must be passed as a named tuple.
 
-::: tabs 
+::: tabs
 
 == julia
 
