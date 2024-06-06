@@ -19,7 +19,7 @@ using Missings
 using NamedTupleTools
 
 """
-    AstractSeries
+    AbstractSeries
 
 Represents some kind of series in PairPlots.
 """
@@ -81,7 +81,7 @@ Convenience constructor to build a Series from an abstract matrix.
 The columns are named accordingly to the axes of the Matrix (usually :1 though N).
 """
 function Series(data::AbstractMatrix; label=nothing, kwargs...)
-    column_labels = [Symbol(i) for i in axes(data,1)] 
+    column_labels = [Symbol(i) for i in axes(data,1)]
     table = NamedTuple([
         collabel => col
         for (collabel, col) in zip(column_labels, eachcol(data))
@@ -90,7 +90,7 @@ function Series(data::AbstractMatrix; label=nothing, kwargs...)
 end
 
 """
-A type of PairPlots visualization.
+A type of PairPlots visualization. `VizType` is the supertype for all PairPlots visualization types.
 """
 abstract type VizType end
 
@@ -148,7 +148,7 @@ be used to control the appearance.
 
 KernelDensity.jl is used to produce smoother contours. The bandwidth of the KDE is chosen automatically
 by that package, but you can scale the bandwidth used up or down by a constant factor by passing `bandwidth`
-when creating the series. For example, `bandwidth=2.0` will double the KDE bandwidth and result in smoother 
+when creating the series. For example, `bandwidth=2.0` will double the KDE bandwidth and result in smoother
 contours.
 
 !!! note
@@ -172,7 +172,7 @@ be used to control the appearance.
 
 KernelDensity.jl is used to produce smoother contours. The bandwidth of the KDE is chosen automatically
 by that package, but you can scale the bandwidth used up or down by a constant factor by passing `bandwidth`
-when creating the series. For example, `bandwidth=2.0` will double the KDE bandwidth and result in smoother 
+when creating the series. For example, `bandwidth=2.0` will double the KDE bandwidth and result in smoother
 contours.
 
 KernelDensity.jl is used to produce smoother contours.
@@ -213,7 +213,7 @@ end
 """
     VizTypeDiag <: VizType
 
-A type of PairPlots visualization that only shows one variable. Used 
+A type of PairPlots visualization that only shows one variable. Used
 for the plots along the diagonal.
 """
 abstract type VizTypeDiag <: VizType end
@@ -297,13 +297,13 @@ function margin_confidence_default_formatter(low,mid,high)
         end
     end
 
-    return title 
+    return title
 end
 
 function _apply_user_format_string(format)
     return function(low,mid,high)
         title = @eval @sprintf($format, $mid, $high, $low)
-        return title 
+        return title
     end
 end
 
@@ -371,7 +371,7 @@ end
 """
     MarginDensity(;kwargs...)
 
-Plot the smoothed marginal density of a variable along the diagonal of the grid, using Makie's `density` 
+Plot the smoothed marginal density of a variable along the diagonal of the grid, using Makie's `density`
 function. `kwargs` are forwarded to the plot function and can be used to control
 the appearance.
 """
@@ -404,7 +404,7 @@ end
     Correlation(;digits=3, position=Makie.Point2f(0.01, 1.0), kwargs...)
 
 Calculate the correlation between two variables and add it as a text label to the plot.
-This is an alias for `Calculation(StatsBase.cor)`. 
+This is an alias for `Calculation(StatsBase.cor)`.
 You can adjust the number of digits, the location of the text, etc. See `Calculation`
 for more details.
 """
@@ -450,7 +450,7 @@ function pairplot(
     # afterwards.
     fig = Makie.Figure(;figure...)
                 # Default size
-                
+
     ax_defaults = (;
         width=150,
         height=150,
@@ -492,7 +492,7 @@ end
 """
     pairplot(gridpos::Makie.GridLayout, inputs...; kwargs...)
 
-Convenience function to create a reasonable pair plot given 
+Convenience function to create a reasonable pair plot given
 one or more inputs that aren't full specified.
 Wraps input tables in PairPlots.Series() with a distinct color specified
 for each series.
@@ -503,7 +503,7 @@ pairplot(fig[1,1], table) == # approximately the following:
 pairplot(
     PairPlots.Series(table, color=Makie.RGBA(0., 0., 0., 0.5)) => (
         PairPlots.HexBin(colormap=Makie.cgrad([:transparent, :black]),),
-        PairPlots.Scatter(filtersigma=2), 
+        PairPlots.Scatter(filtersigma=2),
         PairPlots.Contour(),
         PairPlots.MarginDensity(
             color=:transparent,
@@ -520,14 +520,14 @@ Here are the defaults applied for 2 to 5 data tables:
 pairplot(fig[1,1], table1, table2) == # approximately the following:
 pairplot(
     PairPlots.Series(table1, color=Makie.wong_colors(0.5)[1]) => (
-        PairPlots.Scatter(filtersigma=2), 
+        PairPlots.Scatter(filtersigma=2),
         PairPlots.Contourf(),
         PairPlots.MarginDensity(
             linewidth=2.5f0
         )
     ),
     PairPlots.Series(table2, color=Makie.wong_colors(0.5)[2]) => (
-        PairPlots.Scatter(filtersigma=2), 
+        PairPlots.Scatter(filtersigma=2),
         PairPlots.Contourf(),
         PairPlots.MarginDensity(
             linewidth=2.5f0
@@ -535,7 +535,7 @@ pairplot(
     ),
 )
 ```
-    
+
 For 6 or more tables, the defaults are approximately:
 ```julia
 PairPlots.Series(table1, color=Makie.wong_colors(0.5)[series_i]) => (
@@ -607,7 +607,7 @@ Additional arguments:
 * diagaxis: customize the Makie.Axis of plots along the diagonal with a named tuple of keyword arguments.
 * bodyaxis: customize the Makie.Axis of plots under the diagonal with a named tuple of keyword arguments.
 * axis: customize the axes by parameter using a Dict of column name (symbol) to named tuple of axis settings. `x` and `y` are automatically prepended based on the parameter and subplot.  For global properties, see `diagaxis` and `bodyaxis`.
-* legend:  additional keyword arguments to the Legend constructor, used if one or more series are labelled. You can of course also create your own Legend and inset it into the Figure for complete control. 
+* legend:  additional keyword arguments to the Legend constructor, used if one or more series are labelled. You can of course also create your own Legend and inset it into the Figure for complete control.
 * fullgrid: true or false (default). Show duplicate plots above the diagonal to make a full grid.
 
 ## Examples
@@ -661,7 +661,7 @@ function pairplot(
     # Get the ordered union of all table columns.
     columns = unique(Iterators.flatten(Iterators.map(columnnames∘first, pairs_no_missing)))
 
-    # Merge label maps determined from each series. 
+    # Merge label maps determined from each series.
     # Error if they are different! That would imply the user passed multiple tables
     # with the same named columns but having eg. conflicting units.
     label_map = Dict{Symbol,Union{String,Makie.RichText}}()
@@ -677,7 +677,7 @@ function pairplot(
     end
     label_map = merge(label_map, Dict(labels)) # user's passed labels Dict overrides all
 
-    # Rather than computing limits in this version, let's try to rely on 
+    # Rather than computing limits in this version, let's try to rely on
     # Makie doing a good job of linking axes.
 
     N = length(columns)
@@ -693,7 +693,7 @@ function pairplot(
     anydiag_viz = mapreduce((|), pairs_no_missing, init=false) do (series, vizlayers)
         any(v->isa(v, VizTypeDiag), vizlayers)
     end
-    
+
     last_diag_axis = nothing
     # Build grid of nxn plots
     for row_ind in 1:N, col_ind in 1:N
@@ -703,7 +703,7 @@ function pairplot(
         if (!fullgrid && row_ind < col_ind) || (row_ind==col_ind && !anydiag_viz)
             continue
         end
-        
+
         colname_row = columns[row_ind]
         colname_col = columns[col_ind]
 
@@ -793,7 +793,7 @@ function pairplot(
         # For each slot, loop through all series and fill it in accordingly.
         # We have two slot types: bodyplot, like a 3D histogram, and diagplot, along the diagonal
         for (series, vizlayers) in pairs_no_missing
-            for vizlayer in vizlayers    
+            for vizlayer in vizlayers
                 if row_ind == col_ind && vizlayer isa VizTypeDiag
                     diagplot(ax, vizlayer, series, colname_row)
                 elseif row_ind != col_ind && vizlayer isa VizTypeBody
@@ -905,7 +905,7 @@ end
 
 # These stubs exist to provide Unit support via extension packages.
 
-# Determine the default (not user-provided) label string for a column of this name 
+# Determine the default (not user-provided) label string for a column of this name
 # and column type.
 function default_label_string(name::Symbol, coltype)
     return string(name)
@@ -934,7 +934,7 @@ function diagplot(ax::Makie.Axis, viz::MarginHist, series::AbstractSeries, colna
 
     # h = fit(Histogram, vec(dat); nbins=bins)
     # x = range(first(h.edges[1])+step(h.edges[1])/2, step=step(h.edges[1]), length=size(h.weights,1))
-   
+
     x, weights = viz.prepare_hist(dat,  bins)
 
 
@@ -963,10 +963,10 @@ function diagplot(ax::Makie.Axis, viz::MarginStepHist, series::AbstractSeries, c
 
     # h = fit(Histogram, vec(dat); nbins=bins)
     # x = range(first(h.edges[1])+step(h.edges[1])/2, step=step(h.edges[1]), length=size(h.weights,1))
-   
+
     x, weights = viz.prepare_hist(dat,  bins)
 
-    
+
     Makie.stairs!(
         ax, x .+ step(x)./2, weights;
         series.kwargs...,
@@ -980,7 +980,7 @@ function diagplot(ax::Makie.Axis, viz::MarginDensity, series::AbstractSeries, co
     if colname ∉ cn
         return
     end
-    # Note: missing already filtered out, this just informs kde() that no missings 
+    # Note: missing already filtered out, this just informs kde() that no missings
     # are present.
     dat = ustrip(disallowmissing(getcolumn(series, colname)))
     # Makie.density!(
@@ -1129,7 +1129,7 @@ function prep_contours(series::AbstractSeries, sigmas, colname_row, colname_col;
     x = range(first(exx), last(exx), length=N)
     y = range(first(exy), last(exy), length=N)
     h = pdf.(Ref(ik), x, y')
-    
+
     # Calculate levels for contours
     levels = 1 .- exp.(-0.5 .* (1 ./sigmas).^2)
     ii = sortperm(reshape(h,:))

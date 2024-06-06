@@ -29,7 +29,7 @@ for cname in (:green,:red,:purple)
     fig = pairplot(
         table => (
             PairPlots.HexBin(colormap=Makie.cgrad([:transparent, color]),bins=32),
-            PairPlots.Scatter(filtersigma=2,color=color), 
+            PairPlots.Scatter(filtersigma=2,color=color),
             PairPlots.Contour(),
             PairPlots.MarginDensity(
                 color=:transparent,
