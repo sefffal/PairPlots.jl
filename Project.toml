@@ -37,6 +37,7 @@ PairPlotsDynamicUnitfulExt = "Unitful"
 [compat]
 Contour = "0.6"
 Distributions = "0.25"
+DynamicQuantities = "0.14"
 KernelDensity = "0.6"
 LinearAlgebra = "1"
 MCMCChains = "5.0, 6.0"
