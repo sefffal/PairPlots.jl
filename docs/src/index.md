@@ -37,10 +37,11 @@ features:
 ```
 
 
+```@raw html
 <p style="margin-bottom:2cm"></p>
 
 <div class="vp-doc" style="width:80%; margin:auto">
-
+```
 This package produces pair plots, otherwise known as corner plots or scatter plot matrices: grids of 1D and 2D histograms that allow you to visualize high dimensional data. Both Julia and Python are supported (PairPlots.jl and pairplots.py).
 
 Pair plots are an excellent way to visualize the results of MCMC simulations, but are also a useful way to visualize correlations in general data tables.
@@ -50,6 +51,8 @@ PairPlots is inspired by the excellent [corner.py](https://corner.readthedocs.io
 The current version of PairPlots uses the [Makie](https://docs.makie.org/stable/) plotting library. If instead you prefer to use Plots.jl, you can install the legacy version `0.6` of PairPlots (see [archived documentation here](https://github.com/sefffal/PairPlots.jl/blob/b632abd79c0dfbe7387d44393f4fb5b7f74ac5d8/README.md))
 
 
+```@raw html
 </div>
+```
 
 
