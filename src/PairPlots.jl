@@ -637,7 +637,8 @@ function pairplot(
     diagaxis=(;),
     bodyaxis=(;),
     legend=(;),
-    fullgrid=false
+    fullgrid=false,
+    flipaxislabels=false
 )
 
     # Filter out rows with any missing values from each series
@@ -736,28 +737,54 @@ function pairplot(
         end
 
         # Hide labels etc. as needed for a compact view
-        if row_ind < N
-            kw = (;xlabelvisible=false, xticklabelsvisible=false, xticksvisible=false, kw...)
-            # Makie.hidexdecorations!(ax, grid=false)
-        end
-        if col_ind > 1 || row_ind == 1
-            kw = (;ylabelvisible=false, yticklabelsvisible=false, yticksvisible=false, kw...)
-            # Makie.hideydecorations!(ax, grid=false)
-        end
+        if flipaxislabels
+            if 1 < row_ind
+                kw = (;xlabelvisible=false, xticklabelsvisible=false, xticksvisible=false, kw...)
+            end
+            if col_ind < N
+                kw = (;ylabelvisible=false, yticklabelsvisible=false, yticksvisible=false, kw...)
+            end
 
-        # # Detect if we have too many digits per tick label, and if so,
-        # # slightly rotate them to fit without crowding.
-        if row_ind == N
-            kw = (;
-                xticklabelrotation = (pi/4),
-                kw...,
-            )
-        end
-        if col_ind == 1
-            kw = (;
-                yticklabelrotation = (pi/4),
-                kw...,
-            )
+            # Rotate tick labels to avoid overlap in some cases.
+            # Ideally we would detect when this is necessary but I found the code was too complicated
+            if row_ind == 1
+                kw = (;
+                    xticklabelrotation = (pi/4),
+                    xaxisposition=:top,
+                    yaxisposition=:right,
+                    kw...,
+                )
+            end
+            if col_ind == N
+                kw = (;
+                    yticklabelrotation = (pi/4),
+                    xaxisposition=:top,
+                    yaxisposition=:right,
+                    kw...,
+                )
+            end
+        else
+            if row_ind < N
+                kw = (;xlabelvisible=false, xticklabelsvisible=false, xticksvisible=false, kw...)
+            end
+            if col_ind > 1 || row_ind == 1
+                kw = (;ylabelvisible=false, yticklabelsvisible=false, yticksvisible=false, kw...)
+            end
+
+            # Rotate tick labels to avoid overlap in some cases.
+            # Ideally we would detect when this is necessary but I found the code was too complicated
+            if row_ind == N
+                kw = (;
+                    xticklabelrotation = (pi/4),
+                    kw...,
+                )
+            end
+            if col_ind == 1
+                kw = (;
+                    yticklabelrotation = (pi/4),
+                    kw...,
+                )
+            end
         end
 
         ax = Makie.Axis(
@@ -937,12 +964,29 @@ function diagplot(ax::Makie.Axis, viz::MarginHist, series::AbstractSeries, colna
 
     x, weights = viz.prepare_hist(dat,  bins)
 
+    # This lets one visualize very different scale PDFs on the same plot.
+    normalize = true
+    if haskey(series.kwargs, :normalize)
+        normalize = series.kwargs[:normalize]
+    end
+    if haskey(viz.kwargs, :normalize)
+        normalize = viz.kwargs[:normalize]
+    end
+
+    if !normalize
+        weights ./= maximum(weights)
+    end
+
+    kw = (;
+        series.kwargs...,
+        viz.kwargs...,
+    )
+    kw = delete(kw, :normalize)
 
     Makie.barplot!(
         ax, x, weights;
         gap = 0,
-        series.kwargs...,
-        viz.kwargs...,
+        kw...
     )
     Makie.ylims!(ax,low=0)
 end
@@ -967,10 +1011,29 @@ function diagplot(ax::Makie.Axis, viz::MarginStepHist, series::AbstractSeries, c
     x, weights = viz.prepare_hist(dat,  bins)
 
 
-    Makie.stairs!(
-        ax, x .+ step(x)./2, weights;
+    # This lets one visualize very different scale PDFs on the same plot.
+    normalize = true
+    if haskey(series.kwargs, :normalize)
+        normalize = series.kwargs[:normalize]
+    end
+    if haskey(viz.kwargs, :normalize)
+        normalize = viz.kwargs[:normalize]
+    end
+
+    if !normalize
+        weights ./= maximum(weights)
+    end
+
+    kw = (;
         series.kwargs...,
         viz.kwargs...,
+    )
+    kw = delete(kw, :normalize)
+    kw = delete(kw, :bins)
+
+    Makie.stairs!(
+        ax, x .+ step(x)./2, weights;
+        kw...
     )
     Makie.ylims!(ax,low=0)
 end
@@ -997,9 +1060,25 @@ function diagplot(ax::Makie.Axis, viz::MarginDensity, series::AbstractSeries, co
     N = 100
     x = range(first(exx), last(exx), length=N)
     y = pdf.(Ref(ik), x)
+
+
+    # Sometimes it is preferable to scale different series so that the the mode has probability unity.
+    # This lets one visualize very different scale PDFs on the same plot.
+    normalize = true
+    if haskey(series.kwargs, :normalize)
+        normalize = series.kwargs[:normalize]
+    end
+    if haskey(viz.kwargs, :normalize)
+        normalize = viz.kwargs[:normalize]
+    end
+
+    if !normalize
+        y ./= maximum(y)
+    end
+
     Makie.lines!(ax, x, y;
-        delete(NamedTuple(series.kwargs), invalid_attrs_lines)...,
-        delete(NamedTuple(viz.kwargs), invalid_attrs_lines)...,
+        delete(NamedTuple(series.kwargs), invalid_attrs_lines2)...,
+        delete(NamedTuple(viz.kwargs), invalid_attrs_lines2)...,
     )
     Makie.ylims!(ax,low=0)
 end
@@ -1029,8 +1108,8 @@ function diagplot(ax::Makie.Axis, viz::MarginConfidenceLimits, series::AbstractS
         [mid-low, mid, mid+high];
         linestyle=:dash,
         depth_shift=-10f0,
-        delete(NamedTuple(series.kwargs), invalid_attrs_lines)...,
-        delete(NamedTuple(viz.kwargs), invalid_attrs_lines)...,
+        delete(NamedTuple(series.kwargs), invalid_attrs_lines2)...,
+        delete(NamedTuple(viz.kwargs), invalid_attrs_lines2)...,
     )
 end
 
@@ -1044,8 +1123,8 @@ function diagplot(ax::Makie.Axis, viz::MarginLines, series::AbstractSeries, coln
     Makie.vlines!(
         ax,
         dat;
-        delete(NamedTuple(series.kwargs), invalid_attrs_lines)...,
-        delete(NamedTuple(viz.kwargs), invalid_attrs_lines)...,
+        delete(NamedTuple(series.kwargs), invalid_attrs_lines2)...,
+        delete(NamedTuple(viz.kwargs), invalid_attrs_lines2)...,
     )
 end
 
@@ -1160,7 +1239,7 @@ function prep_contours(series::AbstractSeries, sigmas, colname_row, colname_col;
 end
 
 
-const invalid_attrs_lines = (:strokewidth, :strokecolor)
+const invalid_attrs_lines2 = (:strokewidth, :strokecolor, :normalize)
 
 function bodyplot(ax::Makie.Axis, viz::Contour, series, colname_row, colname_col)
     cn = columnnames(series)
@@ -1174,8 +1253,8 @@ function bodyplot(ax::Makie.Axis, viz::Contour, series, colname_row, colname_col
         # Makie.poly!(ax, Makie.Point2f.(zip(xs,ys)); strokewidth=2, series.kwargs...,  viz.kwargs..., color=:transparent, strokecolor=color)#(color, i/length(levels)))
         Makie.lines!(
             ax, xs, ys;
-            delete(NamedTuple(series.kwargs), invalid_attrs_lines)...,
-            delete(NamedTuple(viz.kwargs), invalid_attrs_lines)...,
+            delete(NamedTuple(series.kwargs), invalid_attrs_lines2)...,
+            delete(NamedTuple(viz.kwargs), invalid_attrs_lines2)...,
         )
     end
 end
@@ -1242,8 +1321,8 @@ function bodyplot(ax::Makie.Axis, viz::TrendLine, series::AbstractSeries, colnam
     end
     Makie.ablines!(
         ax, b, m;
-        delete(NamedTuple(series.kwargs), invalid_attrs_lines)...,
-        delete(NamedTuple(viz.kwargs), invalid_attrs_lines)...,
+        delete(NamedTuple(series.kwargs), invalid_attrs_lines2)...,
+        delete(NamedTuple(viz.kwargs), invalid_attrs_lines2)...,
     )
     return
 end
@@ -1283,16 +1362,16 @@ function bodyplot(ax::Makie.Axis, viz::BodyLines, series::AbstractSeries, colnam
         xall = getcolumn(series, colname_row)
         Makie.hlines!(
             ax,xall;
-            delete(NamedTuple(series.kwargs), invalid_attrs_lines)...,
-            delete(NamedTuple(viz.kwargs), invalid_attrs_lines)...,
+            delete(NamedTuple(series.kwargs), invalid_attrs_lines2)...,
+            delete(NamedTuple(viz.kwargs), invalid_attrs_lines2)...,
         )
     end
     if colname_col ∈ cn
         yall = getcolumn(series, colname_col)
         Makie.vlines!(
             ax,yall;
-            delete(NamedTuple(series.kwargs), invalid_attrs_lines)...,
-            delete(NamedTuple(viz.kwargs), invalid_attrs_lines)...,
+            delete(NamedTuple(series.kwargs), invalid_attrs_lines2)...,
+            delete(NamedTuple(viz.kwargs), invalid_attrs_lines2)...,
         )
     end
 end
