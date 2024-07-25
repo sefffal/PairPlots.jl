@@ -1216,7 +1216,7 @@ function prep_contours(series::AbstractSeries, sigmas, colname_row, colname_col;
     sm = cumsum(h2flat)
     sm /= sm[end]
     if all(isnan, sm) || length(h) <= 1
-        @warn "Could not compute valid contours"
+        @warn "Could not compute valid contours between $colname_col and $colname_row"
         V = [0]
     else
         V = sort(map(v0 -> h2flat[sm .≤ v0][end], levels))
