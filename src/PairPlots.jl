@@ -230,7 +230,7 @@ function margin_confidence_default_formatter(low,mid,high)
         end
         @static if VERSION >= v"1.10"
             title = @sprintf(
-                "\$%.*f",
+                "%.*f",
                 digits_after_dot, mid,
             )
         else
