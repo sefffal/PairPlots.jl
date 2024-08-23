@@ -1186,15 +1186,30 @@ function bodyplot(ax::Makie.Axis, viz::HexBin, series::AbstractSeries, colname_r
         Y = ustrip(disallowmissing(getcolumn(series, colname_row)))
         # Determine the number of bins to use, and allow series or
         # visualization layer to override.
-        bins = max(7, ceil(Int, 1.8log2(length(X))) + 1)
-        bins = get(series.kwargs, :bins, bins)
-        bins = get(viz.kwargs, :bins, bins)
+        if haskey(series.bins, colname_row) && series.bins[colname_row] isa Number
+            xbins = series.bins[colname_row]
+        else
+            # Determine the number of bins to use, and allow series or
+            # visualization layer to override.
+            xbins = max(7, ceil(Int, 1.8log2(length(X))) + 1)
+            xbins = get(series.kwargs, :bins, xbins)
+            xbins = get(viz.kwargs, :bins, xbins)
+        end
+        if haskey(series.bins, colname_col) && series.bins[colname_col] isa Number
+            ybins = series.bins[colname_col]
+        else
+            # Determine the number of bins to use, and allow series or
+            # visualization layer to override.
+            ybins = max(7, ceil(Int, 1.8log2(length(Y))) + 1)
+            ybins = get(series.kwargs, :bins, ybins)
+            ybins = get(viz.kwargs, :bins, ybins)
+        end
         Makie.hexbin!(
             ax,
             X,
             Y;
             colormap=Makie.cgrad([:transparent, :black]),
-            bins,
+            bins=(xbins,ybins),
             delete(NamedTuple(series.kwargs), :color)...,
             delete(NamedTuple(viz.kwargs), :color)...,
         )
