@@ -58,6 +58,7 @@ struct Series{T,K} <: AbstractSeries where {T,K}
     table::T
     bottomleft::Bool
     topright::Bool
+    bins::Dict{Symbol,Any}
     kwargs::K
 end
 """
@@ -72,11 +73,12 @@ Examples:
 ser = Series(table; label="series 1", color=:red)
 ```
 """
-function Series(data; label=nothing,fullgrid=false,bottomleft=true,topright=fullgrid, kwargs...)
+function Series(data; label=nothing,fullgrid=false,bottomleft=true,topright=fullgrid,bins=Dict{Symbol,Any}(), kwargs...)
     if !Tables.istable(data)
         error("PairPlots expects a matrix or Tables.jl compatible table for each series.")
     end
-    Series(label, data,bottomleft,topright,kwargs)
+    bins = convert(Dict{Symbol,Any}, bins)
+    Series(label, data,bottomleft,topright,bins,kwargs)
 end
 """
     Series(matrix::AbstractMatrix; label=nothing, kwargs...)
@@ -84,13 +86,14 @@ end
 Convenience constructor to build a Series from an abstract matrix.
 The columns are named accordingly to the axes of the Matrix (usually :1 though N).
 """
-function Series(data::AbstractMatrix; label=nothing,fullgrid=false,bottomleft=true,topright=fullgrid, kwargs...)
+function Series(data::AbstractMatrix; label=nothing,fullgrid=false,bottomleft=true,topright=fullgrid,bins=Dict{Symbol,Any}(), kwargs...)
     column_labels = [Symbol(i) for i in axes(data,1)]
     table = NamedTuple([
         collabel => col
         for (collabel, col) in zip(column_labels, eachcol(data))
     ])
-    Series(label, table, bottomleft, topright, kwargs)
+    bins = convert(Dict{Symbol,Any}, bins)
+    Series(label, table, bottomleft, topright, bins, kwargs)
 end
 
 """
@@ -554,19 +557,21 @@ function pairplot(
     grid::Makie.GridLayout,
     @nospecialize datapairs::Any...;
     fullgrid=false,bottomleft=true,topright=fullgrid,
+    bins=Dict{Symbol,Any}(),
     kwargs...,
 )
     # Default to grayscale for a single series.
     # Otherwise fall back to cycling the colours ourselves.
     # The Makie color cycle functionality isn't quite flexible enough (but almost!).
 
+    bins = convert(Dict{Symbol,Any}, bins)
 
     series_i = 0
     function SeriesDefaults(dat)
         series_i += 1
         wc = Makie.wong_colors(0.5)
         color = wc[mod1(series_i, length(wc))]
-        return Series(dat; color, bottomleft, topright, topstrokecolor=color)
+        return Series(dat; color, bottomleft, topright, bins, strokecolor=color)
     end
 
     countser((data,vizlayers)::Pair) = countser(data)
@@ -576,10 +581,10 @@ function pairplot(
     len_datapairs_not_truth = sum(countser, datapairs)
 
     if len_datapairs_not_truth == 1
-        defaults1((data,vizlayers)::Pair) = Series(data; color=single_series_color) => vizlayers
+        defaults1((data,vizlayers)::Pair) = Series(data;  bottomleft, topright, bins, color=single_series_color) => vizlayers
         defaults1(series::Series) = series => single_series_default_viz
         defaults1(truths::Truth) = truths => truths_default_viz
-        defaults1(data::Any) = Series(data; bottomleft, topright, color=single_series_color) => single_series_default_viz
+        defaults1(data::Any) = Series(data; bottomleft, topright, bins, color=single_series_color) => single_series_default_viz
         return pairplot(grid, map(defaults1, datapairs)...; kwargs...)
     elseif len_datapairs_not_truth <= 5
         defaults_upto5((data,vizlayers)::Pair) = SeriesDefaults(data) => vizlayers
@@ -665,7 +670,7 @@ function pairplot(
         len_before = nrows(tbl)
         len_after = nrows(tbl_not_missing)
         push!(missing_counts, len_before - len_after)
-        return Series(series.label, tbl_not_missing, series.bottomleft, series.topright, series.kwargs) => vizlayers
+        return Series(series.label, tbl_not_missing, series.bottomleft, series.topright, series.bins, series.kwargs) => vizlayers
     end
 
     # We support multiple series that may have disjoint columns
@@ -805,7 +810,7 @@ function pairplot(
             xgridvisible=false,
             ygridvisible=false,
             # Ensure any axis title that gets added doesn't break the tight layout
-            alignmode = row_ind == 1 || !display_bottomleft_axes ? Makie.Inside() : Makie.Mixed(;left=nothing, right=nothing, bottom=nothing, top=Makie.Protrusion(0.0)),
+            alignmode = row_ind == 1 ? Makie.Inside() : Makie.Mixed(;left=nothing, right=nothing, bottom=nothing, top=Makie.Protrusion(display_bottomleft_axes ? 0.0 : 0.1)),
             xautolimitmargin=(0f0,0f0),
             yautolimitmargin= row_ind == col_ind ? (0f0, 0.05f0) : (0f0,0f0),
             # User options
@@ -993,15 +998,15 @@ function diagplot(ax::Makie.Axis, viz::MarginHist, series::AbstractSeries, colna
     end
     dat = ustrip(disallowmissing(getcolumn(series, colname)))
 
-    # Determine the number of bins to use, and allow series or
-    # visualization layer to override.
-    bins = max(7, ceil(Int, 1.8log2(length(dat))) + 1)
-    bins = get(series.kwargs, :bins, bins)
-    bins = get(viz.kwargs, :bins, bins)
-
-    # h = fit(Histogram, vec(dat); nbins=bins)
-    # x = range(first(h.edges[1])+step(h.edges[1])/2, step=step(h.edges[1]), length=size(h.weights,1))
-
+    if haskey(series.bins, colname)
+        bins = series.bins[colname]
+    else
+        # Determine the number of bins to use, and allow series or
+        # visualization layer to override.
+        bins = max(7, ceil(Int, 1.8log2(length(dat))) + 1)
+        bins = get(series.kwargs, :bins, bins)
+        bins = get(viz.kwargs, :bins, bins)
+    end
     x, weights = viz.prepare_hist(dat,  bins)
 
     # This lets one visualize very different scale PDFs on the same plot.
@@ -1041,13 +1046,15 @@ function diagplot(ax::Makie.Axis, viz::MarginStepHist, series::AbstractSeries, c
 
     # Determine the number of bins to use, and allow series or
     # visualization layer to override.
-    bins = max(7, ceil(Int, 1.8log2(length(dat))) + 1)
-    bins = get(series.kwargs, :bins, bins)
-    bins = get(viz.kwargs, :bins, bins)
-
-    # h = fit(Histogram, vec(dat); nbins=bins)
-    # x = range(first(h.edges[1])+step(h.edges[1])/2, step=step(h.edges[1]), length=size(h.weights,1))
-
+    if haskey(series.bins, colname)
+        bins = series.bins[colname]
+    else
+        # Determine the number of bins to use, and allow series or
+        # visualization layer to override.
+        bins = max(7, ceil(Int, 1.8log2(length(dat))) + 1)
+        bins = get(series.kwargs, :bins, bins)
+        bins = get(viz.kwargs, :bins, bins)
+    end
     x, weights = viz.prepare_hist(dat,  bins)
 
 
@@ -1210,15 +1217,25 @@ function bodyplot(ax::Makie.Axis, viz::Hist, series::AbstractSeries, colname_row
 
     # Determine the number of bins to use, and allow series or
     # visualization layer to override.
-    bins = max(7, ceil(Int, 1.8log2(length(xdat))) + 1)
-    bins = get(series.kwargs, :bins, bins)
-    bins = get(viz.kwargs, :bins, bins)
-
-    # h = fit(Histogram, (vec(xdat),vec(ydat)); nbins=bins)
-    # x = range(first(h.edges[1])+step(h.edges[1])/2, step=step(h.edges[1]), length=size(h.weights,1))
-    # y = range(first(h.edges[2])+step(h.edges[2])/2, step=step(h.edges[2]), length=size(h.weights,2))
-
-    x, y, weights = viz.prepare_hist(xdat, ydat, bins)
+    if haskey(series.bins, colname_row)
+        xbins = series.bins[colname_row]
+    else
+        # Determine the number of bins to use, and allow series or
+        # visualization layer to override.
+        xbins = max(7, ceil(Int, 1.8log2(length(xdat))) + 1)
+        xbins = get(series.kwargs, :bins, xbins)
+        xbins = get(viz.kwargs, :bins, xbins)
+    end
+    if haskey(series.bins, colname_col)
+        ybins = series.bins[colname_col]
+    else
+        # Determine the number of bins to use, and allow series or
+        # visualization layer to override.
+        ybins = max(7, ceil(Int, 1.8log2(length(ydat))) + 1)
+        ybins = get(series.kwargs, :bins, ybins)
+        ybins = get(viz.kwargs, :bins, ybins)
+    end
+    x, y, weights = viz.prepare_hist(xdat, ydat, xbins, ybins)
 
     Makie.heatmap!(
         ax,
@@ -1424,8 +1441,14 @@ end
 Use the StatsBase function to return a centered histogram from `vector` with `nbins`.
 Must return a tuple of bin centres, followed by bin weights (of the same length).
 """
-function prepare_hist(a, nbins)
+function prepare_hist(a, nbins::Integer)
     h = fit(Histogram, ustrip(disallowmissing(vec(a))); nbins)
+    h = normalize(h, mode=:pdf)
+    x = range(first(h.edges[1])+step(h.edges[1])/2, step=step(h.edges[1]), length=size(h.weights,1))
+    return x, h.weights
+end
+function prepare_hist(a, bins::Any)
+    h = fit(Histogram, ustrip(disallowmissing(vec(a))), bins;)
     h = normalize(h, mode=:pdf)
     x = range(first(h.edges[1])+step(h.edges[1])/2, step=step(h.edges[1]), length=size(h.weights,1))
     return x, h.weights
@@ -1437,8 +1460,14 @@ Use the StatsBase function to return a centered histogram from `vector` with `nb
 Must return a tuple of bin centres along the horizontal, bin centres along the vertical,
 and a matrix of bin weights (of matching dimensions).
 """
-function prepare_hist(a, b, nbins)
-    h = fit(Histogram, (ustrip(disallowmissing(vec(a))),ustrip(disallowmissing(vec(b)))); nbins)
+function prepare_hist(a, b, nbinsx::Integer, nbinsy::Integer)
+    h = fit(Histogram, (ustrip(disallowmissing(vec(a))),ustrip(disallowmissing(vec(b)))); nbins=(nbinsx,nbinsy))
+    x = range(first(h.edges[1])+step(h.edges[1])/2, step=step(h.edges[1]), length=size(h.weights,1))
+    y = range(first(h.edges[2])+step(h.edges[2])/2, step=step(h.edges[2]), length=size(h.weights,2))
+    return x, y, h.weights
+end
+function prepare_hist(a, b, xbins::Any, ybins::Any)
+    h = fit(Histogram, (ustrip(disallowmissing(vec(a))),ustrip(disallowmissing(vec(b)))), (xbins, ybins))
     x = range(first(h.edges[1])+step(h.edges[1])/2, step=step(h.edges[1]), length=size(h.weights,1))
     y = range(first(h.edges[2])+step(h.edges[2])/2, step=step(h.edges[2]), length=size(h.weights,2))
     return x, y, h.weights
