@@ -35,25 +35,29 @@ column name and returns a value or values.
 struct Truth{T,K} <: AbstractSeries where {T,K}
     label::Union{Nothing,String,Makie.RichText,Makie.LaTeXString}
     table::T
+    bottomleft::Bool
+    topright::Bool
     kwargs::K
 end
-function Truth(truths;label=nothing, kwargs...)
+function Truth(truths;fullgrid=false,bottomleft=true,topright=fullgrid,label=nothing, kwargs...)
     if !(keytype(truths) isa Symbol)
         truths = NamedTuple([
             Symbol(k) => v
             for (k,v) in pairs(truths)
         ])
     end
-    return Truth(label, truths, kwargs)
+    return Truth(label, truths,bottomleft, topright, kwargs)
 end
 # Can be removed once we only support Julia 1.10+
-Truth(truths::NamedTuple;label=nothing, kwargs...) = Truth(label, truths, kwargs)
+Truth(truths::NamedTuple;label=nothing, fullgrid=false,bottomleft=true,topright=fullgrid,kwargs...) = Truth(label, truths, bottomleft, topright, kwargs)
 
 
 
 struct Series{T,K} <: AbstractSeries where {T,K}
     label::Union{Nothing,String,Makie.RichText,Makie.LaTeXString}
     table::T
+    bottomleft::Bool
+    topright::Bool
     kwargs::K
 end
 """
@@ -68,11 +72,11 @@ Examples:
 ser = Series(table; label="series 1", color=:red)
 ```
 """
-function Series(data; label=nothing, kwargs...)
+function Series(data; label=nothing,fullgrid=false,bottomleft=true,topright=fullgrid, kwargs...)
     if !Tables.istable(data)
         error("PairPlots expects a matrix or Tables.jl compatible table for each series.")
     end
-    Series(label, data, kwargs)
+    Series(label, data,bottomleft,topright,kwargs)
 end
 """
     Series(matrix::AbstractMatrix; label=nothing, kwargs...)
@@ -80,13 +84,13 @@ end
 Convenience constructor to build a Series from an abstract matrix.
 The columns are named accordingly to the axes of the Matrix (usually :1 though N).
 """
-function Series(data::AbstractMatrix; label=nothing, kwargs...)
+function Series(data::AbstractMatrix; label=nothing,fullgrid=false,bottomleft=true,topright=fullgrid, kwargs...)
     column_labels = [Symbol(i) for i in axes(data,1)]
     table = NamedTuple([
         collabel => col
         for (collabel, col) in zip(column_labels, eachcol(data))
     ])
-    Series(label, table, kwargs)
+    Series(label, table, bottomleft, topright, kwargs)
 end
 
 """
@@ -549,6 +553,7 @@ PairPlots.Series(table1, color=Makie.wong_colors(0.5)[series_i]) => (
 function pairplot(
     grid::Makie.GridLayout,
     @nospecialize datapairs::Any...;
+    fullgrid=false,bottomleft=true,topright=fullgrid,
     kwargs...,
 )
     # Default to grayscale for a single series.
@@ -561,7 +566,7 @@ function pairplot(
         series_i += 1
         wc = Makie.wong_colors(0.5)
         color = wc[mod1(series_i, length(wc))]
-        return Series(dat; color, strokecolor=color)
+        return Series(dat; color, bottomleft, topright, topstrokecolor=color)
     end
 
     countser((data,vizlayers)::Pair) = countser(data)
@@ -574,7 +579,7 @@ function pairplot(
         defaults1((data,vizlayers)::Pair) = Series(data; color=single_series_color) => vizlayers
         defaults1(series::Series) = series => single_series_default_viz
         defaults1(truths::Truth) = truths => truths_default_viz
-        defaults1(data::Any) = Series(data; color=single_series_color) => single_series_default_viz
+        defaults1(data::Any) = Series(data; bottomleft, topright, color=single_series_color) => single_series_default_viz
         return pairplot(grid, map(defaults1, datapairs)...; kwargs...)
     elseif len_datapairs_not_truth <= 5
         defaults_upto5((data,vizlayers)::Pair) = SeriesDefaults(data) => vizlayers
@@ -637,9 +642,14 @@ function pairplot(
     diagaxis=(;),
     bodyaxis=(;),
     legend=(;),
-    fullgrid=false,
     flipaxislabels=false
 )
+
+    display_bottomleft_axes = any(k.bottomleft for (k,v) in pairs)
+    display_topright_axes = any(k.topright for (k,v) in pairs)
+    if display_topright_axes && !display_bottomleft_axes
+        flipaxislabels = true
+    end
 
     # Filter out rows with any missing values from each series
     # Keep track of how many we removed from each so that we can report
@@ -655,7 +665,7 @@ function pairplot(
         len_before = nrows(tbl)
         len_after = nrows(tbl_not_missing)
         push!(missing_counts, len_before - len_after)
-        return Series(series.label, tbl_not_missing, series.kwargs) => vizlayers
+        return Series(series.label, tbl_not_missing, series.bottomleft, series.topright, series.kwargs) => vizlayers
     end
 
     # We support multiple series that may have disjoint columns
@@ -695,13 +705,14 @@ function pairplot(
         any(v->isa(v, VizTypeDiag), vizlayers)
     end
 
-    last_diag_axis = nothing
+    orphaned_diag_axis = nothing
     # Build grid of nxn plots
     for row_ind in 1:N, col_ind in 1:N
 
-        # TODO: make this first condition optional to enable a full grid
-        # Also skip diagonals if no diagonal viz layers
-        if (!fullgrid && row_ind < col_ind) || (row_ind==col_ind && !anydiag_viz)
+        if (!display_topright_axes && row_ind < col_ind) || (row_ind==col_ind && !anydiag_viz)
+            continue
+        end
+        if (!display_bottomleft_axes && row_ind > col_ind) || (row_ind==col_ind && !anydiag_viz)
             continue
         end
 
@@ -794,7 +805,7 @@ function pairplot(
             xgridvisible=false,
             ygridvisible=false,
             # Ensure any axis title that gets added doesn't break the tight layout
-            alignmode = row_ind == 1 ? Makie.Inside() : Makie.Mixed(;left=nothing, right=nothing, bottom=nothing, top=Makie.Protrusion(0.0)),
+            alignmode = row_ind == 1 || !display_bottomleft_axes ? Makie.Inside() : Makie.Mixed(;left=nothing, right=nothing, bottom=nothing, top=Makie.Protrusion(0.0)),
             xautolimitmargin=(0f0,0f0),
             yautolimitmargin= row_ind == col_ind ? (0f0, 0.05f0) : (0f0,0f0),
             # User options
@@ -811,15 +822,22 @@ function pairplot(
         end
 
         axes_by_col[col_ind]= push!(get(axes_by_col, col_ind, Makie.Axis[]), ax)
-        if row_ind != col_ind
+        if row_ind != col_ind || (!display_bottomleft_axes && row_ind == N)
             axes_by_row[row_ind]= push!(get(axes_by_row, row_ind, Makie.Axis[]), ax)
-        elseif row_ind == N
-            last_diag_axis = ax
+        end
+        if (display_bottomleft_axes && row_ind == N) || (!display_bottomleft_axes && col_ind ==1 && row_ind == 1)
+            orphaned_diag_axis = ax
         end
 
         # For each slot, loop through all series and fill it in accordingly.
         # We have two slot types: bodyplot, like a 3D histogram, and diagplot, along the diagonal
         for (series, vizlayers) in pairs_no_missing
+            if (!series.topright && row_ind < col_ind)
+                continue
+            end
+            if (!series.bottomleft && row_ind > col_ind)
+                continue
+            end
             for vizlayer in vizlayers
                 if row_ind == col_ind && vizlayer isa VizTypeDiag
                     diagplot(ax, vizlayer, series, colname_row)
@@ -830,7 +848,6 @@ function pairplot(
                 end
             end
         end
-
     end
 
     # Link all axes
@@ -843,14 +860,28 @@ function pairplot(
     # Wishlist: link x axis of bottom right diagonal plot with y axis of bottom row.
 
     # Ensure labels are spaced nicely
-    if N > 1
+    if display_bottomleft_axes && N > 1
         last_row = axes_by_row[N]
-        if !isnothing(last_diag_axis)
-            push!(axes_by_row[N], last_diag_axis)
+        if !isnothing(orphaned_diag_axis)
+            push!(axes_by_row[N], orphaned_diag_axis)
         end
         yspace = maximum(Makie.tight_yticklabel_spacing!, last_row)
         xspace = maximum(Makie.tight_xticklabel_spacing!, axes_by_col[1])
         for ax in last_row
+            ax.xticklabelspace = xspace + 10
+        end
+        for ax in axes_by_col[1]
+            ax.yticklabelspace = yspace
+        end
+    end
+    if !display_bottomleft_axes && N > 1
+        first_row = axes_by_row[1]
+        if !isnothing(orphaned_diag_axis)
+            push!(first_row, orphaned_diag_axis)
+        end
+        xspace = maximum(Makie.tight_xticklabel_spacing!, first_row)
+        yspace = maximum(Makie.tight_yticklabel_spacing!, axes_by_col[N])
+        for ax in first_row
             ax.xticklabelspace = xspace + 10
         end
         for ax in axes_by_col[1]
@@ -876,14 +907,23 @@ function pairplot(
         if !anydiag_viz
             M -= 1
         end
+        if display_bottomleft_axes && !display_topright_axes
+            pos = grid[M == 1 ? 1 : end-1, M <= 2 ? 2 : M ]
+        elseif !display_bottomleft_axes && display_topright_axes
+            # TODO
+            pos = grid[M == 1 ? 1 : end, N <= 2 ? 2 : M-1 ]
+        else
+            # Extend the grid out sideways to accomodate
+            pos = grid[begin,end+1] 
+        end
         Makie.Legend(
-            fullgrid ? grid[begin,end+1] : grid[M == 1 ? 1 : end-1, M <= 2 ? 2 : M ],
+            pos,
             collect(legend_entries),
             collect(legend_strings);
             tellwidth=false,
             tellheight=false,
-            valign = :bottom,
-            halign = :left,
+            valign = display_bottomleft_axes ? :bottom : :top,
+            halign = display_bottomleft_axes ? :left : :right,
             legend...
         )
     end
@@ -914,7 +954,7 @@ function pairplot(
             end
             missing_text = Makie.rich("$missing_count rows with missing values are hidden from series $label."; kwargs...)
         end
-        # Add an annotation to the bottom listing the counts of missin values that
+        # Add an annotation to the bottom listing the counts of missing values that
         # were skipped.
         Makie.Label(
             grid[end+1,:],
