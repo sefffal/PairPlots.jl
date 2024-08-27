@@ -988,6 +988,7 @@ pairplot(df, bins=Dict(
 ))
 ```
 
+
 The bin ranges don't directly control the axis limits. To control those, use the axis argument:
 ```@example 1
 pairplot(df, bins=Dict(
@@ -995,6 +996,37 @@ pairplot(df, bins=Dict(
         :β => -10:0.02:15,
         :γ => -5:0.1:5,
         :δ => -10:1:10,
+    ),
+    axis = Dict(
+        :α => (;lims=(low=0, high=5)),
+        :β => (;lims=(low=0, high=5)),
+        :γ => (;lims=(low=0, high=5)),
+        :δ => (;lims=(low=0, high=5)),
+    )
+)
+```
+
+
+Be aware that the `HexBin` layer doesn't obey specific bin ranges. If you want the body 2D histograms to match, then you should replace `HexBin` with `Hist`:
+```@example 1
+pairplot(
+    df=>(
+        PairPlots.Hist(colormap=Makie.cgrad([:transparent, "#333"])),
+        PairPlots.Scatter(filtersigma=2),
+        PairPlots.Contour(linewidth=1.5),
+        PairPlots.MarginHist(color=Makie.RGBA(0.4,0.4,0.4,0.15)),
+        PairPlots.MarginStepHist(color=Makie.RGBA(0.4,0.4,0.4,0.8)),
+        PairPlots.MarginDensity(
+            color=:black,
+            linewidth=1.5f0
+        ),
+        PairPlots.MarginConfidenceLimits(),
+    ),
+    bins=Dict(
+        :α => 0:0.01:5,
+        :β => 0:0.1:5,
+        :γ => 0:0.25:5,
+        :δ => 0:1:5,
     ),
     axis = Dict(
         :α => (;lims=(low=0, high=5)),
