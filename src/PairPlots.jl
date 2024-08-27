@@ -876,7 +876,7 @@ function pairplot(
             ax.xticklabelspace = xspace + 10
         end
         for ax in axes_by_col[1]
-            ax.yticklabelspace = yspace
+            ax.yticklabelspace = yspace + 10
         end
     end
     if !display_bottomleft_axes && N > 1
@@ -890,7 +890,7 @@ function pairplot(
             ax.xticklabelspace = xspace + 10
         end
         for ax in axes_by_col[1]
-            ax.yticklabelspace = yspace
+            ax.yticklabelspace = yspace + 10
         end
 
     end
