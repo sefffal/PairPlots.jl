@@ -1250,7 +1250,7 @@ function bodyplot(ax::Makie.Axis, viz::Hist, series::AbstractSeries, colname_row
         ybins = get(series.kwargs, :bins, ybins)
         ybins = get(viz.kwargs, :bins, ybins)
     end
-    x, y, weights = viz.prepare_hist(xdat, ydat, xbins, ybins)
+    x, y, weights = viz.prepare_hist(xdat, ydat, ybins, xbins)
 
     Makie.heatmap!(
         ax,
