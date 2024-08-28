@@ -868,10 +868,10 @@ function pairplot(
     if display_bottomleft_axes && N > 1
         last_row = axes_by_row[N]
         if !isnothing(orphaned_diag_axis)
-            push!(axes_by_row[N], orphaned_diag_axis)
+            push!(last_row, orphaned_diag_axis)
         end
-        yspace = maximum(Makie.tight_yticklabel_spacing!, last_row)
-        xspace = maximum(Makie.tight_xticklabel_spacing!, axes_by_col[1])
+        yspace = maximum(Makie.tight_yticklabel_spacing!, axes_by_col[1])
+        xspace = maximum(Makie.tight_xticklabel_spacing!, last_row)
         for ax in last_row
             ax.xticklabelspace = xspace + 10
         end
