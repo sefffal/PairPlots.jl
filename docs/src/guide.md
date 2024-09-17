@@ -204,6 +204,9 @@ pairplots.pairplot(
 ```
 
 That is, it accepts a list of pairs of "series objects" and a tuple of "visualization layers". As we'll see later on, you can pass keyword arguments with a series, or a specific visualization layer to customize their behaviour and appearance.
+
+:::
+
 If you don't need to adjust any parameters for a whole series, you can just pass in a data source and PairPlots will wrap it for you:
 
 ::: tabs
@@ -223,6 +226,8 @@ pairplots.pairplot(
     data => (pairplots.viztype1, pairplots.viztype2, ...),
 )
 ```
+
+:::
 
 Let's see how this works by iteratively building up the default visualization.
 
