@@ -1427,7 +1427,7 @@ function PairPlots.bodyplot(ax::Makie.Axis, viz::Calculation, series::AbstractSe
     else
         text = @eval @sprintf(
             $("%s = \$%.$(viz.digits)f"),
-            viz.label, c
+            $viz.label, $c
         )
     end
     Makie.text!(
