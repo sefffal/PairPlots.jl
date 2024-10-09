@@ -16,9 +16,11 @@ const single_series_default_viz = (
     ),
     PairPlots.MarginConfidenceLimits()
 )
-const multi_series_default_viz = (
+# const 
+multi_series_default_viz3 = (
     PairPlots.Scatter(filtersigma=2),
-    PairPlots.Contourf(),
+    PairPlots.Contour(sigmas=2:2),
+    PairPlots.Contourf(alpha=0.6,sigmas=1:1),
     PairPlots.MarginDensity(
         linewidth=2.5f0
     )

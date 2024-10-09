@@ -569,7 +569,7 @@ function pairplot(
     series_i = 0
     function SeriesDefaults(dat)
         series_i += 1
-        wc = Makie.wong_colors(0.5)
+        wc = Makie.wong_colors()
         color = wc[mod1(series_i, length(wc))]
         return Series(dat; color, bottomleft, topright, bins, strokecolor=color)
     end
@@ -588,9 +588,9 @@ function pairplot(
         return pairplot(grid, map(defaults1, datapairs)...; kwargs...)
     elseif len_datapairs_not_truth <= 5
         defaults_upto5((data,vizlayers)::Pair) = SeriesDefaults(data) => vizlayers
-        defaults_upto5(series::Series) = series => multi_series_default_viz
+        defaults_upto5(series::Series) = series => multi_series_default_viz3
         defaults_upto5(truths::Truth) = truths => truths_default_viz
-        defaults_upto5(data::Any) = SeriesDefaults(data) => multi_series_default_viz
+        defaults_upto5(data::Any) = SeriesDefaults(data) => multi_series_default_viz3
         return pairplot(grid, map(defaults_upto5, datapairs)...; kwargs...)
     else # More than 5 series
         defaults_morethan5((data,vizlayers)::Pair) = SeriesDefaults(data) => vizlayers
@@ -868,15 +868,15 @@ function pairplot(
     if display_bottomleft_axes && N > 1
         last_row = axes_by_row[N]
         if !isnothing(orphaned_diag_axis)
-            push!(axes_by_row[N], orphaned_diag_axis)
+            push!(last_row, orphaned_diag_axis)
         end
-        yspace = maximum(Makie.tight_yticklabel_spacing!, last_row)
-        xspace = maximum(Makie.tight_xticklabel_spacing!, axes_by_col[1])
+        yspace = maximum(Makie.tight_yticklabel_spacing!, axes_by_col[1])
+        xspace = maximum(Makie.tight_xticklabel_spacing!, last_row)
         for ax in last_row
             ax.xticklabelspace = xspace + 10
         end
         for ax in axes_by_col[1]
-            ax.yticklabelspace = yspace
+            ax.yticklabelspace = yspace + 10
         end
     end
     if !display_bottomleft_axes && N > 1
@@ -890,7 +890,7 @@ function pairplot(
             ax.xticklabelspace = xspace + 10
         end
         for ax in axes_by_col[1]
-            ax.yticklabelspace = yspace
+            ax.yticklabelspace = yspace + 10
         end
 
     end
@@ -1250,7 +1250,7 @@ function bodyplot(ax::Makie.Axis, viz::Hist, series::AbstractSeries, colname_row
         ybins = get(series.kwargs, :bins, ybins)
         ybins = get(viz.kwargs, :bins, ybins)
     end
-    x, y, weights = viz.prepare_hist(xdat, ydat, xbins, ybins)
+    x, y, weights = viz.prepare_hist(xdat, ydat, ybins, xbins)
 
     Makie.heatmap!(
         ax,
@@ -1338,9 +1338,22 @@ function bodyplot(ax::Makie.Axis, viz::Contourf, series::AbstractSeries, colname
     end
     c = prep_contours(series::AbstractSeries, viz.sigmas, colname_row, colname_col; viz.bandwidth)
     levels = ContourLib.levels(c)
+    # Work around bug here https://github.com/MakieOrg/Makie.jl/issues/3735
+    merged_kw = (;series.kwargs...,viz.kwargs...)
+    if hasproperty(merged_kw, :alpha) && hasproperty(merged_kw, :color)
+        color = merged_kw.color
+        alpha = merged_kw.alpha
+        if color isa Tuple
+            color = (color[1], color[2]*alpha)
+        else
+            color = (color, alpha)
+        end
+        merged_kw = (;delete(merged_kw, :color)...,color)
+    end
+
     for (i,level) in enumerate(levels), poly in ContourLib.lines(level)
         xs, ys = ContourLib.coordinates(poly)
-        Makie.poly!(ax, Makie.Point2f.(zip(xs,ys)); series.kwargs..., viz.kwargs...)#(color, 1/length(levels)))
+        Makie.poly!(ax, Makie.Point2f.(zip(xs,ys)); merged_kw...)
     end
 end
 
@@ -1414,7 +1427,7 @@ function PairPlots.bodyplot(ax::Makie.Axis, viz::Calculation, series::AbstractSe
     else
         text = @eval @sprintf(
             $("%s = \$%.$(viz.digits)f"),
-            viz.label, c
+            $viz.label, $c
         )
     end
     Makie.text!(

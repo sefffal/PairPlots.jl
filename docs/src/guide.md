@@ -122,6 +122,28 @@ pairplots.pairplot(df, fullgrid=True)
 pairplot(df, fullgrid=true) # hide
 ```
 
+The `fullgrid` option is short for `bottomleft=true` and `topright=true`. We can specify these individually to create a top-right corner plot:
+
+::: tabs
+
+== julia
+
+```julia
+pairplot(df, bottomleft=false, topright=true)
+```
+
+== python
+
+```python
+pairplots.pairplot(df, bottomleft=False, topright=True)
+```
+
+:::
+
+```@example 1
+pairplot(df, bottomleft=false, topright=true) # hide
+```
+
 
 Override the axis labels:
 
@@ -182,6 +204,9 @@ pairplots.pairplot(
 ```
 
 That is, it accepts a list of pairs of "series objects" and a tuple of "visualization layers". As we'll see later on, you can pass keyword arguments with a series, or a specific visualization layer to customize their behaviour and appearance.
+
+:::
+
 If you don't need to adjust any parameters for a whole series, you can just pass in a data source and PairPlots will wrap it for you:
 
 ::: tabs
@@ -201,6 +226,8 @@ pairplots.pairplot(
     data => (pairplots.viztype1, pairplots.viztype2, ...),
 )
 ```
+
+:::
 
 Let's see how this works by iteratively building up the default visualization.
 
@@ -939,6 +966,84 @@ fig
 
 ![](ex24.png)
 
+## Customize bins
+
+There are a few different ways you can customize the bin sizing.
+
+
+First, you can customize the number of bins by passing the argument `bins=n` to relevant series, eg `Hist(bins=10)`.
+
+Second, you can specify the number of bins by series by passing a dictionary of bin sizes:
+```@example 1
+pairplot(df, bins=Dict(
+    :α => 5,
+    :β => 10,
+    :γ => 20,
+    :δ => 40,
+))
+```
+
+Third, you can specify the exact bin ranges for all series. Note! If you go this route, you must provide the bin ranges (not counts) for all series, not just some series. You can't mix and match.
+```@example 1
+pairplot(df, bins=Dict(
+    :α => -5:0.01:15,
+    :β => -10:0.02:15,
+    :γ => -5:0.1:5,
+    :δ => -10:1:10,
+))
+```
+
+
+The bin ranges don't directly control the axis limits. To control those, use the axis argument:
+```@example 1
+pairplot(df, bins=Dict(
+        :α => -5:0.01:15,
+        :β => -10:0.02:15,
+        :γ => -5:0.1:5,
+        :δ => -10:1:10,
+    ),
+    axis = Dict(
+        :α => (;lims=(low=0, high=5)),
+        :β => (;lims=(low=0, high=5)),
+        :γ => (;lims=(low=0, high=5)),
+        :δ => (;lims=(low=0, high=5)),
+    )
+)
+```
+
+
+Be aware that the `HexBin` layer doesn't obey specific bin ranges. If you want the body 2D histograms to match, then you should replace `HexBin` with `Hist`:
+```@example 1
+pairplot(
+    df=>(
+        PairPlots.Hist(colormap=Makie.cgrad([:transparent, "#333"])),
+        PairPlots.Scatter(filtersigma=2),
+        PairPlots.Contour(linewidth=1.5),
+        PairPlots.MarginHist(color=Makie.RGBA(0.4,0.4,0.4,0.15)),
+        PairPlots.MarginStepHist(color=Makie.RGBA(0.4,0.4,0.4,0.8)),
+        PairPlots.MarginDensity(
+            color=:black,
+            linewidth=1.5f0
+        ),
+        PairPlots.MarginConfidenceLimits(),
+    ),
+    bins=Dict(
+        :α => 0:0.01:5,
+        :β => 0:0.1:5,
+        :γ => 0:0.25:5,
+        :δ => 0:1:5,
+    ),
+    axis = Dict(
+        :α => (;lims=(low=0, high=5)),
+        :β => (;lims=(low=0, high=5)),
+        :γ => (;lims=(low=0, high=5)),
+        :δ => (;lims=(low=0, high=5)),
+    )
+)
+```
+
+You can either pass the `bins` dict for an entire pair plot, or for particular series by using it as an argument to `Series`.
+
 ## Layouts
 The `pairplot` function integrates easily within larger Makie Figures.
 
@@ -1109,3 +1214,172 @@ pairplots.pairplot(
 :::
 
 ![](ex27.png)
+
+## Comparing series across the diagonal
+
+If you want to place one series on the left side of the plot and another series on the right side of the plot, you can specify `bottomleft` and `topright` separately for each series:
+
+```@example 1
+
+table1 = (;
+    x = 2randn(10000),
+    y = 3randn(10000),
+    z = randn(10000),
+)
+
+table2 = (;
+    x = 2 .+ randn(10000),
+    y = 4 .+ randn(10000),
+    z = 2 .- randn(10000),
+)
+
+c1 = Makie.wong_colors()[1]
+layers_series_1 = (
+    PairPlots.Scatter(filtersigma=3, color=c1, markersize=2),
+    PairPlots.Contourf(strokewidth=1.5,color=(c1,0.15), bandwidth=2, sigmas=[1,3]),
+    PairPlots.MarginHist(color=(c1, 0.15)),
+    PairPlots.MarginStepHist(color=(c1, 0.8)),
+    PairPlots.MarginDensity(
+        color=c1,
+        linewidth=1.5f0
+    ),
+)
+
+c2 = Makie.wong_colors()[2]
+layers_series_2 = (
+    PairPlots.Scatter(filtersigma=3, color=c2, markersize=2),
+    PairPlots.Contourf(strokewidth=1.5,color=(c2,0.15), bandwidth=2, sigmas=[1,3]),
+    PairPlots.MarginHist(color=(c2,0.15)),
+    PairPlots.MarginStepHist(color=(c2,0.8)),
+    PairPlots.MarginDensity(
+        color=c2,
+        linewidth=1.5f0
+    ),
+)
+
+pairplot(
+    PairPlots.Series(table1, bottomleft=true, topright=false) => layers_series_1,
+    PairPlots.Series(table2, bottomleft=false, topright=true) => layers_series_2,
+)
+```
+
+
+Another alternative would be to put one on both sides, and the other only on one side:
+```@example 1
+pairplot(
+    PairPlots.Series(table1, bottomleft=true, topright=false) => layers_series_1,
+    PairPlots.Series(table2, bottomleft=true, topright=true) => layers_series_2,
+)
+```
+
+
+
+## Merging two separate pair plots
+
+If you want to combine two distinct pair plots, you can do so by plotting into your own
+figure object, and setting `bottomleft` and `topright` appropriately. 
+
+For example, this might be useful if you want to compare two series with very different variances.
+
+```@example 1
+
+
+table1 = (;
+    x = 20randn(10000),
+    y = 30randn(10000),
+    z = 50randn(10000),
+    α = 15randn(10000),
+)
+
+table2 = (;
+    x = 2 .+ randn(10000),
+    y = 4 .+ randn(10000),
+    z = 2 .- randn(10000),
+    α = 5 .- randn(10000),
+)
+
+
+fig = Figure(
+    # You will need to adjust this yourself to make all the text etc.
+    # the right size
+    size=(800,800)
+)
+
+
+c1 = Makie.wong_colors()[1]
+layers_series_1 = (
+    PairPlots.Scatter(filtersigma=3, color=c1, markersize=2),
+    PairPlots.Contourf(strokewidth=1.5,color=(c1,0.15), bandwidth=2, sigmas=[1,3]),
+    PairPlots.MarginHist(color=(c1, 0.15)),
+    PairPlots.MarginStepHist(color=(c1, 0.8)),
+    PairPlots.MarginDensity(
+        color=c1,
+        linewidth=1.5f0
+    ),
+)
+
+c2 = Makie.wong_colors()[2]
+layers_series_2 = (
+    PairPlots.Scatter(filtersigma=3, color=c2, markersize=2),
+    PairPlots.Contourf(strokewidth=1.5,color=(c2,0.15), bandwidth=2, sigmas=[1,3]),
+    PairPlots.MarginHist(color=(c2,0.15)),
+    PairPlots.MarginStepHist(color=(c2,0.8)),
+    PairPlots.MarginDensity(
+        color=c2,
+        linewidth=1.5f0
+    ),
+)
+
+
+# You can either:
+# (A) plot into any layout range of your figure directly by passing `fig[?,?]` to pairplot() for free layout
+# or (B) plot into a shared GridLayout to get nice alignment between the halves:
+gs = GridLayout(fig[1,1])
+
+pairplot(
+    gs[2:5,1:4],
+    table1 => layers_series_1,
+    # table2 => layers_series_2,
+    bottomleft=true, topright=false
+)
+
+pairplot(
+    gs[1:4,2:5],
+    table2 => layers_series_2,
+    bottomleft=false, topright=true
+)
+fig
+```
+
+
+Finally, here's one more alternative layout to drive your readers mad:
+```@example 1
+fig = Figure(
+    # You will need to adjust this yourself to make all the text etc.
+    # the right size
+    size=(800,800)
+)
+
+
+
+
+# Now the key part: call pairplot twice into different parts of the figure:
+pairplot(
+    fig[1,2],
+    table1 => layers_series_1,
+    # table2 => layers_series_2,
+    bottomleft=true, topright=false
+)
+
+pairplot(
+    fig[2,1],
+    table2 => layers_series_2,
+    bottomleft=false, topright=true
+)
+
+rowgap!(fig.layout,-70)
+colgap!(fig.layout,-70)
+
+
+fig
+```

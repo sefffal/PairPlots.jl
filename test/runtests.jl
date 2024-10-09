@@ -32,6 +32,16 @@ Tables.schema(t::CustomTable) = Tables.schema(t.data)
         table => (PairPlots.Hist(), PairPlots.MarginHist())
     ) isa Figure
     @test pairplot(hcat(table.a, table.b)) isa Figure
+    @test pairplot(
+        table => (PairPlots.Hist(), PairPlots.TrendLine())
+    ) isa Figure
+    @test pairplot(
+        table => (PairPlots.Hist(), PairPlots.Correlation())
+    ) isa Figure
+    @test pairplot(
+        table => (PairPlots.Hist(),),
+        PairPlots.Truth((; a = 0.0, b = 0.0))
+    ) isa Figure
 
     ctable = CustomTable(table)
     @test pairplot(ctable) isa Figure
