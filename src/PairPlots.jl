@@ -1468,7 +1468,7 @@ function PairPlots.bodyplot(ax::Makie.Axis, viz::Calculation, series::AbstractSe
     else
         text = @eval @sprintf(
             $("%s = \$%.$(viz.digits)f"),
-            viz.label, c
+            $viz.label, $c
         )
     end
     Makie.text!(
@@ -1594,7 +1594,6 @@ function getcolumn(table, name)
 end
 
 include("defaults.jl")
-include("correlgrid.jl")
 include("precompile.jl")
 
 end
