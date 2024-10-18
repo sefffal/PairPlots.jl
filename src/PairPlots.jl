@@ -606,9 +606,9 @@ function pairplot(
         return pairplot(grid, map(defaults1, datapairs)...; kwargs...)
     elseif len_datapairs_not_truth <= 5
         defaults_upto5((data,vizlayers)::Pair) = SeriesDefaults(data) => vizlayers
-        defaults_upto5(series::Series) = series => multi_series_default_viz3
+        defaults_upto5(series::Series) = series => multi_series_default_viz
         defaults_upto5(truths::Truth) = truths => truths_default_viz
-        defaults_upto5(data::Any) = SeriesDefaults(data) => multi_series_default_viz3
+        defaults_upto5(data::Any) = SeriesDefaults(data) => multi_series_default_viz
         return pairplot(grid, map(defaults_upto5, datapairs)...; kwargs...)
     else # More than 5 series
         defaults_morethan5((data,vizlayers)::Pair) = SeriesDefaults(data) => vizlayers
