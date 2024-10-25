@@ -314,9 +314,10 @@ function _apply_user_format_string(format)
     end
 end
 
+
 """
-    MarginConfidenceLimits(format_string::AbstractString; kwargs...)
-    MarginConfidenceLimits(formatter::Base.Callable=margin_confidence_default_formatter; kwargs...)
+    MarginConfidenceLimits(format_string::AbstractString, (0.16,0.5,0.84); kwargs...)
+    MarginConfidenceLimits(formatter::Base.Callable=margin_confidence_default_formatter, (0.16,0.5,0.84); kwargs...)
 
 """
 struct MarginConfidenceLimits <: VizTypeDiag
@@ -327,6 +328,23 @@ struct MarginConfidenceLimits <: VizTypeDiag
         return new(_apply_user_format_string(format),  quantiles, kwargs)
     end
     function MarginConfidenceLimits(formatter::Base.Callable=margin_confidence_default_formatter, quantiles=(0.16, 0.5, 0.84); kwargs...)
+        return new(formatter, quantiles, kwargs)
+    end
+end
+
+"""
+    MarginQuantileLines(format_string::AbstractString; kwargs...)
+    MarginQuantileLines(formatter::Base.Callable=margin_confidence_default_formatter; kwargs...)
+
+"""
+struct MarginQuantileLines <: VizTypeDiag
+    formatter::Base.Callable
+    quantiles::NTuple{3,Number}
+    kwargs
+    function MarginQuantileLines(format::AbstractString, quantiles=(0.16, 0.5, 0.84); kwargs...)
+        return new(_apply_user_format_string(format),  quantiles, kwargs)
+    end
+    function MarginQuantileLines(formatter::Base.Callable=margin_confidence_default_formatter, quantiles=(0.16, 0.5, 0.84); kwargs...)
         return new(formatter, quantiles, kwargs)
     end
 end
@@ -588,9 +606,9 @@ function pairplot(
         return pairplot(grid, map(defaults1, datapairs)...; kwargs...)
     elseif len_datapairs_not_truth <= 5
         defaults_upto5((data,vizlayers)::Pair) = SeriesDefaults(data) => vizlayers
-        defaults_upto5(series::Series) = series => multi_series_default_viz3
+        defaults_upto5(series::Series) = series => multi_series_default_viz
         defaults_upto5(truths::Truth) = truths => truths_default_viz
-        defaults_upto5(data::Any) = SeriesDefaults(data) => multi_series_default_viz3
+        defaults_upto5(data::Any) = SeriesDefaults(data) => multi_series_default_viz
         return pairplot(grid, map(defaults_upto5, datapairs)...; kwargs...)
     else # More than 5 series
         defaults_morethan5((data,vizlayers)::Pair) = SeriesDefaults(data) => vizlayers
@@ -1149,6 +1167,29 @@ function diagplot(ax::Makie.Axis, viz::MarginConfidenceLimits, series::AbstractS
         prev_title = prev_title * " "
     end
     ax.title = Makie.latexstring(prev_title, title)
+
+    Makie.vlines!(
+        ax,
+        [mid-low, mid, mid+high];
+        linestyle=:dash,
+        depth_shift=-10f0,
+        delete(NamedTuple(series.kwargs), invalid_attrs_lines2)...,
+        delete(NamedTuple(viz.kwargs), invalid_attrs_lines2)...,
+    )
+end
+
+
+function diagplot(ax::Makie.Axis, viz::MarginQuantileLines, series::AbstractSeries, colname)
+    cn = columnnames(series)
+    if colname ∉ cn
+        return
+    end
+    dat = ustrip(disallowmissing(vec(getcolumn(series, colname))))
+
+    quantiles = quantile(dat, viz.quantiles)
+    mid = quantiles[2]
+    low = mid - quantiles[1]
+    high = quantiles[3] - mid
 
     Makie.vlines!(
         ax,
