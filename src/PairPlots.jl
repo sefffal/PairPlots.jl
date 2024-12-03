@@ -9,7 +9,7 @@ using Printf
 using KernelDensity: KernelDensity
 using Contour: Contour as ContourLib
 using OrderedCollections: OrderedDict
-using StatsBase: fit, quantile, Histogram, cor
+using StatsBase: fit, quantile, Histogram, cor, std
 using Distributions: pdf
 using StaticArrays
 using PolygonOps
@@ -17,6 +17,7 @@ using LinearAlgebra: LinearAlgebra
 using LinearAlgebra: normalize
 using Missings
 using NamedTupleTools
+using MCMCDiagnosticTools: MCMCDiagnosticTools
 
 """
     AbstractSeries
@@ -930,23 +931,18 @@ function pairplot(
         if !anydiag_viz
             M -= 1
         end
-        if display_bottomleft_axes && !display_topright_axes
-            pos = grid[M == 1 ? 1 : end-1, M <= 2 ? 2 : M ]
-        elseif !display_bottomleft_axes && display_topright_axes
-            # TODO
-            pos = grid[M == 1 ? 1 : end, N <= 2 ? 2 : M-1 ]
-        else
-            # Extend the grid out sideways to accomodate
-            pos = grid[begin,end+1] 
-        end
+        pos = grid[begin,end+1] 
+
         Makie.Legend(
             pos,
             collect(legend_entries),
             collect(legend_strings);
-            tellwidth=false,
+            # tellwidth=false,
             tellheight=false,
-            valign = display_bottomleft_axes ? :bottom : :top,
-            halign = display_bottomleft_axes ? :left : :right,
+            # valign = display_bottomleft_axes ? :bottom : :top,
+            # halign = display_bottomleft_axes ? :left : :right,
+            valign=:top,
+            halign=:right,
             legend...
         )
     end
@@ -1021,7 +1017,8 @@ function diagplot(ax::Makie.Axis, viz::MarginHist, series::AbstractSeries, colna
     else
         # Determine the number of bins to use, and allow series or
         # visualization layer to override.
-        bins = max(7, ceil(Int, 1.8log2(length(dat))) + 1)
+        n_ess_dat = MCMCDiagnosticTools.ess(dat)
+        bins = max(7, ceil(Int, 1.8log2(n_ess_dat)) + 1)
         bins = get(series.kwargs, :bins, bins)
         bins = get(viz.kwargs, :bins, bins)
     end
@@ -1069,7 +1066,8 @@ function diagplot(ax::Makie.Axis, viz::MarginStepHist, series::AbstractSeries, c
     else
         # Determine the number of bins to use, and allow series or
         # visualization layer to override.
-        bins = max(7, ceil(Int, 1.8log2(length(dat))) + 1)
+        n_ess_dat = MCMCDiagnosticTools.ess(dat)
+        bins = max(7, ceil(Int, 1.8log2(n_ess_dat)) + 1)
         bins = get(series.kwargs, :bins, bins)
         bins = get(viz.kwargs, :bins, bins)
     end
@@ -1118,7 +1116,7 @@ function diagplot(ax::Makie.Axis, viz::MarginDensity, series::AbstractSeries, co
     #     viz.kwargs...,
     # )
 
-    k  = KernelDensity.kde(dat, bandwidth=KernelDensity.default_bandwidth(dat).*viz.bandwidth)
+    k  = KernelDensity.kde(dat, bandwidth=default_bandwidth_ess(dat).*viz.bandwidth)
     ik = KernelDensity.InterpKDE(k)
 
     exx = extrema(dat)
@@ -1232,7 +1230,8 @@ function bodyplot(ax::Makie.Axis, viz::HexBin, series::AbstractSeries, colname_r
         else
             # Determine the number of bins to use, and allow series or
             # visualization layer to override.
-            xbins = max(7, ceil(Int, 1.8log2(length(X))) + 1)
+            n_ess_dat = MCMCDiagnosticTools.ess(X)
+            xbins = max(7, ceil(Int, 1.8log2(n_ess_dat)) + 1)
             xbins = get(series.kwargs, :bins, xbins)
             xbins = get(viz.kwargs, :bins, xbins)
         end
@@ -1241,7 +1240,8 @@ function bodyplot(ax::Makie.Axis, viz::HexBin, series::AbstractSeries, colname_r
         else
             # Determine the number of bins to use, and allow series or
             # visualization layer to override.
-            ybins = max(7, ceil(Int, 1.8log2(length(Y))) + 1)
+            n_ess_dat = MCMCDiagnosticTools.ess(Y)
+            ybins = max(7, ceil(Int, 1.8log2(n_ess_dat)) + 1)
             ybins = get(series.kwargs, :bins, ybins)
             ybins = get(viz.kwargs, :bins, ybins)
         end
@@ -1312,7 +1312,7 @@ function prep_contours(series::AbstractSeries, sigmas, colname_row, colname_col;
     xdat = ustrip(disallowmissing(getcolumn(series, colname_col)))
     ydat = ustrip(disallowmissing(getcolumn(series, colname_row)))
     dat = (xdat, ydat)
-    k  = KernelDensity.kde(dat, bandwidth=KernelDensity.default_bandwidth(dat).*bandwidth)
+    k  = KernelDensity.kde(dat, bandwidth=(default_bandwidth_ess(xdat),default_bandwidth_ess(ydat)).*bandwidth)
     ik = KernelDensity.InterpKDE(k)
 
     exx = extrema(xdat)
@@ -1500,6 +1500,35 @@ function bodyplot(ax::Makie.Axis, viz::BodyLines, series::AbstractSeries, colnam
             delete(NamedTuple(viz.kwargs), invalid_attrs_lines2)...,
         )
     end
+end
+
+# Bandwidth calculations using ESS instead of sample size
+# Adapted from KernelDensity.jl
+# Silverman's rule of thumb for KDE bandwidth selection
+function default_bandwidth_ess(data::AbstractVector{<:Real}, alpha::Float64 = 0.9)
+    # Determine length of data
+    ndata = length(data)
+    ndata <= 1 && return alpha
+
+    n_ess = MCMCDiagnosticTools.ess(data)
+
+    # Calculate width using variance and IQR
+    var_width = std(data)
+    q25, q75 = quantile(data, [0.25, 0.75])
+    quantile_width = (q75 - q25) / 1.34
+
+    # Deal with edge cases with 0 IQR or variance
+    width = min(var_width, quantile_width)
+    if width == 0.0
+        if var_width == 0.0
+            width = 1.0
+        else
+            width = var_width
+        end
+    end
+
+    # Set bandwidth using Silverman's rule of thumb
+    return alpha * width * n_ess^(-0.2)
 end
 
 
