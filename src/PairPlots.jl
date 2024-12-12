@@ -1018,6 +1018,9 @@ function diagplot(ax::Makie.Axis, viz::MarginHist, series::AbstractSeries, colna
         # Determine the number of bins to use, and allow series or
         # visualization layer to override.
         n_ess_dat = MCMCDiagnosticTools.ess(dat)
+        if !isfinite(n_ess_dat)
+            n_ess_dat = length(dat)
+        end
         bins = max(7, ceil(Int, 1.8log2(n_ess_dat)) + 1)
         bins = get(series.kwargs, :bins, bins)
         bins = get(viz.kwargs, :bins, bins)
@@ -1067,6 +1070,9 @@ function diagplot(ax::Makie.Axis, viz::MarginStepHist, series::AbstractSeries, c
         # Determine the number of bins to use, and allow series or
         # visualization layer to override.
         n_ess_dat = MCMCDiagnosticTools.ess(dat)
+        if !isfinite(n_ess_dat)
+            n_ess_dat = length(dat)
+        end
         bins = max(7, ceil(Int, 1.8log2(n_ess_dat)) + 1)
         bins = get(series.kwargs, :bins, bins)
         bins = get(viz.kwargs, :bins, bins)
@@ -1231,6 +1237,9 @@ function bodyplot(ax::Makie.Axis, viz::HexBin, series::AbstractSeries, colname_r
             # Determine the number of bins to use, and allow series or
             # visualization layer to override.
             n_ess_dat = MCMCDiagnosticTools.ess(X)
+            if !isfinite(n_ess_dat)
+                n_ess_dat = length(dat)
+            end
             xbins = max(7, ceil(Int, 1.8log2(n_ess_dat)) + 1)
             xbins = get(series.kwargs, :bins, xbins)
             xbins = get(viz.kwargs, :bins, xbins)
@@ -1241,6 +1250,9 @@ function bodyplot(ax::Makie.Axis, viz::HexBin, series::AbstractSeries, colname_r
             # Determine the number of bins to use, and allow series or
             # visualization layer to override.
             n_ess_dat = MCMCDiagnosticTools.ess(Y)
+            if !isfinite(n_ess_dat)
+                n_ess_dat = length(dat)
+            end
             ybins = max(7, ceil(Int, 1.8log2(n_ess_dat)) + 1)
             ybins = get(series.kwargs, :bins, ybins)
             ybins = get(viz.kwargs, :bins, ybins)
