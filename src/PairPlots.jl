@@ -236,17 +236,7 @@ function margin_confidence_default_formatter(low,mid,high)
         else
             digits_after_dot = max(0, 1 - round(Int, log10(abs(mid))))
         end
-        @static if VERSION >= v"1.10"
-            title = @sprintf(
-                "%.*f",
-                digits_after_dot, mid,
-            )
-        else
-            title = @eval @sprintf(
-                $("\$%.$(digits_after_dot)f\$"),
-                $mid,
-            )
-        end
+        title = @sprintf("%.*f",digits_after_dot, mid,)
         return title
     end
 
@@ -255,53 +245,41 @@ function margin_confidence_default_formatter(low,mid,high)
 
     if use_scientific
         if round(low, digits=digits_after_dot) == round(high, digits=digits_after_dot)
-            title = @sprintf(
-                "\$(%.1f \\pm %.1f)\\times 10^{-%d}\$",
-                mid*10^(digits_after_dot-1),
-                high*10^(digits_after_dot-1),
-                (digits_after_dot-1)
+            title = Makie.rich(
+                "(",
+                @sprintf("%.1f", mid*10^(digits_after_dot-1)),
+                " ± ",
+                @sprintf("%.1f", high*10^(digits_after_dot-1)),
+                ") × 10",
+                Makie.superscript(@sprintf("-%d", digits_after_dot-1))
             )
         else
-            title = @sprintf(
-                "\$(%.1f^{+%.1f}_{-%.1f})\\times 10^{-%d}\$",
-                mid*10^(digits_after_dot-1),
-                high*10^(digits_after_dot-1),
-                low*10^(digits_after_dot-1),
-                (digits_after_dot-1)
+            title = Makie.rich(
+                "( ",
+                @sprintf("%.1f", mid*10^(digits_after_dot-1)),
+                Makie.left_subsup(
+                    @sprintf("-%.1f", low*10^(digits_after_dot-1)),
+                    @sprintf("+%.1f", high*10^(digits_after_dot-1))
+                ),
+                " ) × 10",
+                Makie.superscript(@sprintf("-%d", digits_after_dot-1))
             )
         end
     else
-        # '*' format specifier only supported in Julia 1.10+
-        @static if VERSION >= v"1.10"
-            if round(low, digits=digits_after_dot) == round(high, digits=digits_after_dot)
-                title = @sprintf(
-                    "\$%.*f \\pm %.*f\$",
-                    digits_after_dot, mid,
-                    digits_after_dot, high,
-                )
-            else
-                title = @sprintf(
-                    "\$%.*f^{+%.*f}_{-%.*f}\$",
-                    digits_after_dot, mid,
-                    digits_after_dot, high,
-                    digits_after_dot, low
-                )
-            end
+        if round(low, digits=digits_after_dot) == round(high, digits=digits_after_dot)
+            title = Makie.rich(
+                @sprintf("%.*f", digits_after_dot, mid,),
+                " ± ",
+                @sprintf("%.*f", digits_after_dot, high),
+            )
         else
-            if round(low, digits=digits_after_dot) == round(high, digits=digits_after_dot)
-                title = @eval @sprintf(
-                    $("\$%.$(digits_after_dot)f \\pm %.$(digits_after_dot)f\$"),
-                    $mid,
-                    $high,
+            title = Makie.rich(
+                @sprintf("%.*f", digits_after_dot, mid),
+                Makie.left_subsup(
+                    @sprintf("-%.*f", digits_after_dot, low),
+                    @sprintf("+%.*f", digits_after_dot, high),
                 )
-            else
-                title = @eval @sprintf(
-                    $("\$%.$(digits_after_dot)f^{+%.$(digits_after_dot)f}_{-%.$(digits_after_dot)f}\$"),
-                    $mid,
-                    $high,
-                    $low
-                )
-            end
+            )
         end
     end
 
@@ -317,18 +295,18 @@ end
 
 
 """
-    MarginConfidenceLimits(format_string::AbstractString, (0.16,0.5,0.84); kwargs...)
-    MarginConfidenceLimits(formatter::Base.Callable=margin_confidence_default_formatter, (0.16,0.5,0.84); kwargs...)
+    MarginCredibleInterval(format_string::AbstractString, (0.16,0.5,0.84); kwargs...)
+    MarginCredibleInterval(formatter::Base.Callable=margin_confidence_default_formatter, (0.16,0.5,0.84); kwargs...)
 
 """
-struct MarginConfidenceLimits <: VizTypeDiag
+struct MarginCredibleInterval <: VizTypeDiag
     formatter::Base.Callable
     quantiles::NTuple{3,Number}
     kwargs
-    function MarginConfidenceLimits(format::AbstractString, quantiles=(0.16, 0.5, 0.84); kwargs...)
+    function MarginCredibleInterval(format::AbstractString, quantiles=(0.16, 0.5, 0.84); kwargs...)
         return new(_apply_user_format_string(format),  quantiles, kwargs)
     end
-    function MarginConfidenceLimits(formatter::Base.Callable=margin_confidence_default_formatter, quantiles=(0.16, 0.5, 0.84); kwargs...)
+    function MarginCredibleInterval(formatter::Base.Callable=margin_confidence_default_formatter, quantiles=(0.16, 0.5, 0.84); kwargs...)
         return new(formatter, quantiles, kwargs)
     end
 end
@@ -339,16 +317,13 @@ end
 
 """
 struct MarginQuantileLines <: VizTypeDiag
-    formatter::Base.Callable
     quantiles::NTuple{3,Number}
     kwargs
-    function MarginQuantileLines(format::AbstractString, quantiles=(0.16, 0.5, 0.84); kwargs...)
-        return new(_apply_user_format_string(format),  quantiles, kwargs)
-    end
-    function MarginQuantileLines(formatter::Base.Callable=margin_confidence_default_formatter, quantiles=(0.16, 0.5, 0.84); kwargs...)
-        return new(formatter, quantiles, kwargs)
+    function MarginQuantileLines(quantiles=(0.16, 0.5, 0.84); kwargs...)
+        return new(quantiles, kwargs)
     end
 end
+
 
 """
     MarginHist(;kwargs...)
@@ -536,7 +511,7 @@ pairplot(
             color=:black,
             linewidth=1.5f0
         ),
-        PairPlots.MarginConfidenceLimits()
+        PairPlots.MarginCredibleInterval()
     )
 )
 ```
@@ -1153,7 +1128,7 @@ function diagplot(ax::Makie.Axis, viz::MarginDensity, series::AbstractSeries, co
 end
 
 
-function diagplot(ax::Makie.Axis, viz::MarginConfidenceLimits, series::AbstractSeries, colname)
+function diagplot(ax::Makie.Axis, viz::MarginCredibleInterval, series::AbstractSeries, colname)
     cn = columnnames(series)
     if colname ∉ cn
         return
@@ -1168,18 +1143,11 @@ function diagplot(ax::Makie.Axis, viz::MarginConfidenceLimits, series::AbstractS
     title = viz.formatter(low,mid,high)
     prev_title = ax.title[]
     if length(string(prev_title)) > 0
-        prev_title = prev_title * " "
+        prev_title = Makie.rich(prev_title, "\n")
     end
-    ax.title = Makie.latexstring(prev_title, title)
-
-    Makie.vlines!(
-        ax,
-        [mid-low, mid, mid+high];
-        linestyle=:dash,
-        depth_shift=-10f0,
-        delete(NamedTuple(series.kwargs), invalid_attrs_lines2)...,
-        delete(NamedTuple(viz.kwargs), invalid_attrs_lines2)...,
-    )
+    ax.title = Makie.rich(prev_title, title; series.kwargs..., viz.kwargs...)
+    
+    return
 end
 
 
@@ -1475,14 +1443,7 @@ function PairPlots.bodyplot(ax::Makie.Axis, viz::Calculation, series::AbstractSe
     X = ustrip(disallowmissing(getcolumn(series, colname_col)))
     Y = ustrip(disallowmissing(getcolumn(series, colname_row)))
     c = viz.f(X, Y)
-    @static if VERSION >= v"1.10"
-        text = @sprintf("%s = %0.*f", viz.label, viz.digits, c)
-    else
-        text = @eval @sprintf(
-            $("%s = \$%.$(viz.digits)f"),
-            $viz.label, $c
-        )
-    end
+    text = @sprintf("%s = %0.*f", viz.label, viz.digits, c)
     Makie.text!(
         ax,
         [viz.position];

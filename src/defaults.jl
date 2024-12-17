@@ -12,9 +12,10 @@ const single_series_default_viz = (
     PairPlots.MarginStepHist(color=Makie.RGBA(0.4,0.4,0.4,0.8)),
     PairPlots.MarginDensity(
         color=:black,
-        linewidth=1.5f0
+        linewidth=1.5f0,
     ),
-    PairPlots.MarginConfidenceLimits()
+    PairPlots.MarginCredibleInterval(color=:black,font=:regular),
+    PairPlots.MarginQuantileLines(),
 )
 const multi_series_default_viz = (
     PairPlots.Scatter(filtersigma=2),
@@ -22,7 +23,8 @@ const multi_series_default_viz = (
     PairPlots.Contourf(alpha=0.6,sigmas=1:1),
     PairPlots.MarginDensity(
         linewidth=2.5f0
-    )
+    ),
+    PairPlots.MarginCredibleInterval(font=:bold),
 )
 const many_series_default_viz = (
     PairPlots.Contour(sigmas=[1]),
