@@ -36,7 +36,7 @@ Tables.schema(t::CustomTable) = Tables.schema(t.data)
         table => (PairPlots.Hist(), PairPlots.TrendLine())
     ) isa Figure
     @test pairplot(
-        table => (PairPlots.Hist(), PairPlots.Correlation())
+        table => (PairPlots.Hist(), PairPlots.PearsonCorrelation())
     ) isa Figure
     @test pairplot(
         table => (PairPlots.Hist(),),
