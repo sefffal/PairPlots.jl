@@ -587,7 +587,7 @@ pairplots.pairplot(
 ![](ex14.png)
 
 
-Add credible/confidence limits (see the documentation for MarginConfidenceLimits to see how to change the quantiles):
+Add credible/confidence limit titles (see the documentation for MarginQuantileText and MarginQuantileLines to see how to change the quantiles):
 
 
 
@@ -601,9 +601,9 @@ pairplot(
         PairPlots.HexBin(colormap=Makie.cgrad([:transparent, :black])),
         PairPlots.Scatter(filtersigma=2, color=:black),
         PairPlots.Contour(color=:black),
-        # New:
         PairPlots.MarginHist(),
-        PairPlots.MarginConfidenceLimits(),
+        # New:
+        PairPlots.MarginQuantileText(),
     )
 )
 save("ex15.png", ans) # hide
@@ -618,9 +618,9 @@ pairplots.pairplot(
         pairplots.HexBin(colormap=pairplots.Makie.cgrad(['transparent', 'black'])),
         pairplots.Scatter(filtersigma=2, color='black'),
         pairplots.Contour(color='black'),
-        # New:
         pairplots.MarginHist(),
-        pairplots.MarginConfidenceLimits(),
+        # New:
+        pairplots.MarginQuantileText(),
     ))
 )
 ```
@@ -628,6 +628,49 @@ pairplots.pairplot(
 :::
 
 ![](ex15.png)
+
+
+We can also include lines in the plot using `MarginQuantileLines`:
+
+
+::: tabs
+
+== julia
+
+```@example 1
+pairplot(
+    df => (
+        PairPlots.HexBin(colormap=Makie.cgrad([:transparent, :black])),
+        PairPlots.Scatter(filtersigma=2, color=:black),
+        PairPlots.Contour(color=:black),
+        PairPlots.MarginHist(),
+        PairPlots.MarginQuantileText(),
+        # New:
+        PairPlots.MarginQuantileLines(),
+    )
+)
+save("ex15b.png", ans) # hide
+nothing # hide
+```
+
+== python
+
+```python
+pairplots.pairplot(
+    (df, (
+        pairplots.HexBin(colormap=pairplots.Makie.cgrad(['transparent', 'black'])),
+        pairplots.Scatter(filtersigma=2, color='black'),
+        pairplots.Contour(color='black'),
+        pairplots.MarginHist(),
+        # New:
+        pairplots.MarginQuantileText(),
+    ))
+)
+```
+
+:::
+
+![](ex15b.png)
 
 
 
@@ -731,7 +774,7 @@ pairplot(
         PairPlots.Scatter(),
         PairPlots.MarginHist(),
         PairPlots.TrendLine(color=:red), # default is red
-        PairPlots.Correlation()
+        PairPlots.PearsonCorrelation()
     ),
     fullgrid=true
 )
@@ -747,7 +790,7 @@ pairplots.pairplot(
         pairplots.Scatter(),
         pairplots.MarginHist(),
         pairplots.TrendLine(color='red'), # default is red
-        pairplots.Correlation()
+        pairplots.PearsonCorrelation()
     )),
     fullgrid=True
 )
@@ -756,7 +799,7 @@ pairplots.pairplot(
 
 ![](ex18.png)
 
-`PairPlots.Correlation()` is an alias for `PairPlots.Calculation(StatsBase.cov)`. Feel free to pass any function that accepts two AbstractVectors and calculates a number:
+`PairPlots.PearsonCorrelation()` is an alias for `PairPlots.Calculation(StatsBase.cor)`. Feel free to pass any function that accepts two AbstractVectors and calculates a number:
 ```@example 1
 using StatsBase
 pairplot(
@@ -1025,7 +1068,8 @@ pairplot(
             color=:black,
             linewidth=1.5f0
         ),
-        PairPlots.MarginConfidenceLimits(),
+        PairPlots.MarginQuantileText(color=:black,font=:regular),
+        PairPlots.MarginQuantileLines(),
     ),
     bins=Dict(
         :α => 0:0.01:5,
@@ -1189,7 +1233,7 @@ You can customize each series independently if you wish.
 
 ```@example 1
 pairplot(
-    table2 => (PairPlots.HexBin(colormap=:magma), PairPlots.MarginDensity(color=:orange),  PairPlots.MarginConfidenceLimits(color=:black)),
+    table2 => (PairPlots.HexBin(colormap=:magma), PairPlots.MarginDensity(color=:orange),  PairPlots.MarginQuantileText(color=:black)),
     table1 => (PairPlots.Contour(color=:cyan, strokewidth=5),),
 )
 save("ex27.png", ans) # hide
@@ -1203,7 +1247,7 @@ pairplots.pairplot(
     (table2, (
         pairplots.HexBin(colormap='magma'),
         pairplots.MarginDensity(color='orange'),
-        pairplots.MarginConfidenceLimits(color='black')
+        pairplots.MarginQuantileText(color='black')
     )),
     (table1, (
         pairplots.Contour(color='cyan', strokewidth=5),)

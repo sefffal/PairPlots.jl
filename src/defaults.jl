@@ -14,7 +14,7 @@ const single_series_default_viz = (
         color=:black,
         linewidth=1.5f0,
     ),
-    PairPlots.MarginCredibleInterval(color=:black,font=:regular),
+    PairPlots.MarginQuantileText(color=:black,font=:regular),
     PairPlots.MarginQuantileLines(),
 )
 const multi_series_default_viz = (
@@ -24,7 +24,7 @@ const multi_series_default_viz = (
     PairPlots.MarginDensity(
         linewidth=2.5f0
     ),
-    PairPlots.MarginCredibleInterval(font=:bold),
+    PairPlots.MarginQuantileText(font=:bold),
 )
 const many_series_default_viz = (
     PairPlots.Contour(sigmas=[1]),

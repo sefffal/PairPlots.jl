@@ -295,18 +295,18 @@ end
 
 
 """
-    MarginCredibleInterval(format_string::AbstractString, (0.16,0.5,0.84); kwargs...)
-    MarginCredibleInterval(formatter::Base.Callable=margin_confidence_default_formatter, (0.16,0.5,0.84); kwargs...)
+    MarginQuantileText(format_string::AbstractString, (0.16,0.5,0.84); kwargs...)
+    MarginQuantileText(formatter::Base.Callable=margin_confidence_default_formatter, (0.16,0.5,0.84); kwargs...)
 
 """
-struct MarginCredibleInterval <: VizTypeDiag
+struct MarginQuantileText <: VizTypeDiag
     formatter::Base.Callable
     quantiles::NTuple{3,Number}
     kwargs
-    function MarginCredibleInterval(format::AbstractString, quantiles=(0.16, 0.5, 0.84); kwargs...)
+    function MarginQuantileText(format::AbstractString, quantiles=(0.16, 0.5, 0.84); kwargs...)
         return new(_apply_user_format_string(format),  quantiles, kwargs)
     end
-    function MarginCredibleInterval(formatter::Base.Callable=margin_confidence_default_formatter, quantiles=(0.16, 0.5, 0.84); kwargs...)
+    function MarginQuantileText(formatter::Base.Callable=margin_confidence_default_formatter, quantiles=(0.16, 0.5, 0.84); kwargs...)
         return new(formatter, quantiles, kwargs)
     end
 end
@@ -402,14 +402,14 @@ function Calculation(f::Base.Callable; position=Makie.Point2f(0.01, 1.0), digits
 end
 
 """
-    Correlation(;digits=3, position=Makie.Point2f(0.01, 1.0), kwargs...)
+    PearsonCorrelation(;digits=3, position=Makie.Point2f(0.01, 1.0), kwargs...)
 
 Calculate the correlation between two variables and add it as a text label to the plot.
 This is an alias for `Calculation(StatsBase.cor)`.
 You can adjust the number of digits, the location of the text, etc. See `Calculation`
 for more details.
 """
-function Correlation(;kwargs...)
+function PearsonCorrelation(;kwargs...)
     return Calculation(cor; kwargs...)
 end
 
@@ -511,7 +511,7 @@ pairplot(
             color=:black,
             linewidth=1.5f0
         ),
-        PairPlots.MarginCredibleInterval()
+        PairPlots.MarginQuantileText()
     )
 )
 ```
@@ -1128,7 +1128,7 @@ function diagplot(ax::Makie.Axis, viz::MarginDensity, series::AbstractSeries, co
 end
 
 
-function diagplot(ax::Makie.Axis, viz::MarginCredibleInterval, series::AbstractSeries, colname)
+function diagplot(ax::Makie.Axis, viz::MarginQuantileText, series::AbstractSeries, colname)
     cn = columnnames(series)
     if colname ∉ cn
         return
