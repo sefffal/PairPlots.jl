@@ -12,11 +12,12 @@ PairPlots.VizTypeDiag
 PairPlots.HexBin
 PairPlots.Hist
 PairPlots.Calculation
-PairPlots.Correlation
+PairPlots.PearsonCorrelation
 PairPlots.Contour
 PairPlots.Contourf
 PairPlots.Scatter
-PairPlots.MarginConfidenceLimits
+PairPlots.MarginQuantileText
+PairPlots.MarginQuantileLines
 PairPlots.MarginHist
 PairPlots.MarginStepHist
 PairPlots.MarginDensity
