@@ -1343,7 +1343,6 @@ function bodyplot(ax::Makie.Axis, viz::Contour, series, colname_row, colname_col
     levels = ContourLib.levels(c)
     for (i,level) in enumerate(levels), poly in ContourLib.lines(level)
         xs, ys = ContourLib.coordinates(poly)
-        # Makie.poly!(ax, Makie.Point2f.(zip(xs,ys)); strokewidth=2, series.kwargs...,  viz.kwargs..., color=:transparent, strokecolor=color)#(color, i/length(levels)))
         Makie.lines!(
             ax, xs, ys;
             delete(NamedTuple(series.kwargs), invalid_attrs_lines2)...,
@@ -1372,9 +1371,18 @@ function bodyplot(ax::Makie.Axis, viz::Contourf, series::AbstractSeries, colname
         merged_kw = (;delete(merged_kw, :color)...,color)
     end
 
-    for (i,level) in enumerate(levels), poly in ContourLib.lines(level)
-        xs, ys = ContourLib.coordinates(poly)
-        Makie.poly!(ax, Makie.Point2f.(zip(xs,ys)); merged_kw...)
+    # for (i,level) in enumerate(levels), poly in ContourLib.lines(level)
+    #     xs, ys = ContourLib.coordinates(poly)
+    #     Makie.poly!(ax, Makie.Point2f.(zip(xs,ys)); merged_kw...)
+    # end
+    for (i,level) in enumerate(levels)
+        polygons = process_ring_contours(level)
+        for p in polygons
+            Makie.poly!(ax, p, color=:blue; merged_kw...)
+        end
+        # , poly in ContourLib.lines(level)
+        # xs, ys = ContourLib.coordinates(poly)
+        # Makie.poly!(ax, Makie.Point2f.(zip(xs,ys)); merged_kw...)
     end
 end
 
@@ -1485,6 +1493,10 @@ function default_bandwidth_ess(data::AbstractVector{<:Real}, alpha::Float64 = 0.
 
     n_ess = MCMCDiagnosticTools.ess(data)
 
+    if n_ess <= 1 || !isfinite(n_ess)
+        n_ess = ndata
+    end
+
     # Calculate width using variance and IQR
     var_width = std(data)
     q25, q75 = quantile(data, [0.25, 0.75])
@@ -1542,6 +1554,91 @@ function prepare_hist(a, b, xbins::Any, ybins::Any)
     x = range(first(h.edges[1])+step(h.edges[1])/2, step=step(h.edges[1]), length=size(h.weights,1))
     y = range(first(h.edges[2])+step(h.edges[2])/2, step=step(h.edges[2]), length=size(h.weights,2))
     return x, y, h.weights
+end
+
+
+#################
+# Functions to post-process Contours.jl contour levels in order to deal with holes in the contours.
+# Makie supports plotting e.g. ring contours with holes as poly series, but out of the box, Contours.jl
+# doesn't identify these for us, and instead returns two separate rings.
+function process_ring_contours(contours::ContourLib.ContourLevel)
+    Point2f = Makie.Point2f
+    Polygon = Makie.Polygon
+    Curve2 = ContourLib.Curve2
+
+
+    # Group contours by connectivity
+    disconnected_groups = Vector{Vector{Curve2}}()
+    remaining = Set(1:length(contours.lines))
+    
+    while !isempty(remaining)
+        group = Vector{Curve2}()
+        start_idx = first(remaining)
+        to_check = [start_idx]
+        
+        while !isempty(to_check)
+            current = pop!(to_check)
+            delete!(remaining, current)
+            current_curve = contours.lines[current]
+            push!(group, current_curve)
+            
+            # Check remaining curves for connectivity
+            for idx in copy(remaining)
+                if curves_interact(current_curve, contours.lines[idx])
+                    push!(to_check, idx)
+                end
+            end
+        end
+        push!(disconnected_groups, group)
+    end
+    
+    # Process each group into a polygon
+    polygons = map(disconnected_groups) do group
+        areas = [polygon_area(Point2f[Point2f(x,y) for (x,y) in curve.vertices]) 
+                for curve in group]
+        outer_idx = argmin(areas)
+        outer_curve = group[outer_idx]
+        
+        inner_curves = Vector{Point2f}[Point2f[Point2f(x,y) for (x,y) in curve.vertices]
+                        for (i, curve) in enumerate(group)
+                        if i != outer_idx && is_inside(first(curve.vertices), outer_curve.vertices)]
+        
+        Polygon(Point2f[Point2f(x,y) for (x,y) in outer_curve.vertices], inner_curves)
+    end
+    
+    return polygons
+end
+
+function curves_interact(c1::ContourLib.Curve2, c2::ContourLib.Curve2)
+    # Check if either curve contains points from the other
+    return is_inside(first(c1.vertices), c2.vertices) ||
+            is_inside(first(c2.vertices), c1.vertices)
+end
+
+# Helper functions
+function polygon_area(vertices)
+    n = length(vertices)
+    area = 0.0
+    for i in 1:n-1
+        area += vertices[i][1] * vertices[i+1][2] - vertices[i+1][1] * vertices[i][2]
+    end
+    area *= 0.5
+    return area
+end
+
+function is_inside(point, polygon)
+    x, y = point
+    inside = false
+    j = length(polygon)
+    for i in 1:length(polygon)
+        if (((polygon[i][2] > y) != (polygon[j][2] > y)) &&
+            (x < (polygon[j][1] - polygon[i][1]) * (y - polygon[i][2]) /
+                (polygon[j][2] - polygon[i][2]) + polygon[i][1]))
+            inside = !inside
+        end
+        j = i
+    end
+    return inside
 end
 
 
