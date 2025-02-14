@@ -490,6 +490,25 @@ function pairplot(
     return grid
 end
 
+
+# Helper from AlgebraOfGraphics -- prevent computing layout updates after adding
+# each series
+get_layout(gl::Makie.GridLayout) = gl
+get_layout(f::Union{Makie.Figure, Makie.GridPosition}) = f.layout
+get_layout(l::Union{Makie.Block, Makie.GridSubposition}) = get_layout(l.parent)
+
+# Wrap layout updates in an update block to avoid triggering multiple updates
+function update(f, fig)
+    layout = get_layout(fig)
+    block_updates = layout.block_updates
+    layout.block_updates = true
+    output = f(fig)
+    layout.block_updates = block_updates
+    block_updates || Makie.GridLayoutBase.update!(layout)
+    return output
+end
+
+
 """
     pairplot(gridpos::Makie.GridLayout, inputs...; kwargs...)
 
@@ -643,324 +662,327 @@ function pairplot(
     legend=(;),
     flipaxislabels=false
 )
+    return update(grid) do grid
 
-    display_bottomleft_axes = any(k.bottomleft for (k,v) in pairs)
-    display_topright_axes = any(k.topright for (k,v) in pairs)
-    if display_topright_axes && !display_bottomleft_axes
-        flipaxislabels = true
-    end
-
-    # Filter out rows with any missing values from each series
-    # Keep track of how many we removed from each so that we can report
-    # it to the user.
-    missing_counts = Int[]
-    pairs_no_missing = map(pairs) do (series, vizlayers)
-        if series isa Truth
-            push!(missing_counts,  0)
-            return series => vizlayers
-        end
-        tbl = series.table
-        tbl_not_missing = Tables.columntable(TableOperations.dropmissing(tbl))
-        len_before = nrows(tbl)
-        len_after = nrows(tbl_not_missing)
-        push!(missing_counts, len_before - len_after)
-        return Series(series.label, tbl_not_missing, series.bottomleft, series.topright, series.bins, series.kwargs) => vizlayers
-    end
-
-    # We support multiple series that may have disjoint columns
-    # Get the ordered union of all table columns.
-    columns = unique(Iterators.flatten(Iterators.map(columnnames∘first, pairs_no_missing)))
-
-    # Merge label maps determined from each series.
-    # Error if they are different! That would imply the user passed multiple tables
-    # with the same named columns but having eg. conflicting units.
-    label_map = Dict{Symbol,Union{String,Makie.RichText}}()
-    for (series, viz) in pairs_no_missing
-        for key in columnnames(series)
-            label = default_label_string(key, getcolumn(series,  key))
-            if haskey(label_map, key) && label_map[key] != label
-                @warn "Conflicting labels found for column $key. Do the units match?" label1=label_map[key] label2=label
-            else
-                label_map[key] = label
-            end
-        end
-    end
-    label_map = merge(label_map, Dict(labels)) # user's passed labels Dict overrides all
-
-    # Rather than computing limits in this version, let's try to rely on
-    # Makie doing a good job of linking axes.
-
-    N = length(columns)
-
-    # Keep lists of axes by row number and by column number.
-    # We'll use these afterwards to link axes together.
-    axes_by_row = Dict{Int,Vector{Makie.Axis}}()
-    axes_by_col = Dict{Int,Vector{Makie.Axis}}()
-    sizehint!(axes_by_col, N)
-    sizehint!(axes_by_row, N)
-
-    # Check if there are any diagonal visualization layers
-    anydiag_viz = mapreduce((|), pairs_no_missing, init=false) do (series, vizlayers)
-        any(v->isa(v, VizTypeDiag), vizlayers)
-    end
-
-    orphaned_diag_axis = nothing
-    # Build grid of nxn plots
-    for row_ind in 1:N, col_ind in 1:N
-
-        if (!display_topright_axes && row_ind < col_ind) || (row_ind==col_ind && !anydiag_viz)
-            continue
-        end
-        if (!display_bottomleft_axes && row_ind > col_ind) || (row_ind==col_ind && !anydiag_viz)
-            continue
+        display_bottomleft_axes = any(k.bottomleft for (k,v) in pairs)
+        display_topright_axes = any(k.topright for (k,v) in pairs)
+        if display_topright_axes && !display_bottomleft_axes
+            flipaxislabels = true
         end
 
-        colname_row = columns[row_ind]
-        colname_col = columns[col_ind]
-
-
-        xkw = get(axis, colname_col, (;))
-        xkw = (
-            Symbol('x',key) => value
-            for (key,value) in zip(keys(xkw), values(xkw)) if Symbol(key) != :lims
-        )
-        xlims = get(get(axis, colname_col, (;)), :lims, (;))
-        if row_ind == col_ind
-            kw = diagaxis
-            # Don't apply axis paramters to vertical axis of diagonal plots (e.g. histogram scale)
-            ykw = (;)
-            ylims = (;)
-        else
-            kw = bodyaxis
-            ykw = get(axis, colname_row, (;))
-            ykw = (
-                Symbol('y',key) => value
-                for (key,value) in zip(keys(ykw), values(ykw)) if key != :lims
-            )
-            ylims = get(get(axis, colname_row, (;)), :lims, (;))
+        # Filter out rows with any missing values from each series
+        # Keep track of how many we removed from each so that we can report
+        # it to the user.
+        missing_counts = Int[]
+        pairs_no_missing = map(pairs) do (series, vizlayers)
+            if series isa Truth
+                push!(missing_counts,  0)
+                return series => vizlayers
+            end
+            tbl = series.table
+            t_col = TableOperations.dropmissing(tbl)
+            tbl_not_missing = Tables.columntable(t_col)
+            len_before = nrows(tbl)
+            len_after = nrows(tbl_not_missing)
+            push!(missing_counts, len_before - len_after)
+            return Series(series.label, tbl_not_missing, series.bottomleft, series.topright, series.bins, series.kwargs) => vizlayers
         end
 
-        # Hide first row if no diagonal viz layers
-        row_ind_fig = row_ind
-        if !anydiag_viz
-            row_ind_fig = row_ind - 1
-        end
+        # We support multiple series that may have disjoint columns
+        # Get the ordered union of all table columns.
+        columns = unique(Iterators.flatten(Iterators.map(columnnames∘first, pairs_no_missing)))
 
-        # Hide labels etc. as needed for a compact view
-        if flipaxislabels
-            if 1 < row_ind
-                kw = (;xlabelvisible=false, xticklabelsvisible=false, xticksvisible=false, kw...)
-            end
-            if col_ind < N
-                kw = (;ylabelvisible=false, yticklabelsvisible=false, yticksvisible=false, kw...)
-            end
-
-            # Rotate tick labels to avoid overlap in some cases.
-            # Ideally we would detect when this is necessary but I found the code was too complicated
-            if row_ind == 1
-                kw = (;
-                    xticklabelrotation = (pi/4),
-                    xaxisposition=:top,
-                    yaxisposition=:right,
-                    kw...,
-                )
-            end
-            if col_ind == N
-                kw = (;
-                    yticklabelrotation = (pi/4),
-                    xaxisposition=:top,
-                    yaxisposition=:right,
-                    kw...,
-                )
-            end
-        else
-            if row_ind < N
-                kw = (;xlabelvisible=false, xticklabelsvisible=false, xticksvisible=false, kw...)
-            end
-            if col_ind > 1 || row_ind == 1
-                kw = (;ylabelvisible=false, yticklabelsvisible=false, yticksvisible=false, kw...)
-            end
-
-            # Rotate tick labels to avoid overlap in some cases.
-            # Ideally we would detect when this is necessary but I found the code was too complicated
-            if row_ind == N
-                kw = (;
-                    xticklabelrotation = (pi/4),
-                    kw...,
-                )
-            end
-            if col_ind == 1
-                kw = (;
-                    yticklabelrotation = (pi/4),
-                    kw...,
-                )
-            end
-        end
-
-        ax = Makie.Axis(
-            grid[row_ind_fig, col_ind];
-            ylabel=label_map[colname_row],
-            xlabel=label_map[colname_col],
-            xgridvisible=false,
-            ygridvisible=false,
-            # Ensure any axis title that gets added doesn't break the tight layout
-            alignmode = row_ind == 1 ? Makie.Inside() : Makie.Mixed(;left=nothing, right=nothing, bottom=nothing, top=Makie.Protrusion(display_bottomleft_axes ? 0.0 : 0.1)),
-            xautolimitmargin=(0f0,0f0),
-            yautolimitmargin= row_ind == col_ind ? (0f0, 0.05f0) : (0f0,0f0),
-            # User options
-            xkw...,
-            ykw...,
-            kw...,
-        )
-
-        if xlims != (;)
-            Makie.xlims!(ax; xlims...)
-        end
-        if ylims != (;)
-            Makie.ylims!(ax; ylims...)
-        end
-
-        axes_by_col[col_ind]= push!(get(axes_by_col, col_ind, Makie.Axis[]), ax)
-        if row_ind != col_ind || (!display_bottomleft_axes && row_ind == N)
-            axes_by_row[row_ind]= push!(get(axes_by_row, row_ind, Makie.Axis[]), ax)
-        end
-        if (display_bottomleft_axes && row_ind == N) || (!display_bottomleft_axes && col_ind ==1 && row_ind == 1)
-            orphaned_diag_axis = ax
-        end
-
-        # For each slot, loop through all series and fill it in accordingly.
-        # We have two slot types: bodyplot, like a 3D histogram, and diagplot, along the diagonal
-        for (series, vizlayers) in pairs_no_missing
-            if (!series.topright && row_ind < col_ind)
-                continue
-            end
-            if (!series.bottomleft && row_ind > col_ind)
-                continue
-            end
-            for vizlayer in vizlayers
-                if row_ind == col_ind && vizlayer isa VizTypeDiag
-                    diagplot(ax, vizlayer, series, colname_row)
-                elseif row_ind != col_ind && vizlayer isa VizTypeBody
-                    bodyplot(ax, vizlayer, series, colname_row, colname_col)
+        # Merge label maps determined from each series.
+        # Error if they are different! That would imply the user passed multiple tables
+        # with the same named columns but having eg. conflicting units.
+        label_map = Dict{Symbol,Union{String,Makie.RichText}}()
+        for (series, viz) in pairs_no_missing
+            for key in columnnames(series)
+                label = default_label_string(key, getcolumn(series,  key))
+                if haskey(label_map, key) && label_map[key] != label
+                    @warn "Conflicting labels found for column $key. Do the units match?" label1=label_map[key] label2=label
                 else
-                    # skip
+                    label_map[key] = label
                 end
             end
         end
-    end
+        label_map = merge(label_map, Dict(labels)) # user's passed labels Dict overrides all
 
-    # Link all axes
-    for axes in values(axes_by_row)
-        Makie.linkyaxes!(axes...)
-    end
-    for axes in values(axes_by_col)
-        Makie.linkxaxes!(axes...)
-    end
-    # Wishlist: link x axis of bottom right diagonal plot with y axis of bottom row.
+        # Rather than computing limits in this version, let's try to rely on
+        # Makie doing a good job of linking axes.
 
-    # Ensure labels are spaced nicely
-    if display_bottomleft_axes && N > 1
-        last_row = axes_by_row[N]
-        if !isnothing(orphaned_diag_axis)
-            push!(last_row, orphaned_diag_axis)
-        end
-        yspace = maximum(Makie.tight_yticklabel_spacing!, axes_by_col[1])
-        xspace = maximum(Makie.tight_xticklabel_spacing!, last_row)
-        for ax in last_row
-            ax.xticklabelspace = xspace + 10
-        end
-        for ax in axes_by_col[1]
-            ax.yticklabelspace = yspace + 10
-        end
-    end
-    if !display_bottomleft_axes && N > 1
-        first_row = axes_by_row[1]
-        if !isnothing(orphaned_diag_axis)
-            push!(first_row, orphaned_diag_axis)
-        end
-        xspace = maximum(Makie.tight_xticklabel_spacing!, first_row)
-        yspace = maximum(Makie.tight_yticklabel_spacing!, axes_by_col[N])
-        for ax in first_row
-            ax.xticklabelspace = xspace + 10
-        end
-        for ax in axes_by_col[1]
-            ax.yticklabelspace = yspace + 10
+        N = length(columns)
+
+        # Keep lists of axes by row number and by column number.
+        # We'll use these afterwards to link axes together.
+        axes_by_row = Dict{Int,Vector{Makie.Axis}}()
+        axes_by_col = Dict{Int,Vector{Makie.Axis}}()
+        sizehint!(axes_by_col, N)
+        sizehint!(axes_by_row, N)
+
+        # Check if there are any diagonal visualization layers
+        anydiag_viz = mapreduce((|), pairs_no_missing, init=false) do (series, vizlayers)
+            any(v->isa(v, VizTypeDiag), vizlayers)
         end
 
-    end
+        orphaned_diag_axis = nothing
+        # Build grid of nxn plots
+        for row_ind in 1:N, col_ind in 1:N
 
-    # Add legend if needed (any series has a non-nothing label)
-    if any(((ser,_),)->!isnothing(ser.label), pairs_no_missing)
-
-        legend_strings = map(((ser,_),)->isnothing(ser.label) ? "" : ser.label, pairs_no_missing)
-        legend_entries = map(pairs_no_missing) do (ser, _)
-            kwargs = ser.kwargs
-            if haskey(kwargs, :color) && kwargs[:color] isa Tuple
-                # Don't pass transparency into the legend
-                color = kwargs[:color][1]
-                kwargs = (;kwargs...,color)
+            if (!display_topright_axes && row_ind < col_ind) || (row_ind==col_ind && !anydiag_viz)
+                continue
             end
-            Makie.LineElement(;kwargs...,strokwidth=2)
-        end
-        M = N
-        if !anydiag_viz
-            M -= 1
-        end
-        pos = grid[begin,end+1] 
-
-        Makie.Legend(
-            pos,
-            collect(legend_entries),
-            collect(legend_strings);
-            # tellwidth=false,
-            tellheight=false,
-            # valign = display_bottomleft_axes ? :bottom : :top,
-            # halign = display_bottomleft_axes ? :left : :right,
-            valign=:top,
-            halign=:right,
-            legend...
-        )
-    end
-
-    # Add a bottom annotation listing the count of rows skipped for missing data by series
-    # We want each annotation on a separate line. But we can't use Base.join() for
-    # Makie.rich text... Need to do it ourselves.
-    for (i,(missing_count, (series,viz))) in enumerate(zip(missing_counts, pairs_no_missing))
-        if missing_count == 0
-            continue
-        end
-        # If there is only one series, we don't have mention it by name in the text annotation.
-        if length(pairs_no_missing) == 1
-            missing_text = Makie.rich("$missing_count rows with missing values are hidden.")
-        else
-            label = series.label
-            if isnothing(label)
-                label = "$i"
+            if (!display_bottomleft_axes && row_ind > col_ind) || (row_ind==col_ind && !anydiag_viz)
+                continue
             end
-            kwargs = (;)
-            if haskey(series.kwargs, :color)
-                color = series.kwargs[:color]
-                if color isa Tuple
-                    # Don't pass transparency into the label
-                    color = color[1]
+
+            colname_row = columns[row_ind]
+            colname_col = columns[col_ind]
+
+
+            xkw = get(axis, colname_col, (;))
+            xkw = (
+                Symbol('x',key) => value
+                for (key,value) in zip(keys(xkw), values(xkw)) if Symbol(key) != :lims
+            )
+            xlims = get(get(axis, colname_col, (;)), :lims, (;))
+            if row_ind == col_ind
+                kw = diagaxis
+                # Don't apply axis paramters to vertical axis of diagonal plots (e.g. histogram scale)
+                ykw = (;)
+                ylims = (;)
+            else
+                kw = bodyaxis
+                ykw = get(axis, colname_row, (;))
+                ykw = (
+                    Symbol('y',key) => value
+                    for (key,value) in zip(keys(ykw), values(ykw)) if key != :lims
+                )
+                ylims = get(get(axis, colname_row, (;)), :lims, (;))
+            end
+
+            # Hide first row if no diagonal viz layers
+            row_ind_fig = row_ind
+            if !anydiag_viz
+                row_ind_fig = row_ind - 1
+            end
+
+            # Hide labels etc. as needed for a compact view
+            if flipaxislabels
+                if 1 < row_ind
+                    kw = (;xlabelvisible=false, xticklabelsvisible=false, xticksvisible=false, kw...)
                 end
-                kwargs = (;color)
-            end
-            missing_text = Makie.rich("$missing_count rows with missing values are hidden from series $label."; kwargs...)
-        end
-        # Add an annotation to the bottom listing the counts of missing values that
-        # were skipped.
-        Makie.Label(
-            grid[end+1,:],
-            missing_text,
-            halign=:left
-        )
-        if i > 1
-            Makie.rowgap!(grid, size(grid)[1]-1, Makie.Fixed(0))
-        end
-    end
+                if col_ind < N
+                    kw = (;ylabelvisible=false, yticklabelsvisible=false, yticksvisible=false, kw...)
+                end
 
-    return
+                # Rotate tick labels to avoid overlap in some cases.
+                # Ideally we would detect when this is necessary but I found the code was too complicated
+                if row_ind == 1
+                    kw = (;
+                        xticklabelrotation = (pi/4),
+                        xaxisposition=:top,
+                        yaxisposition=:right,
+                        kw...,
+                    )
+                end
+                if col_ind == N
+                    kw = (;
+                        yticklabelrotation = (pi/4),
+                        xaxisposition=:top,
+                        yaxisposition=:right,
+                        kw...,
+                    )
+                end
+            else
+                if row_ind < N
+                    kw = (;xlabelvisible=false, xticklabelsvisible=false, xticksvisible=false, kw...)
+                end
+                if col_ind > 1 || row_ind == 1
+                    kw = (;ylabelvisible=false, yticklabelsvisible=false, yticksvisible=false, kw...)
+                end
+
+                # Rotate tick labels to avoid overlap in some cases.
+                # Ideally we would detect when this is necessary but I found the code was too complicated
+                if row_ind == N
+                    kw = (;
+                        xticklabelrotation = (pi/4),
+                        kw...,
+                    )
+                end
+                if col_ind == 1
+                    kw = (;
+                        yticklabelrotation = (pi/4),
+                        kw...,
+                    )
+                end
+            end
+
+            ax = Makie.Axis(
+                grid[row_ind_fig, col_ind];
+                ylabel=label_map[colname_row],
+                xlabel=label_map[colname_col],
+                xgridvisible=false,
+                ygridvisible=false,
+                # Ensure any axis title that gets added doesn't break the tight layout
+                alignmode = row_ind == 1 ? Makie.Inside() : Makie.Mixed(;left=nothing, right=nothing, bottom=nothing, top=Makie.Protrusion(display_bottomleft_axes ? 0.0 : 0.1)),
+                xautolimitmargin=(0f0,0f0),
+                yautolimitmargin= row_ind == col_ind ? (0f0, 0.05f0) : (0f0,0f0),
+                # User options
+                xkw...,
+                ykw...,
+                kw...,
+            )
+
+            if xlims != (;)
+                Makie.xlims!(ax; xlims...)
+            end
+            if ylims != (;)
+                Makie.ylims!(ax; ylims...)
+            end
+
+            axes_by_col[col_ind]= push!(get(axes_by_col, col_ind, Makie.Axis[]), ax)
+            if row_ind != col_ind || (!display_bottomleft_axes && row_ind == N)
+                axes_by_row[row_ind]= push!(get(axes_by_row, row_ind, Makie.Axis[]), ax)
+            end
+            if (display_bottomleft_axes && row_ind == N) || (!display_bottomleft_axes && col_ind ==1 && row_ind == 1)
+                orphaned_diag_axis = ax
+            end
+
+            # For each slot, loop through all series and fill it in accordingly.
+            # We have two slot types: bodyplot, like a 3D histogram, and diagplot, along the diagonal
+            for (series, vizlayers) in pairs_no_missing
+                if (!series.topright && row_ind < col_ind)
+                    continue
+                end
+                if (!series.bottomleft && row_ind > col_ind)
+                    continue
+                end
+                for vizlayer in vizlayers
+                    if row_ind == col_ind && vizlayer isa VizTypeDiag
+                        diagplot(ax, vizlayer, series, colname_row)
+                    elseif row_ind != col_ind && vizlayer isa VizTypeBody
+                        bodyplot(ax, vizlayer, series, colname_row, colname_col)
+                    else
+                        # skip
+                    end
+                end
+            end
+        end
+
+        # Link all axes
+        for axes in values(axes_by_row)
+            Makie.linkyaxes!(axes...)
+        end
+        for axes in values(axes_by_col)
+            Makie.linkxaxes!(axes...)
+        end
+        # Wishlist: link x axis of bottom right diagonal plot with y axis of bottom row.
+
+        # Ensure labels are spaced nicely
+        if display_bottomleft_axes && N > 1
+            last_row = axes_by_row[N]
+            if !isnothing(orphaned_diag_axis)
+                push!(last_row, orphaned_diag_axis)
+            end
+            yspace = maximum(Makie.tight_yticklabel_spacing!, axes_by_col[1])
+            xspace = maximum(Makie.tight_xticklabel_spacing!, last_row)
+            for ax in last_row
+                ax.xticklabelspace = xspace + 10
+            end
+            for ax in axes_by_col[1]
+                ax.yticklabelspace = yspace + 10
+            end
+        end
+        if !display_bottomleft_axes && N > 1
+            first_row = axes_by_row[1]
+            if !isnothing(orphaned_diag_axis)
+                push!(first_row, orphaned_diag_axis)
+            end
+            xspace = maximum(Makie.tight_xticklabel_spacing!, first_row)
+            yspace = maximum(Makie.tight_yticklabel_spacing!, axes_by_col[N])
+            for ax in first_row
+                ax.xticklabelspace = xspace + 10
+            end
+            for ax in axes_by_col[1]
+                ax.yticklabelspace = yspace + 10
+            end
+
+        end
+
+        # Add legend if needed (any series has a non-nothing label)
+        if any(((ser,_),)->!isnothing(ser.label), pairs_no_missing)
+
+            legend_strings = map(((ser,_),)->isnothing(ser.label) ? "" : ser.label, pairs_no_missing)
+            legend_entries = map(pairs_no_missing) do (ser, _)
+                kwargs = ser.kwargs
+                if haskey(kwargs, :color) && kwargs[:color] isa Tuple
+                    # Don't pass transparency into the legend
+                    color = kwargs[:color][1]
+                    kwargs = (;kwargs...,color)
+                end
+                Makie.LineElement(;kwargs...,strokwidth=2)
+            end
+            M = N
+            if !anydiag_viz
+                M -= 1
+            end
+            pos = grid[begin,end+1] 
+
+            Makie.Legend(
+                pos,
+                collect(legend_entries),
+                collect(legend_strings);
+                # tellwidth=false,
+                tellheight=false,
+                # valign = display_bottomleft_axes ? :bottom : :top,
+                # halign = display_bottomleft_axes ? :left : :right,
+                valign=:top,
+                halign=:right,
+                legend...
+            )
+        end
+
+        # Add a bottom annotation listing the count of rows skipped for missing data by series
+        # We want each annotation on a separate line. But we can't use Base.join() for
+        # Makie.rich text... Need to do it ourselves.
+        for (i,(missing_count, (series,viz))) in enumerate(zip(missing_counts, pairs_no_missing))
+            if missing_count == 0
+                continue
+            end
+            # If there is only one series, we don't have mention it by name in the text annotation.
+            if length(pairs_no_missing) == 1
+                missing_text = Makie.rich("$missing_count rows with missing values are hidden.")
+            else
+                label = series.label
+                if isnothing(label)
+                    label = "$i"
+                end
+                kwargs = (;)
+                if haskey(series.kwargs, :color)
+                    color = series.kwargs[:color]
+                    if color isa Tuple
+                        # Don't pass transparency into the label
+                        color = color[1]
+                    end
+                    kwargs = (;color)
+                end
+                missing_text = Makie.rich("$missing_count rows with missing values are hidden from series $label."; kwargs...)
+            end
+            # Add an annotation to the bottom listing the counts of missing values that
+            # were skipped.
+            Makie.Label(
+                grid[end+1,:],
+                missing_text,
+                halign=:left
+            )
+            if i > 1
+                Makie.rowgap!(grid, size(grid)[1]-1, Makie.Fixed(0))
+            end
+        end
+
+        return
+    end
 
 end
 
@@ -1150,6 +1172,26 @@ function diagplot(ax::Makie.Axis, viz::MarginQuantileText, series::AbstractSerie
     return
 end
 
+function diagplot(ax::Makie.Axis, viz::MarginQuantileText, series::Truth, colname)
+    cn = columnnames(series)
+    if colname ∉ cn
+        return
+    end
+    dat = ustrip(disallowmissing(collect(getcolumn(series, colname))))
+
+    prev_title = ax.title[]
+    if length(string(prev_title)) > 0
+        prev_title = Makie.rich(prev_title, "\n")
+    end
+    new_title = mapreduce((l,r)->Makie.rich(l, ", ", r), unique(dat)) do dat
+        title = viz.formatter(0,dat,0)
+        Makie.rich(title; series.kwargs..., viz.kwargs...)
+    end
+    ax.title = Makie.rich(prev_title, new_title)
+    
+    return
+end
+
 
 function diagplot(ax::Makie.Axis, viz::MarginQuantileLines, series::AbstractSeries, colname)
     cn = columnnames(series)
@@ -1206,7 +1248,7 @@ function bodyplot(ax::Makie.Axis, viz::HexBin, series::AbstractSeries, colname_r
             # visualization layer to override.
             n_ess_dat = MCMCDiagnosticTools.ess(X)
             if !isfinite(n_ess_dat)
-                n_ess_dat = length(dat)
+                n_ess_dat = length(X)
             end
             xbins = max(7, ceil(Int, 1.8log2(n_ess_dat)) + 1)
             xbins = get(series.kwargs, :bins, xbins)
@@ -1219,7 +1261,7 @@ function bodyplot(ax::Makie.Axis, viz::HexBin, series::AbstractSeries, colname_r
             # visualization layer to override.
             n_ess_dat = MCMCDiagnosticTools.ess(Y)
             if !isfinite(n_ess_dat)
-                n_ess_dat = length(dat)
+                n_ess_dat = length(Y)
             end
             ybins = max(7, ceil(Int, 1.8log2(n_ess_dat)) + 1)
             ybins = get(series.kwargs, :bins, ybins)
@@ -1491,7 +1533,9 @@ function default_bandwidth_ess(data::AbstractVector{<:Real}, alpha::Float64 = 0.
     ndata = length(data)
     ndata <= 1 && return alpha
 
+    # n_ess = 20050 # MCMCDiagnosticTools.ess(data)
     n_ess = MCMCDiagnosticTools.ess(data)
+    # n_ess = length(data)
 
     if n_ess <= 1 || !isfinite(n_ess)
         n_ess = ndata
