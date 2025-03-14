@@ -1381,7 +1381,11 @@ function bodyplot(ax::Makie.Axis, viz::Contour, series, colname_row, colname_col
     if colname_row ∉ cn || colname_col ∉ cn
         return
     end
-    c = prep_contours(series::AbstractSeries, viz.sigmas, colname_row, colname_col; viz.bandwidth)
+    bandwidth = viz.bandwidth
+    if bandwidth isa AbstractDict
+        bandwidth = get(bandwidth, (colname_row, colname_col), 1.0)
+    end
+    c = prep_contours(series::AbstractSeries, viz.sigmas, colname_row, colname_col; bandwidth)
     levels = ContourLib.levels(c)
     for (i,level) in enumerate(levels), poly in ContourLib.lines(level)
         xs, ys = ContourLib.coordinates(poly)
