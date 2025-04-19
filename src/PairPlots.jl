@@ -1586,7 +1586,8 @@ end
 function prepare_hist(a, bins::Any)
     h = fit(Histogram, ustrip(disallowmissing(vec(a))), bins;)
     h = normalize(h, mode=:pdf)
-    x = range(first(h.edges[1])+step(h.edges[1])/2, step=step(h.edges[1]), length=size(h.weights,1))
+    edges = h.edges[1]
+    x = [(edges[i] + edges[i+1])/2 for i in 1:length(edges)-1]
     return x, h.weights
 end
 """
