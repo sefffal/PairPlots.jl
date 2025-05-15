@@ -21,7 +21,7 @@ makedocs(
 )
 
 
-deploydocs(
+DocumenterVitepress.deploydocs(
     repo = "github.com/sefffal/PairPlots.jl.git",
     devbranch = "master",
     push_preview = true
