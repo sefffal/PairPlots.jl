@@ -580,16 +580,13 @@ function pairplot(
     bins = convert(Dict{Symbol,Any}, bins)
 
     series_i = 0
-    linestyles = [:solid, :dot, :dash, ]
+    linestyles = [:solid, :dot, :dash, :dashdot, :dashdotdot]
     function SeriesDefaults(dat)
         series_i += 1
         wc = Makie.wong_colors()
         color = wc[mod1(series_i, length(wc))]
-        if series_i > length(wc)
-            linestyle_i += 1
-        end
-        linestyle = line[mod1(linestyle_i, length(linestyles))]
-        return Series(dat; color, bottomleft, topright, bins, strokecolor=color, linestyle)
+        linestyle = linestyles[1+div(series_i-1, length(wc))] # if running out of colors
+        return Series(dat; color, bottomleft, topright, bins, strokecolor=color#=, linestyle=#) # TODO: not all series (e.g. Scatter) support linestyle attribute
     end
 
     countser((data,vizlayers)::Pair) = countser(data)
