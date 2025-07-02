@@ -1584,7 +1584,7 @@ function prepare_hist(a, bins::Any)
     h = fit(Histogram, ustrip(disallowmissing(vec(a))), bins;)
     h = normalize(h, mode=:pdf)
     edges = h.edges[1]
-    x = [(edges[i] + edges[i+1])/2 for i in 1:length(edges)-1]
+    x = (edges[begin:end-1] + edges[begin+1:end]) / 2 # get midpoints while preserving any Range typed x
     return x, h.weights
 end
 """
