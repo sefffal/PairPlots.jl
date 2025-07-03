@@ -914,8 +914,7 @@ function pairplot(
 
         # Add legend if needed (any series has a non-nothing label)
         if any(((ser,_),)->!isnothing(ser.label), pairs_no_missing)
-
-            legend_strings = map(((ser,_),)->isnothing(ser.label) ? "" : ser.label, pairs_no_missing)
+            legend_strings = map(((ser,_),)->ser.label, pairs_no_missing)
             legend_entries = map(pairs_no_missing) do (ser, _)
                 kwargs = ser.kwargs
                 if haskey(kwargs, :color) && kwargs[:color] isa Tuple
