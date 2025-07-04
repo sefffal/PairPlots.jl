@@ -53,7 +53,7 @@ jobs:
           DATADEPS_ALWAYS_ACCEPT: true
       - uses: codecov/codecov-action@v4
         with:
-          fail_ci_if_error: true # optional (default = false)
+          fail_ci_if_error: false # optional (default = false) # TODO: set to true when documentation generates coverage
           files: lcov.info
           flags: doctests # optional
           token: ${{ secrets.CODECOV_TOKEN }} # required

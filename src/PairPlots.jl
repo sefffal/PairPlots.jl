@@ -580,16 +580,13 @@ function pairplot(
     bins = convert(Dict{Symbol,Any}, bins)
 
     series_i = 0
-    linestyles = [:solid, :dot, :dash, ]
+    linestyles = [:solid, :dot, :dash, :dashdot, :dashdotdot]
     function SeriesDefaults(dat)
         series_i += 1
         wc = Makie.wong_colors()
         color = wc[mod1(series_i, length(wc))]
-        if series_i > length(wc)
-            linestyle_i += 1
-        end
-        linestyle = line[mod1(linestyle_i, length(linestyles))]
-        return Series(dat; color, bottomleft, topright, bins, strokecolor=color, linestyle)
+        linestyle = linestyles[1+div(series_i-1, length(wc))] # if running out of colors
+        return Series(dat; color, bottomleft, topright, bins, strokecolor=color#=, linestyle=#) # TODO: not all series (e.g. Scatter) support linestyle attribute
     end
 
     countser((data,vizlayers)::Pair) = countser(data)
@@ -917,8 +914,7 @@ function pairplot(
 
         # Add legend if needed (any series has a non-nothing label)
         if any(((ser,_),)->!isnothing(ser.label), pairs_no_missing)
-
-            legend_strings = map(((ser,_),)->isnothing(ser.label) ? "" : ser.label, pairs_no_missing)
+            legend_strings = map(((ser,_),)->ser.label, pairs_no_missing)
             legend_entries = map(pairs_no_missing) do (ser, _)
                 kwargs = ser.kwargs
                 if haskey(kwargs, :color) && kwargs[:color] isa Tuple
@@ -1587,7 +1583,7 @@ function prepare_hist(a, bins::Any)
     h = fit(Histogram, ustrip(disallowmissing(vec(a))), bins;)
     h = normalize(h, mode=:pdf)
     edges = h.edges[1]
-    x = [(edges[i] + edges[i+1])/2 for i in 1:length(edges)-1]
+    x = (edges[begin:end-1] + edges[begin+1:end]) / 2 # get midpoints while preserving any Range typed x
     return x, h.weights
 end
 """
