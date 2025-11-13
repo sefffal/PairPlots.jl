@@ -51,6 +51,26 @@ end
 # Can be removed once we only support Julia 1.10+
 Truth(truths::NamedTuple;label=nothing, fullgrid=false,bottomleft=true,topright=fullgrid,kwargs...) = Truth(label, truths, bottomleft, topright, kwargs)
 
+struct Band <: PairPlots.AbstractSeries
+	label::Union{Nothing, String, Makie.RichText, Makie.LaTeXString}
+	table::Any
+	bottomleft::Bool
+	topright::Bool
+	kwargs::Any
+end
+
+function Band(truths; fullgrid = false, bottomleft = true, topright = fullgrid, label = nothing, kwargs...)
+	if !(keytype(truths) isa Symbol)
+		table = NamedTuple([
+			Symbol(k) => v
+			for (k, v) in pairs(truths)
+		])
+	end
+	Band(label, truths, bottomleft, topright, kwargs)
+end
+
+Band(table::NamedTuple;label=nothing, fullgrid=false,bottomleft=true,topright=fullgrid,kwargs...) = Band(label, table, bottomleft, topright, kwargs)
+
 
 
 struct Series{T,K} <: AbstractSeries where {T,K}
@@ -422,6 +442,18 @@ struct BodyLines <: VizTypeBody
     BodyLines(;kwargs...) = new(kwargs)
 end
 
+struct MarginBands <: VizTypeDiag
+	kwargs::Any
+	MarginBands(; kwargs...) = new(kwargs)
+end
+
+struct BodyBands <: VizTypeBody
+	kwargs::Any
+	BodyBands(; kwargs...) = new(kwargs)
+end
+
+
+
 
 GridPosTypes = Union{Makie.Figure, Makie.GridPosition, Makie.GridSubposition}
 
@@ -590,7 +622,7 @@ function pairplot(
 
     countser((data,vizlayers)::Pair) = countser(data)
     countser(series::Series) = 1
-    countser(truths::Truth) = 0
+	countser(truths::Union{Truth, Band}) = 0
     countser(data::Any) = 1
     len_datapairs_not_truth = sum(countser, datapairs)
 
@@ -598,18 +630,21 @@ function pairplot(
         defaults1((data,vizlayers)::Pair) = Series(data;  bottomleft, topright, bins, color=single_series_color) => vizlayers
         defaults1(series::Series) = series => single_series_default_viz
         defaults1(truths::Truth) = truths => truths_default_viz
+		defaults1(bands::Band) = bands => bands_default_viz
         defaults1(data::Any) = Series(data; bottomleft, topright, bins, color=single_series_color) => single_series_default_viz
         return pairplot(grid, map(defaults1, datapairs)...; kwargs...)
     elseif len_datapairs_not_truth <= 5
         defaults_upto5((data,vizlayers)::Pair) = SeriesDefaults(data) => vizlayers
         defaults_upto5(series::Series) = series => multi_series_default_viz
         defaults_upto5(truths::Truth) = truths => truths_default_viz
+		defaults_upto5(bands::Band) = bands => bands_default_viz
         defaults_upto5(data::Any) = SeriesDefaults(data) => multi_series_default_viz
         return pairplot(grid, map(defaults_upto5, datapairs)...; kwargs...)
     else # More than 5 series
         defaults_morethan5((data,vizlayers)::Pair) = SeriesDefaults(data) => vizlayers
         defaults_morethan5(series::Series) = series => many_series_default_viz
         defaults_morethan5(truths::Truth) = truths => truths_default_viz
+		defaults_morethan5(bands::Band) = bands => bands_default_viz
         defaults_morethan5(data::Any) = SeriesDefaults(data) => many_series_default_viz
         return pairplot(grid, map(defaults_morethan5, datapairs)...; kwargs...)
     end
@@ -619,7 +654,7 @@ end
 # Create a pairplot by plotting into a grid position of a figure.
 
 """
-    pairplot(gridpos::Makie.GridLayout, inputs...; kwargs...)
+	pairplot(gridpos::Makie.GridLayout, inputs...; kwargs...)
 
 Main PairPlots function. Create a pair plot by plotting into a grid
 layout within a Makie figure.
@@ -676,7 +711,7 @@ function pairplot(
         # it to the user.
         missing_counts = Int[]
         pairs_no_missing = map(pairs) do (series, vizlayers)
-            if series isa Truth
+			if series isa Truth || series isa Band
                 push!(missing_counts,  0)
                 return series => vizlayers
             end
@@ -1014,6 +1049,13 @@ function remove_attrs(::Union{typeof(Makie.lines),typeof(Makie.hlines),typeof(Ma
 )
     return kwargs
 end
+function remove_attrs(::Union{typeof(Makie.vspan),typeof(Makie.hspan)};
+    strokewidth = nothing, strokecolor = nothing, kwargs...,
+)
+    return kwargs
+end
+
+
 
 # Note: stephist coming soon in a Makie PR
 
@@ -1213,6 +1255,20 @@ function diagplot(ax::Makie.Axis, viz::MarginQuantileLines, series::AbstractSeri
         depth_shift=-10f0,
         remove_attrs(Makie.vlines; series.kwargs..., viz.kwargs...)...,
     )
+end
+
+function diagplot(ax::Makie.Axis, viz::MarginBands, series::AbstractSeries, colname)
+	cn = columnnames(series)
+	if colname ∉ cn
+		return
+	end
+	data = getcolumn(series, colname)
+
+	(low, high) = data
+	Makie.vspan!(ax, low, high;
+		remove_attrs(Makie.vspan; series.kwargs..., viz.kwargs...)...)
+
+	Makie.ylims!(ax, low = 0)
 end
 
 function diagplot(ax::Makie.Axis, viz::MarginLines, series::AbstractSeries, colname)
@@ -1501,6 +1557,20 @@ function PairPlots.bodyplot(ax::Makie.Axis, viz::Calculation, series::AbstractSe
     return
 end
 
+function bodyplot(ax::Makie.Axis, viz::BodyBands, series::AbstractSeries, colname_row, colname_col)
+	cn = columnnames(series)
+	if colname_row ∈ cn
+		low, high = getcolumn(series, colname_row)
+		Makie.hspan!(ax, low, high; remove_attrs(Makie.hspan; series.kwargs..., viz.kwargs...)...)
+	end
+	if colname_col ∈ cn
+		low, high = getcolumn(series, colname_col)
+		Makie.vspan!(ax, low, high; remove_attrs(Makie.vspan; series.kwargs..., viz.kwargs...)...)
+	end
+end
+
+
+
 function bodyplot(ax::Makie.Axis, viz::BodyLines, series::AbstractSeries, colname_row, colname_col)
     cn = columnnames(series)
     if colname_row ∈ cn
@@ -1702,8 +1772,9 @@ end
 
 # table utils
 
-columnnames(truth::Truth) = keys(truth.table)
-getcolumn(truth::Truth, name) = truth.table[name]
+columnnames(truth::Union{Truth, Band}) = keys(truth.table)
+getcolumn(truth::Union{Truth, Band}, name) = truth.table[name]
+
 
 columnnames(series::Series) = columnnames(series.table)
 getcolumn(series::Series, name) = getcolumn(series.table, name)
