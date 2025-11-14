@@ -956,7 +956,11 @@ function pairplot(
                     color = kwargs[:color][1]
                     kwargs = (;kwargs...,color)
                 end
-                Makie.LineElement(;kwargs...,strokwidth=2)
+                if ser isa Band
+                    Makie.PolyElement(;kwargs...,points = Makie.Point2f[(0, 0), (1, 0), (1,1), (0, 1)])
+                else
+                    Makie.LineElement(;kwargs...,strokwidth=2)
+                end
             end
             M = N
             if !anydiag_viz
