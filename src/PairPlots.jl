@@ -51,24 +51,23 @@ end
 # Can be removed once we only support Julia 1.10+
 Truth(truths::NamedTuple;label=nothing, fullgrid=false,bottomleft=true,topright=fullgrid,kwargs...) = Truth(label, truths, bottomleft, topright, kwargs)
 
-struct Band <: PairPlots.AbstractSeries
+struct Band{T,K} <: PairPlots.AbstractSeries where {T,K}
 	label::Union{Nothing, String, Makie.RichText, Makie.LaTeXString}
-	table::Any
+	table::T
 	bottomleft::Bool
 	topright::Bool
-	kwargs::Any
+	kwargs::K
 end
 
 function Band(truths; fullgrid = false, bottomleft = true, topright = fullgrid, label = nothing, kwargs...)
 	if !(keytype(truths) isa Symbol)
-		table = NamedTuple([
+		truths = NamedTuple([
 			Symbol(k) => v
 			for (k, v) in pairs(truths)
 		])
 	end
 	Band(label, truths, bottomleft, topright, kwargs)
 end
-
 Band(table::NamedTuple;label=nothing, fullgrid=false,bottomleft=true,topright=fullgrid,kwargs...) = Band(label, table, bottomleft, topright, kwargs)
 
 
