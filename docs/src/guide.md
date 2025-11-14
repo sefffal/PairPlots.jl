@@ -719,6 +719,70 @@ pairplots.pairplot(
 
 ![](ex16.png)
 
+## Truth Bands
+You can also add bands to mark particular values of each variable on all subplots using `Band`:
+
+::: tabs
+
+== julia
+
+```@example 1
+pairplot(
+    df,
+    PairPlots.Truth(
+        (;
+            α = [0, 6],
+            β = 0,
+            γ = 0,
+            δ = [-1, 0, +1],
+        ),
+    label="Mean Values"
+    ),
+    PairPlots.Band(
+    (;
+        α = [-2.0, 2.5],
+        β = [-1.5, 1.5],
+        γ = [-1.5, 1.5],
+        δ = [-1.5, -0.5],
+    ),
+    label="Mean Values"
+    )
+)
+save("ex17.png", ans); # hide
+nothing # hide
+
+```
+
+== python
+
+```python
+pairplots.pairplot(
+    df,
+    pairplots.Truth(
+        {
+            'α': [0, 6],
+            'β': 0,
+            'γ': 0,
+            'δ': [-1, 0, +1],
+        },
+        label="Mean Values"
+    ),
+    pairplots.Band(
+        {
+            'α' : [-0.5, 0.5],
+            'β' : [-0.5, 0.5],
+            'γ' : [-0.5, 0.5],
+            'δ' : [-1.5, -0.5],
+        },
+        label="Mean Values"
+    )
+)
+```
+:::
+
+![](ex17.png)
+
+
 ## Trend Lines
 You can quickly add a linear trend line to each pair of variables by passing
 a trend-line series:
@@ -738,7 +802,7 @@ pairplot(
     ),
     fullgrid=true
 )
-save("ex17.png", ans); # hide
+save("ex18.png", ans); # hide
 nothing # hide
 ```
 
@@ -756,7 +820,7 @@ pairplots.pairplot(
 ```
 :::
 
-![](ex17.png)
+![](ex18.png)
 
 ## Correlation
 You can add a calculated correlation value between every pair of variables
@@ -778,7 +842,7 @@ pairplot(
     ),
     fullgrid=true
 )
-save("ex18.png", ans) # hide
+save("ex19.png", ans) # hide
 nothing # hide
 ```
 
@@ -797,7 +861,7 @@ pairplots.pairplot(
 ```
 :::
 
-![](ex18.png)
+![](ex19.png)
 
 `PairPlots.PearsonCorrelation()` is an alias for `PairPlots.Calculation(StatsBase.cor)`. Feel free to pass any function that accepts two AbstractVectors and calculates a number:
 ```@example 1

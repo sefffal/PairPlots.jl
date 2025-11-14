@@ -36,3 +36,8 @@ const truths_default_viz = (
     PairPlots.MarginLines(),
     PairPlots.BodyLines(),
 )
+
+const bands_default_viz = (
+	PairPlots.MarginBands(alpha=0.4),
+    PairPlots.BodyBands(alpha=0.4)
+)
