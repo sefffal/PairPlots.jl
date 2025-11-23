@@ -39,7 +39,13 @@ jobs:
       - name: Pull Julia cache
         uses: julia-actions/cache@v3
       - name: Install documentation dependencies
-        run: julia --project=docs -e 'using Pkg; pkg"dev ."; Pkg.instantiate(); Pkg.precompile(); Pkg.status()'
+        shell: julia --color=yes --project=docs {0}
+        run: |
+          using Pkg
+          Pkg.develop(PackageSpec(path=pwd()))
+          Pkg.instantiate()
+          Pkg.precompile()
+          Pkg.status()
       - name: Instantiate NPM
         run: cd docs/; npm i; cd ..
       #- name: Creating new mds from src
