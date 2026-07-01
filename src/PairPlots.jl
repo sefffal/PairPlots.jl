@@ -618,6 +618,18 @@ function pairplot(
         linestyle = linestyles[1+div(series_i-1, length(wc))] # if running out of colors
         return Series(dat; color, bottomleft, topright, bins, strokecolor=color#=, linestyle=#) # TODO: not all series (e.g. Scatter) support linestyle attribute
     end
+    function SeriesDefaults(series::Series)
+        # Add default color to the series if not specified
+        series_i += 1
+        return if !(haskey(series.kwargs, :color)) && !(haskey(series.kwargs, :strokecolor))
+            wc = Makie.wong_colors()
+            color = wc[mod1(series_i, length(wc))]
+            new_kwargs = (color=color, strokecolor=color, series.kwargs...)
+            Series(series.label, series.table, series.bottomleft, series.topright, series.bins, new_kwargs)
+        else
+            series
+        end
+    end
 
     countser((data,vizlayers)::Pair) = countser(data)
     countser(series::Series) = 1
@@ -634,14 +646,14 @@ function pairplot(
         return pairplot(grid, map(defaults1, datapairs)...; kwargs...)
     elseif len_datapairs_not_truth <= 5
         defaults_upto5((data,vizlayers)::Pair) = SeriesDefaults(data) => vizlayers
-        defaults_upto5(series::Series) = series => multi_series_default_viz
+        defaults_upto5(series::Series) = SeriesDefaults(series) => multi_series_default_viz
         defaults_upto5(truths::Truth) = truths => truths_default_viz
 		defaults_upto5(bands::Band) = bands => bands_default_viz
         defaults_upto5(data::Any) = SeriesDefaults(data) => multi_series_default_viz
         return pairplot(grid, map(defaults_upto5, datapairs)...; kwargs...)
     else # More than 5 series
         defaults_morethan5((data,vizlayers)::Pair) = SeriesDefaults(data) => vizlayers
-        defaults_morethan5(series::Series) = series => many_series_default_viz
+        defaults_morethan5(series::Series) = SeriesDefaults(series) => many_series_default_viz
         defaults_morethan5(truths::Truth) = truths => truths_default_viz
 		defaults_morethan5(bands::Band) = bands => bands_default_viz
         defaults_morethan5(data::Any) = SeriesDefaults(data) => many_series_default_viz
