@@ -57,7 +57,7 @@ jobs:
           GKSwstype: "100" # for Plots.jl plots (if you have them)
           JULIA_DEBUG: "Documenter"
           DATADEPS_ALWAYS_ACCEPT: true
-      - uses: codecov/codecov-action@v4
+      - uses: codecov/codecov-action@v7
         with:
           fail_ci_if_error: false # optional (default = false) # TODO: set to true when documentation generates coverage
           files: lcov.info
