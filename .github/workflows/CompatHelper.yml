@@ -40,6 +40,11 @@ jobs:
           CompatHelper.main()
         shell: julia --color=yes {0}
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # PRs opened with the default GITHUB_TOKEN cannot trigger workflow runs,
+          # so CompatHelper's PRs never get CI and can never go green on their own.
+          # If a COMPATHELPER_TOKEN secret (a PAT with `repo` scope) is present it is
+          # used instead, and CI runs normally. Unset -> falls back to the old
+          # behaviour, so this is a no-op until the secret is added.
+          GITHUB_TOKEN: ${{ secrets.COMPATHELPER_TOKEN || secrets.GITHUB_TOKEN }}
           COMPATHELPER_PRIV: ${{ secrets.DOCUMENTER_KEY }}
           # COMPATHELPER_PRIV: ${{ secrets.COMPATHELPER_PRIV }}
