@@ -52,3 +52,45 @@ Tables.schema(t::CustomTable) = Tables.schema(t.data)
         ctable => (PairPlots.Hist(), PairPlots.MarginHist())
     ) isa Figure
 end
+
+@testset "Diagonal panels have no y decorations" begin
+
+    # The vertical axis of a diagonal panel is a marginal density scale rather than
+    # the parameter itself, so it should carry no ticks or label -- in either corner.
+    table = (;
+        a = [-0.34, -1.09, -1.03, 0.31, 0.67, 1.13, 1.29, -0.65, 1.46, 1.54],
+        b = [-0.83, -0.03, -0.74, -1.47, 0.29, 1.48, -0.74, -1.18, -0.89, -0.45],
+        c = [ 0.52, -1.31,  0.07,  0.94, 1.72, 0.11, -1.62,  0.38, 1.40, -0.29],
+    )
+    layers = (PairPlots.Hist(), PairPlots.MarginHist())
+
+    # Collect (row, col, yticksvisible, yticklabelsvisible, ylabelvisible) for the
+    # panels on the diagonal of a pairplot drawn into its own GridLayout.
+    function diagonal_y_decorations(; bottomleft, topright)
+        fig = Figure()
+        grid = GridLayout(fig[1,1])
+        pairplot(grid, PairPlots.Series(table; bottomleft, topright) => layers)
+        decorations = Tuple{Int,Int,Bool,Bool,Bool}[]
+        for content in grid.content
+            ax = content.content
+            ax isa Makie.Axis || continue
+            row = first(content.span.rows)
+            col = first(content.span.cols)
+            row == col || continue
+            push!(decorations, (row, col, ax.yticksvisible[], ax.yticklabelsvisible[], ax.ylabelvisible[]))
+        end
+        return sort!(decorations)
+    end
+
+    bottomleft_diag = diagonal_y_decorations(bottomleft=true, topright=false)
+    topright_diag = diagonal_y_decorations(bottomleft=false, topright=true)
+
+    @test length(bottomleft_diag) == 3
+    @test length(topright_diag) == 3
+    # No diagonal panel in either corner shows y ticks, tick labels, or a y label.
+    @test all(d -> !any(d[3:5]), bottomleft_diag)
+    @test all(d -> !any(d[3:5]), topright_diag)
+    # ...and so the two corners agree panel-for-panel (issue #87: the last diagonal
+    # panel of a topright plot kept its density scale).
+    @test bottomleft_diag == topright_diag
+end

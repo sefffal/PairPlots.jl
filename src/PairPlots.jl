@@ -819,7 +819,10 @@ function pairplot(
                 if 1 < row_ind
                     kw = (;xlabelvisible=false, xticklabelsvisible=false, xticksvisible=false, kw...)
                 end
-                if col_ind < N
+                # The `row_ind == N` case is the diagonal panel in the last column: its
+                # vertical axis is a marginal density scale, not the parameter, so it gets
+                # no y decorations. Mirrors `row_ind == 1` in the bottomleft branch below.
+                if col_ind < N || row_ind == N
                     kw = (;ylabelvisible=false, yticklabelsvisible=false, yticksvisible=false, kw...)
                 end
 
