@@ -552,15 +552,17 @@ Here are the defaults applied for a single data table:
 pairplot(fig[1,1], table) == # approximately the following:
 pairplot(
     PairPlots.Series(table, color=Makie.RGBA(0., 0., 0., 0.5)) => (
-        PairPlots.HexBin(colormap=Makie.cgrad([:transparent, :black]),),
+        PairPlots.HexBin(colormap=Makie.cgrad([:transparent, "#333"])),
         PairPlots.Scatter(filtersigma=2),
-        PairPlots.Contour(),
+        PairPlots.Contour(linewidth=1.5),
+        PairPlots.MarginHist(color=Makie.RGBA(0.4,0.4,0.4,0.15)),
+        PairPlots.MarginStepHist(color=Makie.RGBA(0.4,0.4,0.4,0.8)),
         PairPlots.MarginDensity(
-            color=:transparent,
             color=:black,
-            linewidth=1.5f0
+            linewidth=1.5f0,
         ),
-        PairPlots.MarginQuantileText()
+        PairPlots.MarginQuantileText(color=:black, font=:regular),
+        PairPlots.MarginQuantileLines(),
     )
 )
 ```
@@ -569,32 +571,45 @@ Here are the defaults applied for 2 to 5 data tables:
 ```julia
 pairplot(fig[1,1], table1, table2) == # approximately the following:
 pairplot(
-    PairPlots.Series(table1, color=Makie.wong_colors(0.5)[1]) => (
+    PairPlots.Series(table1, color=Makie.wong_colors()[1], strokecolor=Makie.wong_colors()[1]) => (
         PairPlots.Scatter(filtersigma=2),
-        PairPlots.Contourf(),
+        PairPlots.Contour(sigmas=2:2),
+        PairPlots.Contourf(alpha=0.6, sigmas=1:1),
         PairPlots.MarginDensity(
             linewidth=2.5f0
-        )
+        ),
+        PairPlots.MarginQuantileText(font=:bold),
     ),
-    PairPlots.Series(table2, color=Makie.wong_colors(0.5)[2]) => (
+    PairPlots.Series(table2, color=Makie.wong_colors()[2], strokecolor=Makie.wong_colors()[2]) => (
         PairPlots.Scatter(filtersigma=2),
-        PairPlots.Contourf(),
+        PairPlots.Contour(sigmas=2:2),
+        PairPlots.Contourf(alpha=0.6, sigmas=1:1),
         PairPlots.MarginDensity(
             linewidth=2.5f0
-        )
+        ),
+        PairPlots.MarginQuantileText(font=:bold),
     ),
 )
 ```
 
 For 6 or more tables, the defaults are approximately:
 ```julia
-PairPlots.Series(table1, color=Makie.wong_colors(0.5)[series_i]) => (
+PairPlots.Series(table1, color=Makie.wong_colors()[series_i], strokecolor=Makie.wong_colors()[series_i]) => (
     PairPlots.Contour(sigmas=[1]),
     PairPlots.MarginDensity(
         linewidth=2.5f0
     )
 )
 ```
+
+!!! note "Multi-series colors are opaque"
+    Since v2.9.1 the per-series colors above are fully opaque (`Makie.wong_colors()`);
+    earlier versions used `Makie.wong_colors(0.5)`. Transparency for the default filled
+    contour now comes from the layer instead (`Contourf(alpha=0.6, ...)`).
+
+    If you supply your own `Contourf` layer with more than one sigma level, pass `alpha`
+    explicitly — e.g. `PairPlots.Contourf(sigmas=1:1:3, alpha=0.5)` — otherwise the
+    nested levels are drawn opaque and only the outermost one is visible.
 """
 function pairplot(
     grid::Makie.GridLayout,
