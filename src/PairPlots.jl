@@ -1054,12 +1054,24 @@ function ustrip(data)
 end
 
 # Remove attributes not supported by or not desired to be set for the respective Makie functions.
-function remove_attrs(::Union{typeof(Makie.barplot),typeof(Makie.stairs)};
+function remove_attrs(::typeof(Makie.barplot);
     normalize = nothing, bins = nothing, kwargs...,
 )
     return kwargs
 end
-function remove_attrs(::Union{typeof(Makie.hexbin),typeof(Makie.heatmap)}; color = nothing, kwargs...)
+# stairs is a line-based recipe: unlike barplot it has no stroke attributes.
+function remove_attrs(::typeof(Makie.stairs);
+    normalize = nothing, bins = nothing, strokewidth = nothing, strokecolor = nothing, kwargs...,
+)
+    return kwargs
+end
+function remove_attrs(::typeof(Makie.hexbin); color = nothing, kwargs...)
+    return kwargs
+end
+# heatmap has neither `color` nor, unlike hexbin, any stroke attributes.
+function remove_attrs(::typeof(Makie.heatmap);
+    color = nothing, strokewidth = nothing, strokecolor = nothing, kwargs...,
+)
     return kwargs
 end
 function remove_attrs(::Union{typeof(Makie.lines),typeof(Makie.hlines),typeof(Makie.vlines),typeof(Makie.ablines)};

@@ -94,3 +94,47 @@ end
     # panel of a topright plot kept its density scale).
     @test bottomleft_diag == topright_diag
 end
+
+@testset "Every viz layer accepts the multi-series stroke defaults" begin
+
+    # With more than one series, SeriesDefaults injects `strokecolor` into the
+    # series kwargs so the layers can be told apart. Layers whose underlying Makie
+    # recipe has no stroke attributes must strip it in `remove_attrs`, or plotting
+    # throws "Invalid attribute strokecolor" -- issue #65 (Hist -> heatmap) and
+    # issue #66 (MarginStepHist -> stairs).
+    t1 = (;
+        a = [-0.34, -1.09, -1.03, 0.31, 0.67, 1.13, 1.29, -0.65, 1.46, 1.54],
+        b = [-0.83, -0.03, -0.74, -1.47, 0.29, 1.48, -0.74, -1.18, -0.89, -0.45],
+    )
+    t2 = (;
+        a = [ 0.52, -1.31, 0.07, 0.94, 1.72, 0.11, -1.62, 0.38, 1.40, -0.29],
+        b = [ 1.02, 0.44, -0.16, -0.91, 0.23, -1.35, 0.78, 1.19, -0.52, 0.61],
+    )
+
+    body_layers = (
+        PairPlots.HexBin(), PairPlots.Hist(), PairPlots.Contour(),
+        PairPlots.Contourf(), PairPlots.Scatter(), PairPlots.TrendLine(),
+    )
+    diag_layers = (
+        PairPlots.MarginQuantileText(), PairPlots.MarginQuantileLines(),
+        PairPlots.MarginHist(), PairPlots.MarginStepHist(), PairPlots.MarginDensity(),
+    )
+
+    for viz in (body_layers..., diag_layers...)
+        @test pairplot(t1 => (viz,), t2 => (viz,)) isa Figure
+    end
+
+    # The same attributes set explicitly on the series, with several layers stacked,
+    # which is how issue #66 was actually hit.
+    @test pairplot(
+        PairPlots.Series(t1, color=:red, strokecolor=:red, strokewidth=2) =>
+            (PairPlots.Hist(), PairPlots.MarginStepHist()),
+        PairPlots.Series(t2, color=:blue, strokecolor=:blue, strokewidth=2) =>
+            (PairPlots.Hist(), PairPlots.MarginStepHist()),
+    ) isa Figure
+
+    # Single-series plots take a different defaults path and must keep working.
+    for viz in (body_layers..., diag_layers...)
+        @test pairplot(t1 => (viz,)) isa Figure
+    end
+end
