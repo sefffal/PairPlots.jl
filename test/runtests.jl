@@ -138,3 +138,50 @@ end
         @test pairplot(t1 => (viz,)) isa Figure
     end
 end
+
+@testset "An already-constructed series on the left of a Pair" begin
+
+    # `pairplot(grid, ::Pair{<:AbstractSeries}...)` is more specific than the
+    # generic `pairplot(grid, ::Any...)` that assigns defaults, so a call whose
+    # arguments are *all* Pairs skips the defaults layer entirely and always
+    # worked. As soon as one argument is not a Pair, the generic method runs and
+    # its Pair branches re-wrap the left-hand side in `Series(...)` -- which
+    # throws if it is already a Series/Truth/Band. Issue #80.
+    t1 = (;
+        a = [-0.34, -1.09, -1.03, 0.31, 0.67, 1.13, 1.29, -0.65, 1.46, 1.54],
+        b = [-0.83, -0.03, -0.74, -1.47, 0.29, 1.48, -0.74, -1.18, -0.89, -0.45],
+    )
+    t2 = (;
+        a = [ 0.52, -1.31, 0.07, 0.94, 1.72, 0.11, -1.62, 0.38, 1.40, -0.29],
+        b = [ 1.02, 0.44, -0.16, -0.91, 0.23, -1.35, 0.78, 1.19, -0.52, 0.61],
+    )
+    truth = PairPlots.Truth((; a = 0.0, b = 0.0))
+    band = PairPlots.Band((; a = [-1.0, 1.0], b = [-1.0, 1.0]))
+
+    # A Truth/Band does not count towards the series total, so these stay on the
+    # single-series branch even though they carry two arguments.
+    @test pairplot(PairPlots.Series(t1) => (PairPlots.Scatter(),), truth) isa Figure
+    @test pairplot(PairPlots.Series(t1) => (PairPlots.Scatter(),), band) isa Figure
+
+    # A Truth/Band on the left of a Pair, on each of the three defaults branches.
+    @test pairplot(t1, truth => (PairPlots.MarginLines(),)) isa Figure
+    @test pairplot(t1, t2, truth => (PairPlots.MarginLines(),)) isa Figure
+    @test pairplot(t1, band => (PairPlots.MarginBands(alpha=0.4),)) isa Figure
+    @test pairplot(t1, t2, band => (PairPlots.MarginBands(alpha=0.4),)) isa Figure
+
+    # More than five series is a third branch again.
+    @test pairplot(t1, t1, t1, t1, t1,
+                   PairPlots.Series(t2) => (PairPlots.Scatter(),),
+                   truth => (PairPlots.MarginLines(),)) isa Figure
+
+    # Multi-series with a bare Series alongside a Series pair: the case #78 fixed.
+    @test pairplot(PairPlots.Series(t1), PairPlots.Series(t2) => (PairPlots.Scatter(),)) isa Figure
+
+    # All-Pairs calls reach the specific method directly and must stay working.
+    @test pairplot(PairPlots.Series(t1) => (PairPlots.Scatter(),)) isa Figure
+    @test pairplot(
+        PairPlots.Series(t1) => (PairPlots.Scatter(),),
+        truth => (PairPlots.MarginLines(),),
+        band => (PairPlots.MarginBands(alpha=0.4),),
+    ) isa Figure
+end
