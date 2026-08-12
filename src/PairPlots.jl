@@ -654,6 +654,9 @@ function pairplot(
 
     if len_datapairs_not_truth == 1
         defaults1((data,vizlayers)::Pair) = Series(data;  bottomleft, topright, bins, color=single_series_color) => vizlayers
+        # An already-constructed Series/Truth/Band on the left of a Pair is passed
+        # through untouched, exactly as the bare-argument methods below do.
+        defaults1((series,vizlayers)::Pair{<:AbstractSeries}) = series => vizlayers
         defaults1(series::Series) = series => single_series_default_viz
         defaults1(truths::Truth) = truths => truths_default_viz
 		defaults1(bands::Band) = bands => bands_default_viz
@@ -661,6 +664,9 @@ function pairplot(
         return pairplot(grid, map(defaults1, datapairs)...; kwargs...)
     elseif len_datapairs_not_truth <= 5
         defaults_upto5((data,vizlayers)::Pair) = SeriesDefaults(data) => vizlayers
+        # A Series on the left of a Pair reaches SeriesDefaults(::Series) above and
+        # picks up its default colour; a Truth/Band has no colour to assign.
+        defaults_upto5((series,vizlayers)::Pair{<:Union{Truth,Band}}) = series => vizlayers
         defaults_upto5(series::Series) = SeriesDefaults(series) => multi_series_default_viz
         defaults_upto5(truths::Truth) = truths => truths_default_viz
 		defaults_upto5(bands::Band) = bands => bands_default_viz
@@ -668,6 +674,7 @@ function pairplot(
         return pairplot(grid, map(defaults_upto5, datapairs)...; kwargs...)
     else # More than 5 series
         defaults_morethan5((data,vizlayers)::Pair) = SeriesDefaults(data) => vizlayers
+        defaults_morethan5((series,vizlayers)::Pair{<:Union{Truth,Band}}) = series => vizlayers
         defaults_morethan5(series::Series) = SeriesDefaults(series) => many_series_default_viz
         defaults_morethan5(truths::Truth) = truths => truths_default_viz
 		defaults_morethan5(bands::Band) = bands => bands_default_viz
