@@ -185,3 +185,50 @@ end
         band => (PairPlots.MarginBands(alpha=0.4),),
     ) isa Figure
 end
+
+@testset "Ring contours pick the enclosing curve regardless of winding" begin
+
+    # `process_ring_contours` turns a level's disconnected curves into filled
+    # polygons with holes. Contours.jl does not orient those curves consistently,
+    # so the enclosing curve has to be found by *unsigned* area -- ranking the
+    # signed shoelace value selects the hole whenever the outer ring happens to
+    # wind the other way, and the annulus is then drawn as a filled disc with the
+    # fill in the wrong place entirely. Issue #91.
+
+    CL = PairPlots.ContourLib
+
+    # A closed circle of `n` segments, `ccw=false` giving the opposite winding.
+    function ring(r; n=64, ccw=true)
+        ts = range(0, 2pi, length=n+1)          # closes: last point == first
+        ccw || (ts = reverse(ts))
+        CL.Curve2([(r*cos(t), r*sin(t)) for t in ts])
+    end
+
+    # An annulus, in all four combinations of the two curves' windings.
+    for outer_ccw in (true, false), inner_ccw in (true, false)
+        level = CL.ContourLevel(1.0, [ring(1.0; ccw=inner_ccw), ring(3.0; ccw=outer_ccw)])
+        polys = PairPlots.process_ring_contours(level)
+
+        @test length(polys) == 1
+        p = only(polys)
+
+        # The exterior must be the r=3 ring, and the r=1 ring must become a hole.
+        radii = [hypot(q[1], q[2]) for q in Makie.GeometryBasics.coordinates(p.exterior)]
+        @test all(≈(3.0; atol=1e-5), radii)
+        @test length(p.interiors) == 1
+        hole_radii = [hypot(q[1], q[2]) for q in only(p.interiors)]
+        @test all(≈(1.0; atol=1e-5), hole_radii)
+    end
+
+    # A lone curve is its own exterior and has no hole, either way round.
+    for ccw in (true, false)
+        polys = PairPlots.process_ring_contours(CL.ContourLevel(1.0, [ring(2.0; ccw)]))
+        @test length(polys) == 1
+        @test isempty(only(polys).interiors)
+    end
+
+    # The unsigned area is what ranks them; the signed one flips with the winding.
+    sq = Makie.Point2f[(0,0), (1,0), (1,1), (0,1), (0,0)]
+    @test PairPlots.polygon_area(sq) ≈ 1.0
+    @test PairPlots.polygon_area(reverse(sq)) ≈ -1.0
+end
