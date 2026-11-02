@@ -1,7 +1,7 @@
 name = "PairPlots"
 uuid = "43a3c2be-4208-490b-832a-a21dcd55d7da"
-authors = ["William Thompson <wthompson@uvic.ca>"]
 version = "3.0.8"
+authors = ["William Thompson <wthompson@uvic.ca>"]
 
 [deps]
 Contour = "d38c429a-6771-53c6-b99e-75d170b6e991"
@@ -39,7 +39,7 @@ Distributions = "0.25"
 DynamicQuantities = "0.14, 1"
 KernelDensity = "0.6"
 LinearAlgebra = "1"
-MCMCChains = "5.0, 6.0, 7"
+MCMCChains = "5.0, 6.0, 7, 8"
 MCMCDiagnosticTools = "0.3"
 Makie = "0.21.18, 0.22, 0.23, 0.24"
 Measures = "0.3.1"
