@@ -1749,9 +1749,15 @@ function process_ring_contours(contours::ContourLib.ContourLevel)
     
     # Process each group into a polygon
     polygons = map(disconnected_groups) do group
-        areas = [polygon_area(Point2f[Point2f(x,y) for (x,y) in curve.vertices]) 
+        # Compare *unsigned* areas: the enclosing curve of a group is simply the
+        # one enclosing the most area. `polygon_area` is a signed (shoelace) area,
+        # and Contours.jl does not orient a level's curves consistently -- the
+        # outer ring of a given level may come back either clockwise or
+        # counter-clockwise -- so ranking the signed values picks the hole
+        # whenever the outer ring happens to wind positively. Issue #91.
+        areas = [abs(polygon_area(Point2f[Point2f(x,y) for (x,y) in curve.vertices]))
                 for curve in group]
-        outer_idx = argmin(areas)
+        outer_idx = argmax(areas)
         outer_curve = group[outer_idx]
         
         inner_curves = Vector{Point2f}[Point2f[Point2f(x,y) for (x,y) in curve.vertices]
