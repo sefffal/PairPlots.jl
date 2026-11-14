@@ -245,6 +245,17 @@ for the plots along the diagonal.
 abstract type VizTypeDiag <: VizType end
 
 
+# Fixed-point formatting that drops the sign of a value which rounds to zero.
+# printf keeps it, so e.g. -0.0001 at 3 digits (or an exact -0.0) would print
+# as "-0.000" (#93).
+function _fmt_fixed(digits, x)
+    s = @sprintf("%.*f", digits, x)
+    if startswith(s, '-') && all(c -> c == '0' || c == '.', SubString(s, 2))
+        s = s[2:end]
+    end
+    return s
+end
+
 function margin_confidence_default_formatter(low,mid,high)
     largest_error = max(abs(high), abs(low))
     # Fallback for series with no variance
@@ -254,7 +265,7 @@ function margin_confidence_default_formatter(low,mid,high)
         else
             digits_after_dot = max(0, 1 - round(Int, log10(abs(mid))))
         end
-        title = @sprintf("%.*f",digits_after_dot, mid,)
+        title = _fmt_fixed(digits_after_dot, mid)
         return title
     end
 
@@ -265,7 +276,7 @@ function margin_confidence_default_formatter(low,mid,high)
         if round(low, digits=digits_after_dot) == round(high, digits=digits_after_dot)
             title = Makie.rich(
                 "(",
-                @sprintf("%.1f", mid*10^(digits_after_dot-1)),
+                _fmt_fixed(1, mid*10^(digits_after_dot-1)),
                 " ± ",
                 @sprintf("%.1f", high*10^(digits_after_dot-1)),
                 ") × 10",
@@ -274,7 +285,7 @@ function margin_confidence_default_formatter(low,mid,high)
         else
             title = Makie.rich(
                 "( ",
-                @sprintf("%.1f", mid*10^(digits_after_dot-1)),
+                _fmt_fixed(1, mid*10^(digits_after_dot-1)),
                 Makie.left_subsup(
                     @sprintf("-%.1f", low*10^(digits_after_dot-1)),
                     @sprintf("+%.1f", high*10^(digits_after_dot-1))
@@ -286,13 +297,13 @@ function margin_confidence_default_formatter(low,mid,high)
     else
         if round(low, digits=digits_after_dot) == round(high, digits=digits_after_dot)
             title = Makie.rich(
-                @sprintf("%.*f", digits_after_dot, mid,),
+                _fmt_fixed(digits_after_dot, mid),
                 " ± ",
                 @sprintf("%.*f", digits_after_dot, high),
             )
         else
             title = Makie.rich(
-                @sprintf("%.*f", digits_after_dot, mid),
+                _fmt_fixed(digits_after_dot, mid),
                 Makie.left_subsup(
                     @sprintf("-%.*f", digits_after_dot, low),
                     @sprintf("+%.*f", digits_after_dot, high),
@@ -976,7 +987,7 @@ function pairplot(
             for ax in first_row
                 ax.xticklabelspace = xspace + 10
             end
-            for ax in axes_by_col[1]
+            for ax in axes_by_col[N]
                 ax.yticklabelspace = yspace + 10
             end
 
@@ -995,7 +1006,7 @@ function pairplot(
                 if ser isa Band
                     Makie.PolyElement(;kwargs...,points = Makie.Point2f[(0, 0), (1, 0), (1,1), (0, 1)])
                 else
-                    Makie.LineElement(;kwargs...,strokwidth=2)
+                    Makie.LineElement(;linewidth=2,kwargs...)
                 end
             end
             M = N
@@ -1348,8 +1359,8 @@ function bodyplot(ax::Makie.Axis, viz::HexBin, series::AbstractSeries, colname_r
         Y = ustrip(disallowmissing(getcolumn(series, colname_row)))
         # Determine the number of bins to use, and allow series or
         # visualization layer to override.
-        if haskey(series.bins, colname_row) && series.bins[colname_row] isa Number
-            xbins = series.bins[colname_row]
+        if haskey(series.bins, colname_col) && series.bins[colname_col] isa Number
+            xbins = series.bins[colname_col]
         else
             # Determine the number of bins to use, and allow series or
             # visualization layer to override.
@@ -1361,8 +1372,8 @@ function bodyplot(ax::Makie.Axis, viz::HexBin, series::AbstractSeries, colname_r
             xbins = get(series.kwargs, :bins, xbins)
             xbins = get(viz.kwargs, :bins, xbins)
         end
-        if haskey(series.bins, colname_col) && series.bins[colname_col] isa Number
-            ybins = series.bins[colname_col]
+        if haskey(series.bins, colname_row) && series.bins[colname_row] isa Number
+            ybins = series.bins[colname_row]
         else
             # Determine the number of bins to use, and allow series or
             # visualization layer to override.
@@ -1401,8 +1412,8 @@ function bodyplot(ax::Makie.Axis, viz::Hist, series::AbstractSeries, colname_row
 
     # Determine the number of bins to use, and allow series or
     # visualization layer to override.
-    if haskey(series.bins, colname_row)
-        xbins = series.bins[colname_row]
+    if haskey(series.bins, colname_col)
+        xbins = series.bins[colname_col]
     else
         # Determine the number of bins to use, and allow series or
         # visualization layer to override.
@@ -1410,8 +1421,8 @@ function bodyplot(ax::Makie.Axis, viz::Hist, series::AbstractSeries, colname_row
         xbins = get(series.kwargs, :bins, xbins)
         xbins = get(viz.kwargs, :bins, xbins)
     end
-    if haskey(series.bins, colname_col)
-        ybins = series.bins[colname_col]
+    if haskey(series.bins, colname_row)
+        ybins = series.bins[colname_row]
     else
         # Determine the number of bins to use, and allow series or
         # visualization layer to override.
@@ -1419,7 +1430,7 @@ function bodyplot(ax::Makie.Axis, viz::Hist, series::AbstractSeries, colname_row
         ybins = get(series.kwargs, :bins, ybins)
         ybins = get(viz.kwargs, :bins, ybins)
     end
-    x, y, weights = viz.prepare_hist(xdat, ydat, ybins, xbins)
+    x, y, weights = viz.prepare_hist(xdat, ydat, xbins, ybins)
 
     Makie.heatmap!(
         ax,

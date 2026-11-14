@@ -185,3 +185,35 @@ end
         band => (PairPlots.MarginBands(alpha=0.4),),
     ) isa Figure
 end
+
+@testset "Small bug fixes" begin
+    # Deterministic, correlated data without depending on Random.
+    a = [sin(1.3i) + 0.3cos(7.1i) for i in 1:2000]
+    b = [0.5a[i] + cos(2.9i) for i in 1:2000]
+    plots_of(fig, T) = [p for ax in fig.content if ax isa Axis for p in ax.scene.plots if p isa T]
+
+    # Per-column bins are applied to the matching axis (x = column variable).
+    fig = pairplot(PairPlots.Series((; a, b); bins=Dict(:a => 5, :b => 40)) => (PairPlots.HexBin(),))
+    @test only(plots_of(fig, Makie.Hexbin)).bins[] == (5, 40)
+    fig = pairplot(PairPlots.Series((; a, b); bins=Dict(:a => 5, :b => 40)) => (PairPlots.Hist(),))
+    w = only(plots_of(fig, Makie.Heatmap))[3][]
+    @test size(w, 1) < size(w, 2) # StatsBase treats nbins as a hint, so compare
+
+    # In the top-right layout the tick label spacing goes on the axes that show
+    # y tick labels (the last column), so they stay aligned.
+    fig = pairplot(PairPlots.Series((; a, b, c = a .- b); bottomleft=false, topright=true) =>
+                   (PairPlots.Scatter(), PairPlots.MarginDensity()))
+    shown = [ax for ax in fig.content if ax isa Axis && ax.yticklabelsvisible[]]
+    @test length(shown) == 2
+    @test all(ax -> ax.yticklabelspace[] isa Real, shown)
+    @test allequal(ax.yticklabelspace[] for ax in shown)
+
+    # #93: a central value that rounds to zero is not printed as "-0.00".
+    fmt(args...) = sprint(print, PairPlots.margin_confidence_default_formatter(args...))
+    @test startswith(fmt(0.1, -0.001, 0.1), "0.00")
+    @test startswith(fmt(0.1, -0.5, 0.1), "-0.50")
+    @test fmt(0.0, -0.0, 0.0) == "0"
+    @test !occursin("(-0.0", fmt(1e-6, -1e-9, 1e-6))  # scientific branch
+    @test PairPlots._fmt_fixed(3, -0.0001) == "0.000"
+    @test PairPlots._fmt_fixed(3, -0.001) == "-0.001"
+end
