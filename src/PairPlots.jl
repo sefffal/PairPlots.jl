@@ -1002,7 +1002,7 @@ function pairplot(
             if !anydiag_viz
                 M -= 1
             end
-            pos = grid[begin,end+1] 
+            pos = grid[begin,end+1]
 
             Makie.Legend(
                 pos,
@@ -1263,7 +1263,7 @@ function diagplot(ax::Makie.Axis, viz::MarginQuantileText, series::AbstractSerie
         prev_title = Makie.rich(prev_title, "\n")
     end
     ax.title = Makie.rich(prev_title, title; series.kwargs..., viz.kwargs...)
-    
+
     return
 end
 
@@ -1283,7 +1283,7 @@ function diagplot(ax::Makie.Axis, viz::MarginQuantileText, series::Truth, colnam
         Makie.rich(title; series.kwargs..., viz.kwargs...)
     end
     ax.title = Makie.rich(prev_title, new_title)
-    
+
     return
 end
 
@@ -1450,8 +1450,8 @@ function prep_contours(series::AbstractSeries, sigmas, colname_row, colname_col;
     h = pdf.(Ref(ik), x, y')
 
     # Calculate levels for contours
-    levels = 1 .- exp.(-0.5 .* (1 ./sigmas).^2)
-    ii = sortperm(reshape(h,:))
+    levels = 1 .- exp.(-0.5 .* sigmas .^ 2)
+    ii = sortperm(reshape(h,:), rev=true)
     h2flat = h[ii]
     sm = cumsum(h2flat)
     sm /= sm[end]
@@ -1725,18 +1725,18 @@ function process_ring_contours(contours::ContourLib.ContourLevel)
     # Group contours by connectivity
     disconnected_groups = Vector{Vector{Curve2}}()
     remaining = Set(1:length(contours.lines))
-    
+
     while !isempty(remaining)
         group = Vector{Curve2}()
         start_idx = first(remaining)
         to_check = [start_idx]
-        
+
         while !isempty(to_check)
             current = pop!(to_check)
             delete!(remaining, current)
             current_curve = contours.lines[current]
             push!(group, current_curve)
-            
+
             # Check remaining curves for connectivity
             for idx in copy(remaining)
                 if curves_interact(current_curve, contours.lines[idx])
@@ -1746,21 +1746,21 @@ function process_ring_contours(contours::ContourLib.ContourLevel)
         end
         push!(disconnected_groups, group)
     end
-    
+
     # Process each group into a polygon
     polygons = map(disconnected_groups) do group
-        areas = [polygon_area(Point2f[Point2f(x,y) for (x,y) in curve.vertices]) 
+        areas = [polygon_area(Point2f[Point2f(x,y) for (x,y) in curve.vertices])
                 for curve in group]
         outer_idx = argmin(areas)
         outer_curve = group[outer_idx]
-        
+
         inner_curves = Vector{Point2f}[Point2f[Point2f(x,y) for (x,y) in curve.vertices]
                         for (i, curve) in enumerate(group)
                         if i != outer_idx && is_inside(first(curve.vertices), outer_curve.vertices)]
-        
+
         Polygon(Point2f[Point2f(x,y) for (x,y) in outer_curve.vertices], inner_curves)
     end
-    
+
     return polygons
 end
 
@@ -1852,4 +1852,3 @@ include("defaults.jl")
 include("precompile.jl")
 
 end
-
