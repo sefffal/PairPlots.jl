@@ -244,6 +244,12 @@ for the plots along the diagonal.
 """
 abstract type VizTypeDiag <: VizType end
 
+# Fixed-point number with a typographic minus (U+2212).
+# The minus is added only if the *printed* value is nonzero, so -0.0 and -1e-17 print as "0.00".
+function _fmt(x, d)
+    s = @sprintf("%.*f", d, abs(x))
+    return (x < 0 && parse(Float64, s) != 0 ? "−" : "") * s
+end
 
 function margin_confidence_default_formatter(low,mid,high)
     largest_error = max(abs(high), abs(low))
@@ -254,7 +260,7 @@ function margin_confidence_default_formatter(low,mid,high)
         else
             digits_after_dot = max(0, 1 - round(Int, log10(abs(mid))))
         end
-        title = @sprintf("%.*f",digits_after_dot, mid,)
+        title = _fmt(mid, digits_after_dot)
         return title
     end
 
@@ -265,36 +271,36 @@ function margin_confidence_default_formatter(low,mid,high)
         if round(low, digits=digits_after_dot) == round(high, digits=digits_after_dot)
             title = Makie.rich(
                 "(",
-                @sprintf("%.1f", mid*10^(digits_after_dot-1)),
+                _fmt(mid*10^(digits_after_dot-1), 1),
                 " ± ",
                 @sprintf("%.1f", high*10^(digits_after_dot-1)),
                 ") × 10",
-                Makie.superscript(@sprintf("-%d", digits_after_dot-1))
+                Makie.superscript(@sprintf("−%d", digits_after_dot-1))
             )
         else
             title = Makie.rich(
                 "( ",
-                @sprintf("%.1f", mid*10^(digits_after_dot-1)),
+                _fmt(mid*10^(digits_after_dot-1), 1),
                 Makie.left_subsup(
-                    @sprintf("-%.1f", low*10^(digits_after_dot-1)),
+                    @sprintf("−%.1f", low*10^(digits_after_dot-1)),
                     @sprintf("+%.1f", high*10^(digits_after_dot-1))
                 ),
                 " ) × 10",
-                Makie.superscript(@sprintf("-%d", digits_after_dot-1))
+                Makie.superscript(@sprintf("−%d", digits_after_dot-1))
             )
         end
     else
         if round(low, digits=digits_after_dot) == round(high, digits=digits_after_dot)
             title = Makie.rich(
-                @sprintf("%.*f", digits_after_dot, mid,),
+                _fmt(mid, digits_after_dot),
                 " ± ",
                 @sprintf("%.*f", digits_after_dot, high),
             )
         else
             title = Makie.rich(
-                @sprintf("%.*f", digits_after_dot, mid),
+                _fmt(mid, digits_after_dot),
                 Makie.left_subsup(
-                    @sprintf("-%.*f", digits_after_dot, low),
+                    @sprintf("−%.*f", digits_after_dot, low),
                     @sprintf("+%.*f", digits_after_dot, high),
                 )
             )
@@ -1002,7 +1008,7 @@ function pairplot(
             if !anydiag_viz
                 M -= 1
             end
-            pos = grid[begin,end+1] 
+            pos = grid[begin,end+1]
 
             Makie.Legend(
                 pos,
@@ -1263,7 +1269,7 @@ function diagplot(ax::Makie.Axis, viz::MarginQuantileText, series::AbstractSerie
         prev_title = Makie.rich(prev_title, "\n")
     end
     ax.title = Makie.rich(prev_title, title; series.kwargs..., viz.kwargs...)
-    
+
     return
 end
 
@@ -1283,7 +1289,7 @@ function diagplot(ax::Makie.Axis, viz::MarginQuantileText, series::Truth, colnam
         Makie.rich(title; series.kwargs..., viz.kwargs...)
     end
     ax.title = Makie.rich(prev_title, new_title)
-    
+
     return
 end
 
@@ -1725,18 +1731,18 @@ function process_ring_contours(contours::ContourLib.ContourLevel)
     # Group contours by connectivity
     disconnected_groups = Vector{Vector{Curve2}}()
     remaining = Set(1:length(contours.lines))
-    
+
     while !isempty(remaining)
         group = Vector{Curve2}()
         start_idx = first(remaining)
         to_check = [start_idx]
-        
+
         while !isempty(to_check)
             current = pop!(to_check)
             delete!(remaining, current)
             current_curve = contours.lines[current]
             push!(group, current_curve)
-            
+
             # Check remaining curves for connectivity
             for idx in copy(remaining)
                 if curves_interact(current_curve, contours.lines[idx])
@@ -1746,21 +1752,21 @@ function process_ring_contours(contours::ContourLib.ContourLevel)
         end
         push!(disconnected_groups, group)
     end
-    
+
     # Process each group into a polygon
     polygons = map(disconnected_groups) do group
-        areas = [polygon_area(Point2f[Point2f(x,y) for (x,y) in curve.vertices]) 
+        areas = [polygon_area(Point2f[Point2f(x,y) for (x,y) in curve.vertices])
                 for curve in group]
         outer_idx = argmin(areas)
         outer_curve = group[outer_idx]
-        
+
         inner_curves = Vector{Point2f}[Point2f[Point2f(x,y) for (x,y) in curve.vertices]
                         for (i, curve) in enumerate(group)
                         if i != outer_idx && is_inside(first(curve.vertices), outer_curve.vertices)]
-        
+
         Polygon(Point2f[Point2f(x,y) for (x,y) in outer_curve.vertices], inner_curves)
     end
-    
+
     return polygons
 end
 
@@ -1852,4 +1858,3 @@ include("defaults.jl")
 include("precompile.jl")
 
 end
-
