@@ -185,3 +185,60 @@ end
         band => (PairPlots.MarginBands(alpha=0.4),),
     ) isa Figure
 end
+
+@testset "ESS is memoised within one pairplot call" begin
+    # Deterministic, correlated data without depending on Random.
+    x = [sin(1.3i) + 0.3cos(7.1i) for i in 1:500]
+    y = [0.5x[i] + cos(2.9i) for i in 1:500]
+    series = PairPlots.Series((; x, y))
+    key = PairPlots._ESS_CACHE_KEY
+
+    # Outside a pairplot call nothing is cached.
+    @test !haskey(task_local_storage(), key)
+
+    # Inside the cache, each column is computed once and reused.
+    PairPlots._with_ess_cache() do
+        cache = task_local_storage(key)
+        e1 = PairPlots._ess(x)
+        e2 = PairPlots._ess(x)
+        @test e1 === e2
+        @test length(cache) == 1
+        PairPlots.prep_contours(series, [1, 2], :y, :x)
+        PairPlots.prep_contours(series, [2], :y, :x)
+        @test length(cache) == 2 # only x and y
+        # Nested calls share the outer cache.
+        PairPlots._with_ess_cache() do
+            @test task_local_storage(key) === cache
+        end
+    end
+    @test !haskey(task_local_storage(), key)
+
+    # Cached results are identical to uncached ones, including their type.
+    x32 = Float32.(x)
+    @test PairPlots._with_ess_cache(() -> PairPlots._ess(x32)) === PairPlots._ess(x32)
+    @test PairPlots._with_ess_cache(() -> PairPlots.default_bandwidth_ess(x)) ===
+          PairPlots.default_bandwidth_ess(x)
+
+    CL = PairPlots.ContourLib
+    coords(c) = [CL.coordinates(l) for lvl in CL.levels(c) for l in CL.lines(lvl)]
+    uncached = PairPlots.prep_contours(series, 0.5:0.5:2, :y, :x)
+    cached = PairPlots._with_ess_cache() do
+        PairPlots.prep_contours(series, 0.5:0.5:2, :y, :x)
+    end
+    @test coords(cached) == coords(uncached)
+
+    # Columns that had missing values are narrowed once, so later accesses
+    # return the same object and hit the cache.
+    xm = Union{Missing,Float64}[x...]
+    @test eltype(PairPlots._narrow_missing(xm)) === Float64
+    @test PairPlots._narrow_missing(x) === x
+    allmissing = Vector{Missing}(undef, 0)
+    @test PairPlots._narrow_missing(allmissing) === allmissing
+    @test pairplot((; x = [missing; xm[2:end]], y)) isa Figure
+
+    # The cache does not leak out of a pairplot call, even one that errors.
+    @test pairplot((; x, y)) isa Figure
+    @test !haskey(task_local_storage(), key)
+    @test_throws Exception pairplot(PairPlots.Series((; x, y)) => (PairPlots.Contour(sigmas=nothing),))
+    @test !haskey(task_local_storage(), key)
+end
