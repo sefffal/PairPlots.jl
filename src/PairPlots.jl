@@ -1464,8 +1464,8 @@ function prep_contours(series::AbstractSeries, sigmas, colname_row, colname_col;
     h = pdf.(Ref(ik), x, y')
 
     # Calculate levels for contours
-    levels = 1 .- exp.(-0.5 .* (1 ./sigmas).^2)
-    ii = sortperm(reshape(h,:))
+    levels = 1 .- exp.(-0.5 .* sigmas .^ 2)
+    ii = sortperm(reshape(h,:), rev=true)
     h2flat = h[ii]
     sm = cumsum(h2flat)
     sm /= sm[end]
