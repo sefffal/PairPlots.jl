@@ -34,10 +34,31 @@ jobs:
           version = "3"
           Pkg.add(; name, uuid, version)
         shell: julia --color=yes {0}
+      - name: "Resolve the account CompatHelper's PRs will be authored by"
+        id: pr_author
+        run: |
+          # CompatHelper skips a dependency when an open PR with the same title
+          # already exists -- but it only looks at PRs authored by `ci_cfg.username`,
+          # which hardcodes "github-actions[bot]" as its default (CompatHelper.jl,
+          # src/utilities/ci.jl). The step below deliberately passes
+          # COMPATHELPER_TOKEN as GITHUB_TOKEN, so the PRs are authored by *that
+          # token's owner* instead; the check then never matches, and a fresh
+          # duplicate is opened every night for as long as a compat PR stays
+          # unmerged (this is what produced Octofitter.jl #154-#157). Resolve the
+          # owner instead of hardcoding a name, so this stays correct if the token
+          # is rotated to another account or removed. The default GITHUB_TOKEN
+          # cannot read /user, which is exactly the case where the built-in
+          # default is already the right answer.
+          login="$(gh api /user --jq .login 2>/dev/null || true)"
+          echo "login=${login:-github-actions[bot]}" >> "$GITHUB_OUTPUT"
+        env:
+          GH_TOKEN: ${{ secrets.COMPATHELPER_TOKEN || secrets.GITHUB_TOKEN }}
       - name: "Run CompatHelper"
         run: |
           import CompatHelper
-          CompatHelper.main()
+          CompatHelper.main(
+              ENV, CompatHelper.GitHubActions(; username=ENV["COMPATHELPER_PR_AUTHOR"])
+          )
         shell: julia --color=yes {0}
         env:
           # PRs opened with the default GITHUB_TOKEN cannot trigger workflow runs,
@@ -46,5 +67,6 @@ jobs:
           # used instead, and CI runs normally. Unset -> falls back to the old
           # behaviour, so this is a no-op until the secret is added.
           GITHUB_TOKEN: ${{ secrets.COMPATHELPER_TOKEN || secrets.GITHUB_TOKEN }}
+          COMPATHELPER_PR_AUTHOR: ${{ steps.pr_author.outputs.login }}
           COMPATHELPER_PRIV: ${{ secrets.DOCUMENTER_KEY }}
           # COMPATHELPER_PRIV: ${{ secrets.COMPATHELPER_PRIV }}

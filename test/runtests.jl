@@ -232,3 +232,93 @@ end
     @test PairPlots.polygon_area(sq) ≈ 1.0
     @test PairPlots.polygon_area(reverse(sq)) ≈ -1.0
 end
+
+@testset "Small bug fixes" begin
+    # Deterministic, correlated data without depending on Random.
+    a = [sin(1.3i) + 0.3cos(7.1i) for i in 1:2000]
+    b = [0.5a[i] + cos(2.9i) for i in 1:2000]
+    plots_of(fig, T) = [p for ax in fig.content if ax isa Axis for p in ax.scene.plots if p isa T]
+
+    # Per-column bins are applied to the matching axis (x = column variable).
+    fig = pairplot(PairPlots.Series((; a, b); bins=Dict(:a => 5, :b => 40)) => (PairPlots.HexBin(),))
+    @test only(plots_of(fig, Makie.Hexbin)).bins[] == (5, 40)
+    fig = pairplot(PairPlots.Series((; a, b); bins=Dict(:a => 5, :b => 40)) => (PairPlots.Hist(),))
+    w = only(plots_of(fig, Makie.Heatmap))[3][]
+    @test size(w, 1) < size(w, 2) # StatsBase treats nbins as a hint, so compare
+
+    # In the top-right layout the tick label spacing goes on the axes that show
+    # y tick labels (the last column), so they stay aligned.
+    fig = pairplot(PairPlots.Series((; a, b, c = a .- b); bottomleft=false, topright=true) =>
+                   (PairPlots.Scatter(), PairPlots.MarginDensity()))
+    shown = [ax for ax in fig.content if ax isa Axis && ax.yticklabelsvisible[]]
+    @test length(shown) == 2
+    @test all(ax -> ax.yticklabelspace[] isa Real, shown)
+    @test allequal(ax.yticklabelspace[] for ax in shown)
+
+    # #93: a central value that rounds to zero is not printed as "-0.00".
+    fmt(args...) = sprint(print, PairPlots.margin_confidence_default_formatter(args...))
+    @test startswith(fmt(0.1, -0.001, 0.1), "0.00")
+    @test startswith(fmt(0.1, -0.5, 0.1), "−0.50")  # typographic minus (#100)
+    @test fmt(0.0, -0.0, 0.0) == "0"
+    s = fmt(1e-6, -1e-9, 1e-6)  # scientific branch
+    @test !occursin("(-0.0", s) && !occursin("(−0.0", s)
+    @test PairPlots._fmt(-0.0001, 3) == "0.000"
+    @test PairPlots._fmt(-0.001, 3) == "−0.001"
+end
+
+@testset "ESS is memoised within one pairplot call" begin
+    # Deterministic, correlated data without depending on Random.
+    x = [sin(1.3i) + 0.3cos(7.1i) for i in 1:500]
+    y = [0.5x[i] + cos(2.9i) for i in 1:500]
+    series = PairPlots.Series((; x, y))
+    key = PairPlots._ESS_CACHE_KEY
+
+    # Outside a pairplot call nothing is cached.
+    @test !haskey(task_local_storage(), key)
+
+    # Inside the cache, each column is computed once and reused.
+    PairPlots._with_ess_cache() do
+        cache = task_local_storage(key)
+        e1 = PairPlots._ess(x)
+        e2 = PairPlots._ess(x)
+        @test e1 === e2
+        @test length(cache) == 1
+        PairPlots.prep_contours(series, [1, 2], :y, :x)
+        PairPlots.prep_contours(series, [2], :y, :x)
+        @test length(cache) == 2 # only x and y
+        # Nested calls share the outer cache.
+        PairPlots._with_ess_cache() do
+            @test task_local_storage(key) === cache
+        end
+    end
+    @test !haskey(task_local_storage(), key)
+
+    # Cached results are identical to uncached ones, including their type.
+    x32 = Float32.(x)
+    @test PairPlots._with_ess_cache(() -> PairPlots._ess(x32)) === PairPlots._ess(x32)
+    @test PairPlots._with_ess_cache(() -> PairPlots.default_bandwidth_ess(x)) ===
+          PairPlots.default_bandwidth_ess(x)
+
+    CL = PairPlots.ContourLib
+    coords(c) = [CL.coordinates(l) for lvl in CL.levels(c) for l in CL.lines(lvl)]
+    uncached = PairPlots.prep_contours(series, 0.5:0.5:2, :y, :x)
+    cached = PairPlots._with_ess_cache() do
+        PairPlots.prep_contours(series, 0.5:0.5:2, :y, :x)
+    end
+    @test coords(cached) == coords(uncached)
+
+    # Columns that had missing values are narrowed once, so later accesses
+    # return the same object and hit the cache.
+    xm = Union{Missing,Float64}[x...]
+    @test eltype(PairPlots._narrow_missing(xm)) === Float64
+    @test PairPlots._narrow_missing(x) === x
+    allmissing = Vector{Missing}(undef, 0)
+    @test PairPlots._narrow_missing(allmissing) === allmissing
+    @test pairplot((; x = [missing; xm[2:end]], y)) isa Figure
+
+    # The cache does not leak out of a pairplot call, even one that errors.
+    @test pairplot((; x, y)) isa Figure
+    @test !haskey(task_local_storage(), key)
+    @test_throws Exception pairplot(PairPlots.Series((; x, y)) => (PairPlots.Contour(sigmas=nothing),))
+    @test !haskey(task_local_storage(), key)
+end
