@@ -989,7 +989,7 @@ function pairplot(
             for ax in first_row
                 ax.xticklabelspace = xspace + 10
             end
-            for ax in axes_by_col[1]
+            for ax in axes_by_col[N]
                 ax.yticklabelspace = yspace + 10
             end
 
@@ -1008,7 +1008,7 @@ function pairplot(
                 if ser isa Band
                     Makie.PolyElement(;kwargs...,points = Makie.Point2f[(0, 0), (1, 0), (1,1), (0, 1)])
                 else
-                    Makie.LineElement(;kwargs...,strokwidth=2)
+                    Makie.LineElement(;linewidth=2,kwargs...)
                 end
             end
             M = N
@@ -1362,8 +1362,8 @@ function bodyplot(ax::Makie.Axis, viz::HexBin, series::AbstractSeries, colname_r
         Y = ustrip(disallowmissing(getcolumn(series, colname_row)))
         # Determine the number of bins to use, and allow series or
         # visualization layer to override.
-        if haskey(series.bins, colname_row) && series.bins[colname_row] isa Number
-            xbins = series.bins[colname_row]
+        if haskey(series.bins, colname_col) && series.bins[colname_col] isa Number
+            xbins = series.bins[colname_col]
         else
             # Determine the number of bins to use, and allow series or
             # visualization layer to override.
@@ -1375,8 +1375,8 @@ function bodyplot(ax::Makie.Axis, viz::HexBin, series::AbstractSeries, colname_r
             xbins = get(series.kwargs, :bins, xbins)
             xbins = get(viz.kwargs, :bins, xbins)
         end
-        if haskey(series.bins, colname_col) && series.bins[colname_col] isa Number
-            ybins = series.bins[colname_col]
+        if haskey(series.bins, colname_row) && series.bins[colname_row] isa Number
+            ybins = series.bins[colname_row]
         else
             # Determine the number of bins to use, and allow series or
             # visualization layer to override.
@@ -1415,8 +1415,8 @@ function bodyplot(ax::Makie.Axis, viz::Hist, series::AbstractSeries, colname_row
 
     # Determine the number of bins to use, and allow series or
     # visualization layer to override.
-    if haskey(series.bins, colname_row)
-        xbins = series.bins[colname_row]
+    if haskey(series.bins, colname_col)
+        xbins = series.bins[colname_col]
     else
         # Determine the number of bins to use, and allow series or
         # visualization layer to override.
@@ -1424,8 +1424,8 @@ function bodyplot(ax::Makie.Axis, viz::Hist, series::AbstractSeries, colname_row
         xbins = get(series.kwargs, :bins, xbins)
         xbins = get(viz.kwargs, :bins, xbins)
     end
-    if haskey(series.bins, colname_col)
-        ybins = series.bins[colname_col]
+    if haskey(series.bins, colname_row)
+        ybins = series.bins[colname_row]
     else
         # Determine the number of bins to use, and allow series or
         # visualization layer to override.
@@ -1433,7 +1433,7 @@ function bodyplot(ax::Makie.Axis, viz::Hist, series::AbstractSeries, colname_row
         ybins = get(series.kwargs, :bins, ybins)
         ybins = get(viz.kwargs, :bins, ybins)
     end
-    x, y, weights = viz.prepare_hist(xdat, ydat, ybins, xbins)
+    x, y, weights = viz.prepare_hist(xdat, ydat, xbins, ybins)
 
     Makie.heatmap!(
         ax,
@@ -1464,8 +1464,8 @@ function prep_contours(series::AbstractSeries, sigmas, colname_row, colname_col;
     h = pdf.(Ref(ik), x, y')
 
     # Calculate levels for contours
-    levels = 1 .- exp.(-0.5 .* (1 ./sigmas).^2)
-    ii = sortperm(reshape(h,:))
+    levels = 1 .- exp.(-0.5 .* sigmas .^ 2)
+    ii = sortperm(reshape(h,:), rev=true)
     h2flat = h[ii]
     sm = cumsum(h2flat)
     sm /= sm[end]
