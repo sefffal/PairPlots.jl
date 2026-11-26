@@ -1,6 +1,6 @@
 name = "PairPlots"
 uuid = "43a3c2be-4208-490b-832a-a21dcd55d7da"
-version = "3.0.8"
+version = "4.0.0"
 authors = ["William Thompson <wthompson@uvic.ca>"]
 
 [deps]
