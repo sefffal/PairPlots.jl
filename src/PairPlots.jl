@@ -244,16 +244,11 @@ for the plots along the diagonal.
 """
 abstract type VizTypeDiag <: VizType end
 
-
-# Fixed-point formatting that drops the sign of a value which rounds to zero.
-# printf keeps it, so e.g. -0.0001 at 3 digits (or an exact -0.0) would print
-# as "-0.000" (#93).
-function _fmt_fixed(digits, x)
-    s = @sprintf("%.*f", digits, x)
-    if startswith(s, '-') && all(c -> c == '0' || c == '.', SubString(s, 2))
-        s = s[2:end]
-    end
-    return s
+# Fixed-point number with a typographic minus (U+2212).
+# The minus is added only if the *printed* value is nonzero, so -0.0 and -1e-17 print as "0.00".
+function _fmt(x, d)
+    s = @sprintf("%.*f", d, abs(x))
+    return (x < 0 && parse(Float64, s) != 0 ? "−" : "") * s
 end
 
 function margin_confidence_default_formatter(low,mid,high)
@@ -265,7 +260,7 @@ function margin_confidence_default_formatter(low,mid,high)
         else
             digits_after_dot = max(0, 1 - round(Int, log10(abs(mid))))
         end
-        title = _fmt_fixed(digits_after_dot, mid)
+        title = _fmt(mid, digits_after_dot)
         return title
     end
 
@@ -276,36 +271,36 @@ function margin_confidence_default_formatter(low,mid,high)
         if round(low, digits=digits_after_dot) == round(high, digits=digits_after_dot)
             title = Makie.rich(
                 "(",
-                _fmt_fixed(1, mid*10^(digits_after_dot-1)),
+                _fmt(mid*10^(digits_after_dot-1), 1),
                 " ± ",
                 @sprintf("%.1f", high*10^(digits_after_dot-1)),
                 ") × 10",
-                Makie.superscript(@sprintf("-%d", digits_after_dot-1))
+                Makie.superscript(@sprintf("−%d", digits_after_dot-1))
             )
         else
             title = Makie.rich(
                 "( ",
-                _fmt_fixed(1, mid*10^(digits_after_dot-1)),
+                _fmt(mid*10^(digits_after_dot-1), 1),
                 Makie.left_subsup(
-                    @sprintf("-%.1f", low*10^(digits_after_dot-1)),
+                    @sprintf("−%.1f", low*10^(digits_after_dot-1)),
                     @sprintf("+%.1f", high*10^(digits_after_dot-1))
                 ),
                 " ) × 10",
-                Makie.superscript(@sprintf("-%d", digits_after_dot-1))
+                Makie.superscript(@sprintf("−%d", digits_after_dot-1))
             )
         end
     else
         if round(low, digits=digits_after_dot) == round(high, digits=digits_after_dot)
             title = Makie.rich(
-                _fmt_fixed(digits_after_dot, mid),
+                _fmt(mid, digits_after_dot),
                 " ± ",
                 @sprintf("%.*f", digits_after_dot, high),
             )
         else
             title = Makie.rich(
-                _fmt_fixed(digits_after_dot, mid),
+                _fmt(mid, digits_after_dot),
                 Makie.left_subsup(
-                    @sprintf("-%.*f", digits_after_dot, low),
+                    @sprintf("−%.*f", digits_after_dot, low),
                     @sprintf("+%.*f", digits_after_dot, high),
                 )
             )
@@ -742,7 +737,10 @@ function pairplot(
     legend=(;),
     flipaxislabels=false
 )
-    return update(grid) do grid
+    # Every panel and diagonal layer recomputes the ESS of the same columns;
+    # share the results across this call (see `_ess`).
+    return _with_ess_cache() do
+    update(grid) do grid
 
         display_bottomleft_axes = any(k.bottomleft for (k,v) in pairs)
         display_topright_axes = any(k.topright for (k,v) in pairs)
@@ -762,6 +760,10 @@ function pairplot(
             tbl = series.table
             t_col = TableOperations.dropmissing(tbl)
             tbl_not_missing = Tables.columntable(t_col)
+            # `dropmissing` keeps a `Union{Missing,T}` eltype, so each later
+            # `disallowmissing` call would allocate a fresh copy of the column
+            # (and defeat the ESS cache). Narrow the eltype once here instead.
+            tbl_not_missing = map(_narrow_missing, tbl_not_missing)
             len_before = nrows(tbl)
             len_after = nrows(tbl_not_missing)
             push!(missing_counts, len_before - len_after)
@@ -1013,7 +1015,7 @@ function pairplot(
             if !anydiag_viz
                 M -= 1
             end
-            pos = grid[begin,end+1] 
+            pos = grid[begin,end+1]
 
             Makie.Legend(
                 pos,
@@ -1068,6 +1070,7 @@ function pairplot(
         end
 
         return
+    end
     end
 
 end
@@ -1134,7 +1137,7 @@ function diagplot(ax::Makie.Axis, viz::MarginHist, series::AbstractSeries, colna
     else
         # Determine the number of bins to use, and allow series or
         # visualization layer to override.
-        n_ess_dat = MCMCDiagnosticTools.ess(dat)
+        n_ess_dat = _ess(dat)
         if !isfinite(n_ess_dat)
             n_ess_dat = length(dat)
         end
@@ -1180,7 +1183,7 @@ function diagplot(ax::Makie.Axis, viz::MarginStepHist, series::AbstractSeries, c
     else
         # Determine the number of bins to use, and allow series or
         # visualization layer to override.
-        n_ess_dat = MCMCDiagnosticTools.ess(dat)
+        n_ess_dat = _ess(dat)
         if !isfinite(n_ess_dat)
             n_ess_dat = length(dat)
         end
@@ -1274,7 +1277,7 @@ function diagplot(ax::Makie.Axis, viz::MarginQuantileText, series::AbstractSerie
         prev_title = Makie.rich(prev_title, "\n")
     end
     ax.title = Makie.rich(prev_title, title; series.kwargs..., viz.kwargs...)
-    
+
     return
 end
 
@@ -1294,7 +1297,7 @@ function diagplot(ax::Makie.Axis, viz::MarginQuantileText, series::Truth, colnam
         Makie.rich(title; series.kwargs..., viz.kwargs...)
     end
     ax.title = Makie.rich(prev_title, new_title)
-    
+
     return
 end
 
@@ -1364,7 +1367,7 @@ function bodyplot(ax::Makie.Axis, viz::HexBin, series::AbstractSeries, colname_r
         else
             # Determine the number of bins to use, and allow series or
             # visualization layer to override.
-            n_ess_dat = MCMCDiagnosticTools.ess(X)
+            n_ess_dat = _ess(X)
             if !isfinite(n_ess_dat)
                 n_ess_dat = length(X)
             end
@@ -1377,7 +1380,7 @@ function bodyplot(ax::Makie.Axis, viz::HexBin, series::AbstractSeries, colname_r
         else
             # Determine the number of bins to use, and allow series or
             # visualization layer to override.
-            n_ess_dat = MCMCDiagnosticTools.ess(Y)
+            n_ess_dat = _ess(Y)
             if !isfinite(n_ess_dat)
                 n_ess_dat = length(Y)
             end
@@ -1646,6 +1649,42 @@ function bodyplot(ax::Makie.Axis, viz::BodyLines, series::AbstractSeries, colnam
     end
 end
 
+# Effective sample size, memoised for the duration of one `pairplot` call.
+#
+# With the default layers each column's ESS is otherwise computed many times:
+# twice per HexBin panel, twice per KDE (Contour, Contourf, Scatter with
+# `filtersigma`) and once per marginal layer. The cache lives in task-local
+# storage so it is scoped to a single call, is safe when several plots are made
+# concurrently on different tasks, and needs no change to the signatures of
+# `bodyplot`/`diagplot`, which user-defined layers may extend.
+#
+# Columns are keyed by object identity. The IdDict holds a reference to each key,
+# so an id cannot be reused by another array while the cache is alive. Columns
+# that are re-materialised on each access (e.g. by `ustrip` of a unitful column)
+# simply miss the cache and are computed as before.
+const _ESS_CACHE_KEY = :PairPlots_ess_cache
+
+function _with_ess_cache(f)
+    # A nested `pairplot` call reuses the outer cache.
+    haskey(task_local_storage(), _ESS_CACHE_KEY) && return f()
+    # Values are `Any` to keep `ess`'s own return type (e.g. Float32 for Float32 data).
+    return task_local_storage(f, _ESS_CACHE_KEY, IdDict{Any,Any}())
+end
+
+# Drop `Missing` from a column's eltype once no missing values remain. A column of
+# only `Missing` (no non-missing type to narrow to) is returned unchanged.
+function _narrow_missing(col)
+    T = eltype(col)
+    (Missing <: T && nonmissingtype(T) !== Union{}) || return col
+    return disallowmissing(col)
+end
+
+function _ess(data)
+    cache = get(task_local_storage(), _ESS_CACHE_KEY, nothing)
+    cache === nothing && return MCMCDiagnosticTools.ess(data)
+    return get!(() -> MCMCDiagnosticTools.ess(data), cache, data)
+end
+
 # Bandwidth calculations using ESS instead of sample size
 # Adapted from KernelDensity.jl
 # Silverman's rule of thumb for KDE bandwidth selection
@@ -1655,7 +1694,7 @@ function default_bandwidth_ess(data::AbstractVector{<:Real}, alpha::Float64 = 0.
     ndata <= 1 && return alpha
 
     # n_ess = 20050 # MCMCDiagnosticTools.ess(data)
-    n_ess = MCMCDiagnosticTools.ess(data)
+    n_ess = _ess(data)
     # n_ess = length(data)
 
     if n_ess <= 1 || !isfinite(n_ess)
@@ -1736,18 +1775,18 @@ function process_ring_contours(contours::ContourLib.ContourLevel)
     # Group contours by connectivity
     disconnected_groups = Vector{Vector{Curve2}}()
     remaining = Set(1:length(contours.lines))
-    
+
     while !isempty(remaining)
         group = Vector{Curve2}()
         start_idx = first(remaining)
         to_check = [start_idx]
-        
+
         while !isempty(to_check)
             current = pop!(to_check)
             delete!(remaining, current)
             current_curve = contours.lines[current]
             push!(group, current_curve)
-            
+
             # Check remaining curves for connectivity
             for idx in copy(remaining)
                 if curves_interact(current_curve, contours.lines[idx])
@@ -1757,21 +1796,21 @@ function process_ring_contours(contours::ContourLib.ContourLevel)
         end
         push!(disconnected_groups, group)
     end
-    
+
     # Process each group into a polygon
     polygons = map(disconnected_groups) do group
-        areas = [polygon_area(Point2f[Point2f(x,y) for (x,y) in curve.vertices]) 
+        areas = [polygon_area(Point2f[Point2f(x,y) for (x,y) in curve.vertices])
                 for curve in group]
         outer_idx = argmin(areas)
         outer_curve = group[outer_idx]
-        
+
         inner_curves = Vector{Point2f}[Point2f[Point2f(x,y) for (x,y) in curve.vertices]
                         for (i, curve) in enumerate(group)
                         if i != outer_idx && is_inside(first(curve.vertices), outer_curve.vertices)]
-        
+
         Polygon(Point2f[Point2f(x,y) for (x,y) in outer_curve.vertices], inner_curves)
     end
-    
+
     return polygons
 end
 
@@ -1863,4 +1902,3 @@ include("defaults.jl")
 include("precompile.jl")
 
 end
-
